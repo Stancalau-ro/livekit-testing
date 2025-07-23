@@ -1,4 +1,4 @@
-package ro.stancalau.testframework.docker;
+package ro.stancalau.test.framework.docker;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -29,18 +29,32 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         this.network = network;
     }
 
-    public static LiveKitContainer createContainer(String alias, Network network) {
+    public static LiveKitContainer createContainer(String alias, Network network, String configFilePath, String livekitVersion) {
         String logDirPath = "out/bdd/docker/livekit/" + alias;
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
 
-        String livekitVersion = "v1.8.4";
+        String liveKitImage = "local/livekit:" + livekitVersion;
 
-        LiveKitContainer container = new LiveKitContainer("local/livekit:" + livekitVersion, network)
+        DockerImageUtils.ensureDockerImageExists(liveKitImage, "Docker/livekit");
+
+        LiveKitContainer container = new LiveKitContainer(liveKitImage, network)
                 .withExposedPorts(HTTP_PORT)
                 .withFileSystemBind(logDirRoot.getAbsolutePath(),
-                        "/var/log", BindMode.READ_WRITE)
-                .withEnv("TZ", ZoneId.systemDefault().toString())
+                        "/var/log", BindMode.READ_WRITE);
+
+        if (configFilePath != null && !configFilePath.isEmpty()) {
+            File configFile = new File(configFilePath);
+            if (configFile.exists()) {
+                container = container.withFileSystemBind(configFile.getAbsolutePath(),
+                        "/config.yaml", BindMode.READ_ONLY);
+                log.info("Binding config file {} to container", configFilePath);
+            } else {
+                log.warn("Config file not found: {}", configFilePath);
+            }
+        }
+
+        container = container.withEnv("TZ", ZoneId.systemDefault().toString())
                 .withExtraHost("host.docker.internal", "host-gateway")
                 .withNetwork(network)
                 .withNetworkAliases(alias);
@@ -50,8 +64,24 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         return container;
     }
 
+    public static LiveKitContainer createContainer(String alias, Network network, String configFilePath) {
+        return createContainer(alias, network, configFilePath, "v1.8.4");
+    }
+
+    public static LiveKitContainer createContainer(String alias, Network network) {
+        return createContainer(alias, network, null, "v1.8.4");
+    }
+
     public static LiveKitContainer createContainer(Network network) {
-        return createContainer(DEFAULT_SERVER_ALIAS, network);
+        return createContainer(DEFAULT_SERVER_ALIAS, network, null, "v1.8.4");
+    }
+
+    public static LiveKitContainer createContainer(Network network, String configFilePath) {
+        return createContainer(DEFAULT_SERVER_ALIAS, network, configFilePath, "v1.8.4");
+    }
+
+    public static LiveKitContainer createContainer(Network network, String configFilePath, String livekitVersion) {
+        return createContainer(DEFAULT_SERVER_ALIAS, network, configFilePath, livekitVersion);
     }
 
     public String getHttpLink() {
@@ -72,5 +102,6 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         }
         return getNetworkAliases().get(0);
     }
+
 
 }

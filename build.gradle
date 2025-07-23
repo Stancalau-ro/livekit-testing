@@ -11,8 +11,10 @@ repositories {
 
 dependencies {
     annotationProcessor "org.projectlombok:lombok:$lombok_version"
+    testAnnotationProcessor "org.projectlombok:lombok:$lombok_version"
 
     implementation "org.projectlombok:lombok:$lombok_version"
+    testImplementation "org.projectlombok:lombok:$lombok_version"
 
     implementation "org.testcontainers:selenium:$selenium_container_version"
     implementation "org.testcontainers:testcontainers:$test_containers_version"
@@ -24,9 +26,15 @@ dependencies {
     testImplementation platform("org.junit:junit-bom:$junit_version")
     testImplementation 'org.junit.jupiter:junit-jupiter'
 
+    implementation "ch.qos.logback:logback-classic:$logback_version"
+
     implementation "io.livekit:livekit-server:$livekit_server_version"
 }
 
 test {
     useJUnitPlatform()
+}
+
+clean {
+    delete 'out'
 }
