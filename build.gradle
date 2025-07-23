@@ -1,0 +1,32 @@
+plugins {
+    id 'java'
+}
+
+group = 'ro.stancalau.livekit'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor "org.projectlombok:lombok:$lombok_version"
+
+    implementation "org.projectlombok:lombok:$lombok_version"
+
+    implementation "org.testcontainers:selenium:$selenium_container_version"
+    implementation "org.testcontainers:testcontainers:$test_containers_version"
+
+    implementation "org.seleniumhq.selenium:selenium-java:$selenium_version"
+    implementation "org.seleniumhq.selenium:selenium-chrome-driver:$selenium_version"
+    implementation "org.seleniumhq.selenium:selenium-remote-driver:$selenium_version"
+
+    testImplementation platform("org.junit:junit-bom:$junit_version")
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    implementation "io.livekit:livekit-server:$livekit_server_version"
+}
+
+test {
+    useJUnitPlatform()
+}
