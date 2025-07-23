@@ -34,7 +34,9 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
 
-        LiveKitContainer container = new LiveKitContainer("stancalau/livekit:v1.8.4", network)
+        String livekitVersion = "v1.8.4";
+
+        LiveKitContainer container = new LiveKitContainer("local/livekit:" + livekitVersion, network)
                 .withExposedPorts(HTTP_PORT)
                 .withFileSystemBind(logDirRoot.getAbsolutePath(),
                         "/var/log", BindMode.READ_WRITE)
