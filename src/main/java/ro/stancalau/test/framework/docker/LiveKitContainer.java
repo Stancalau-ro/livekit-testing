@@ -6,6 +6,7 @@ import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.time.ZoneId;
 import java.util.Objects;
@@ -29,7 +30,7 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         this.network = network;
     }
 
-    public static LiveKitContainer createContainer(String alias, Network network, String configFilePath, String livekitVersion) {
+    public static LiveKitContainer createContainer(String alias, Network network, String livekitVersion, @Nullable String configFilePath) {
         String logDirPath = "out/bdd/docker/livekit/" + alias;
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
@@ -65,23 +66,23 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
     }
 
     public static LiveKitContainer createContainer(String alias, Network network, String configFilePath) {
-        return createContainer(alias, network, configFilePath, "v1.8.4");
+        return createContainer(alias, network, "v1.8.4", configFilePath);
     }
 
     public static LiveKitContainer createContainer(String alias, Network network) {
-        return createContainer(alias, network, null, "v1.8.4");
+        return createContainer(alias, network, "v1.8.4", null);
     }
 
     public static LiveKitContainer createContainer(Network network) {
-        return createContainer(DEFAULT_SERVER_ALIAS, network, null, "v1.8.4");
+        return createContainer(DEFAULT_SERVER_ALIAS, network, "v1.8.4", null);
     }
 
     public static LiveKitContainer createContainer(Network network, String configFilePath) {
-        return createContainer(DEFAULT_SERVER_ALIAS, network, configFilePath, "v1.8.4");
+        return createContainer(DEFAULT_SERVER_ALIAS, network, "v1.8.4", configFilePath);
     }
 
     public static LiveKitContainer createContainer(Network network, String configFilePath, String livekitVersion) {
-        return createContainer(DEFAULT_SERVER_ALIAS, network, configFilePath, livekitVersion);
+        return createContainer(DEFAULT_SERVER_ALIAS, network, livekitVersion, configFilePath);
     }
 
     public String getHttpLink() {

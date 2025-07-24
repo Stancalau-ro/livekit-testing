@@ -4,8 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class LiveKitContainerTest {
@@ -17,7 +16,7 @@ public class LiveKitContainerTest {
         try (Network network = Network.newNetwork()) {
             String configPath = "src/test/resources/livekit/config/config.yaml";
             String livekitVersion = "v1.8.4";
-            LiveKitContainer container = LiveKitContainer.createContainer("test-livekit", network, configPath, livekitVersion);
+            LiveKitContainer container = LiveKitContainer.createContainer("test-livekit", network, livekitVersion, configPath);
             
             assertNotNull(container, "Container should be created");
             
@@ -35,10 +34,8 @@ public class LiveKitContainerTest {
             log.info("LiveKit Network WebSocket: {}", networkWs);
             
             log.info("LiveKit container test completed successfully");
-            
         } catch (Exception e) {
-            log.error("LiveKit container test failed", e);
-            throw e;
+            fail("LiveKit container test failed", e);
         }
     }
 }
