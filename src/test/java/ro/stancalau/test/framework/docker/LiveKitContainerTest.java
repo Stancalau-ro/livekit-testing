@@ -3,6 +3,7 @@ package ro.stancalau.test.framework.docker;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.testcontainers.containers.Network;
+import ro.stancalau.test.framework.factory.LiveKitContainerFactory;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,8 +16,7 @@ public class LiveKitContainerTest {
         
         try (Network network = Network.newNetwork()) {
             String configPath = "src/test/resources/livekit/config/config.yaml";
-            String livekitVersion = "v1.8.4";
-            LiveKitContainer container = LiveKitContainer.createContainer("test-livekit", network, livekitVersion, configPath);
+            LiveKitContainer container = LiveKitContainerFactory.createIntegrationTestContainer("test-livekit", network);
             
             assertNotNull(container, "Container should be created");
             

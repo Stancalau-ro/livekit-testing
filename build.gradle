@@ -25,6 +25,10 @@ dependencies {
 
     testImplementation platform("org.junit:junit-bom:$junit_version")
     testImplementation 'org.junit.jupiter:junit-jupiter'
+    testImplementation "org.junit.platform:junit-platform-suite:$junit_platform_suite_version"
+
+    testImplementation "io.cucumber:cucumber-java:$cucumber_version"
+    testImplementation "io.cucumber:cucumber-junit-platform-engine:$cucumber_junit_platform_version"
 
     implementation "ch.qos.logback:logback-classic:$logback_version"
 
@@ -33,6 +37,14 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    
+    // Pass LiveKit version from gradle.properties to tests
+    systemProperty 'livekit.version', project.findProperty('livekit_docker_version') ?: 'v1.8.4'
+    
+    // Allow overriding via command line: ./gradlew test -Plivekit_docker_version=v1.8.5
+    if (project.hasProperty('livekit_docker_version')) {
+        systemProperty 'livekit.version', project.property('livekit_docker_version')
+    }
 }
 
 clean {
