@@ -53,6 +53,12 @@ This is a **LiveKit testing framework** that provides Docker-based integration t
 
 ### 2. State Management Layer (`src/test/java/ro/stancalau/test/bdd/state/`)
 
+**ContainerStateManager:** Singleton for centralized Docker container and network management:
+- Manages shared Docker network accessible across all step definition classes
+- Registers and tracks multiple service containers by name
+- Provides type-safe container retrieval with generic methods
+- Handles cleanup of all containers and network resources
+
 **AccessTokenStateManager:** Central state manager for BDD tests that:
 - Manages LiveKit access tokens by identity and room using `Map<Identity, Map<RoomName, AccessToken>>`
 - Supports dynamic VideoGrant parsing for all 17 grant types (CanPublish, RoomAdmin, etc.)
@@ -68,7 +74,8 @@ This is a **LiveKit testing framework** that provides Docker-based integration t
 
 **BDD Tests** (`src/test/java/ro/stancalau/test/bdd/`):
 - Cucumber integration with Gherkin feature files
-- `LiveKitAccessTokenSteps`: Step definitions with lifecycle management
+- `LiveKitLifecycleSteps`: Container lifecycle and infrastructure management
+- `LiveKitAccessTokenSteps`: Access token creation and validation steps
 - `RunCucumberTests`: JUnit Platform Suite for Cucumber execution
 
 ## Key Integration Points

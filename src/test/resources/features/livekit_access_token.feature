@@ -4,8 +4,7 @@ Feature: LiveKit Access Token Generation
   So that I can authenticate clients with the LiveKit server
 
   Background:
-    Given a LiveKit server is running in a container
-    And LiveKit server credentials are available
+    Given a LiveKit server is running in a container with service name "livekit"
 
   Scenario: Generate access token with publish room permissions for Bob
     When an access token is created with identity "Bob" and room "BobsRoom" with publish permissions

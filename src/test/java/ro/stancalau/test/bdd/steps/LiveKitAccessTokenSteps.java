@@ -26,13 +26,6 @@ public class LiveKitAccessTokenSteps {
         stateManager = new AccessTokenStateManager(apiKey, apiSecret);
     }
 
-    @Given("LiveKit server credentials are available")
-    public void liveKitServerCredentialsAreAvailable() {
-        log.info("Setting up LiveKit server credentials");
-        assertNotNull(apiKey, "API key should be configured");
-        assertNotNull(apiSecret, "API secret should be configured");
-    }
-
     @When("an access token is created with identity {string} and room {string}")
     public void anAccessTokenIsCreatedWithIdentityAndRoom(String identity, String roomName) {
         AccessToken token = stateManager.createTokenWithRoom(identity, roomName);
@@ -117,7 +110,6 @@ public class LiveKitAccessTokenSteps {
         log.info("Waiting for {} seconds", seconds);
         Thread.sleep(seconds * 1000L);
     }
-
 
     @Then("the access token for {string} in room {string} should be valid")
     public void theAccessTokenForInRoomShouldBeValid(String identity, String roomName) {
