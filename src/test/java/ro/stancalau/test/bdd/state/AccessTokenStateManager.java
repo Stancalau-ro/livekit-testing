@@ -20,16 +20,7 @@ public class AccessTokenStateManager {
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
     }
-    
-    public AccessToken createToken(String identity) {
-        log.info("Creating access token for user: {}", identity);
-        AccessToken token = new AccessToken(apiKey, apiSecret);
-        token.setIdentity(identity);
-        
-        tokens.computeIfAbsent(identity, k -> new HashMap<>()).put(null, token);
-        return token;
-    }
-    
+
     public AccessToken createTokenWithRoom(String identity, String roomName) {
         return createTokenWithRoomAndPermissions(identity, roomName, false, false);
     }
@@ -59,24 +50,98 @@ public class AccessTokenStateManager {
         return token;
     }
     
-    public AccessToken createTokenWithExpiration(String identity, int hours) {
-        log.info("Creating access token for user: {} with expiration in {} hour(s)", identity, hours);
+    public AccessToken createTokenWithDynamicGrants(String identity, String roomName, List<String> grantStrings, Map<String, String> customAttributes) {
+        log.info("Creating access token for user: {} in room: {} with grants: {} and attributes: {}", 
+                identity, roomName, grantStrings, customAttributes);
+        
         AccessToken token = new AccessToken(apiKey, apiSecret);
         token.setIdentity(identity);
         
-        long ttlMillis = Duration.ofHours(hours).toMillis();
-        token.setTtl(ttlMillis);
+        // Add custom attributes
+        if (customAttributes != null && !customAttributes.isEmpty()) {
+            for (Map.Entry<String, String> entry : customAttributes.entrySet()) {
+                token.getAttributes().put(entry.getKey(), entry.getValue());
+            }
+        }
         
-        tokens.computeIfAbsent(identity, k -> new HashMap<>()).put(null, token);
+        // Always add RoomName and RoomJoin for room-based tokens
+        List<VideoGrant> grants = new ArrayList<>();
+        grants.add(new RoomName(roomName));
+        grants.add(new RoomJoin(true));
+        
+        // Parse and add additional grants dynamically
+        grants.addAll(parseGrants(grantStrings, roomName));
+        
+        if (!grants.isEmpty()) {
+            token.addGrants(grants.toArray(new VideoGrant[0]));
+        }
+        
+        tokens.computeIfAbsent(identity, k -> new HashMap<>()).put(roomName, token);
         return token;
     }
     
-    public AccessToken createTokenWithExpirationSeconds(String identity, int seconds) {
-        log.info("Creating access token for user: {} with expiration in {} second(s)", identity, seconds);
+    private List<VideoGrant> parseGrants(List<String> grantStrings, String roomName) {
+        List<VideoGrant> grants = new ArrayList<>();
+        
+        for (String grantString : grantStrings) {
+            String[] parts = grantString.trim().split(":");
+            String grantType = parts[0].toLowerCase();
+            String value = parts.length > 1 ? parts[1] : "true";
+            
+            switch (grantType) {
+                case "roomjoin":
+                    grants.add(new RoomJoin(Boolean.parseBoolean(value)));
+                    break;
+                case "canpublish":
+                    grants.add(new CanPublish(Boolean.parseBoolean(value)));
+                    break;
+                case "cansubscribe":
+                    grants.add(new CanSubscribe(Boolean.parseBoolean(value)));
+                    break;
+                case "canpublishdata":
+                    grants.add(new CanPublishData(Boolean.parseBoolean(value)));
+                    break;
+                case "canupdateownmetadata":
+                    grants.add(new CanUpdateOwnMetadata(Boolean.parseBoolean(value)));
+                    break;
+                case "roomcreate":
+                    grants.add(new RoomCreate(Boolean.parseBoolean(value)));
+                    break;
+                case "roomlist":
+                    grants.add(new RoomList(Boolean.parseBoolean(value)));
+                    break;
+                case "roomrecord":
+                    grants.add(new RoomRecord(Boolean.parseBoolean(value)));
+                    break;
+                case "roomadmin":
+                    grants.add(new RoomAdmin(Boolean.parseBoolean(value)));
+                    break;
+                case "hidden":
+                    grants.add(new Hidden(Boolean.parseBoolean(value)));
+                    break;
+                case "recorder":
+                    grants.add(new Recorder(Boolean.parseBoolean(value)));
+                    break;
+                case "ingressadmin":
+                    grants.add(new IngressAdmin(Boolean.parseBoolean(value)));
+                    break;
+                case "agent":
+                    grants.add(new Agent(Boolean.parseBoolean(value)));
+                    break;
+                default:
+                    log.warn("Unknown grant type: {}", grantType);
+                    break;
+            }
+        }
+        
+        return grants;
+    }
+
+    public AccessToken createTokenWithExpiration(String identity, long ttlMillis) {
+        log.info("Creating access token for user: {} with expiration in {} second(s)", identity, ttlMillis);
         AccessToken token = new AccessToken(apiKey, apiSecret);
         token.setIdentity(identity);
         
-        long ttlMillis = Duration.ofSeconds(seconds).toMillis();
         token.setTtl(ttlMillis);
         
         tokens.computeIfAbsent(identity, k -> new HashMap<>()).put(null, token);
@@ -90,25 +155,9 @@ public class AccessTokenStateManager {
         }
         return userTokens.get(roomName);
     }
-    
-    public AccessToken getLastToken(String identity) {
-        Map<String, AccessToken> userTokens = tokens.get(identity);
-        if (userTokens == null) {
-            return null;
-        }
-        // Return first token if only one exists, otherwise null for ambiguity
-        if (userTokens.size() == 1) {
-            return userTokens.values().iterator().next();
-        }
-        return null;
-    }
-    
+
     public boolean hasToken(String identity, String roomName) {
         return getLastToken(identity, roomName) != null;
-    }
-    
-    public boolean hasToken(String identity) {
-        return tokens.containsKey(identity) && !tokens.get(identity).isEmpty();
     }
     
     public void clearAll() {

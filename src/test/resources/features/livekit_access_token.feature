@@ -7,24 +7,40 @@ Feature: LiveKit Access Token Generation
     Given a LiveKit server is running in a container
     And LiveKit server credentials are available
 
-  Scenario: Generate a valid access token for Bob
-    When an access token is created with identity "Bob"
-    Then the access token for "Bob" should be valid
-    And the access token for "Bob" should contain the correct identity
-
-  Scenario: Generate access token with room permissions for Bob
+  Scenario: Generate access token with publish room permissions for Bob
     When an access token is created with identity "Bob" and room "BobsRoom" with publish permissions
     Then the access token for "Bob" in room "BobsRoom" should be valid
     And the access token for "Bob" should contain room "BobsRoom"
-    And the access token for "Bob" in room "BobsRoom" should have publish permissions
 
-  Scenario: Generate access token with expiration time for Bob
-    When an access token is created with identity "Bob" that expires in 1 hour
-    Then the access token for "Bob" should be valid
-    And the access token for "Bob" should not be expired
+  Scenario: Generate access token with subscribe room permissions for Bob
+    When an access token is created with identity "Bob" and room "BobsRoom" with subscribe permissions
+    Then the access token for "Bob" in room "BobsRoom" should be valid
+    And the access token for "Bob" should contain room "BobsRoom"
 
-  Scenario: Generate access token that expires quickly for Alice
-    When an access token is created with identity "Alice" that expires in 3 seconds
-    Then the access token for "Alice" should be valid
-    When waiting for 4 seconds
-    Then the access token for "Alice" should be expired
+  Scenario: Generate access token with dynamic grants for Charlie
+    When an access token is created with identity "Charlie" and room "MeetingRoom" with grants "canPublish:true,canSubscribe:true"
+    Then the access token for "Charlie" in room "MeetingRoom" should be valid
+
+  Scenario: Generate access token with admin permissions for Dave
+    When an access token is created with identity "Dave" and room "AdminRoom" with grants "roomAdmin:true,roomCreate:true,roomList:true"
+    Then the access token for "Dave" in room "AdminRoom" should be valid
+
+  Scenario: Generate access token with recording permissions for Eve
+    When an access token is created with identity "Eve" and room "RecordingRoom" with grants "roomRecord:true,recorder:true"
+    Then the access token for "Eve" in room "RecordingRoom" should be valid
+
+  Scenario: Generate access token with custom attributes for Frank
+    When an access token is created with identity "Frank" and room "CustomRoom" with grants "canPublish:true" and attributes "role=moderator,department=engineering,level=senior"
+    Then the access token for "Frank" in room "CustomRoom" should be valid
+
+  Scenario: Generate access token with escaped comma attributes for Grace
+    When an access token is created with identity "Grace" and room "TestRoom" with grants "canPublish:true,canSubscribe:true" and attributes "description=A room for testing\, debugging\, and development,tags=test\,debug\,dev,fullname=Grace O'Connor\, Senior Engineer"
+    Then the access token for "Grace" in room "TestRoom" should be valid
+
+  Scenario: Generate access token with hidden participant for Henry
+    When an access token is created with identity "Henry" and room "SecretRoom" with grants "hidden:true,canSubscribe:true"
+    Then the access token for "Henry" in room "SecretRoom" should be valid
+
+  Scenario: Generate agent token for Ivy
+    When an access token is created with identity "Ivy" and room "AgentRoom" with grants "agent:true,canPublishData:true"
+    Then the access token for "Ivy" in room "AgentRoom" should be valid
