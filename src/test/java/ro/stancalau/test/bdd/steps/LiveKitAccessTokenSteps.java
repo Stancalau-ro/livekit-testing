@@ -110,6 +110,40 @@ public class LiveKitAccessTokenSteps {
         assertNotNull(token, "Access token should be created");
     }
 
+    @When("an access token is created with identity {string} and room {string} with grants {string} that expires in {int} seconds")
+    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsThatExpiresInSeconds(String identity, String roomName, String grantsString, int seconds) {
+        List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
+        long ttlMillis = seconds * 1000L;
+        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
+        assertNotNull(token, "Access token should be created");
+    }
+
+    @When("an access token is created with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} seconds")
+    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsAndAttributesThatExpiresInSeconds(String identity, String roomName, String grantsString, String attributesString, int seconds) {
+        List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
+        Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
+        long ttlMillis = seconds * 1000L;
+        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, attributes, ttlMillis);
+        assertNotNull(token, "Access token should be created");
+    }
+
+    @When("an access token is created with identity {string} and room {string} with grants {string} that expires in {int} minutes")
+    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsThatExpiresInMinutes(String identity, String roomName, String grantsString, int minutes) {
+        List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
+        long ttlMillis = minutes * 60 * 1000L;
+        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
+        assertNotNull(token, "Access token should be created");
+    }
+
+    @When("an access token is created with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} minutes")
+    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsAndAttributesThatExpiresInMinutes(String identity, String roomName, String grantsString, String attributesString, int minutes) {
+        List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
+        Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
+        long ttlMillis = minutes * 60 * 1000L;
+        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, attributes, ttlMillis);
+        assertNotNull(token, "Access token should be created");
+    }
+
     @When("waiting for {int} seconds")
     public void waitingForSeconds(int seconds) throws InterruptedException {
         log.info("Waiting for {} seconds", seconds);
@@ -134,5 +168,6 @@ public class LiveKitAccessTokenSteps {
         log.info("Verifying access token for {} contains room: {}", identity, expectedRoom);
         assertTrue(stateManager.hasTokenForRoom(expectedRoom), "Token for room " + expectedRoom + " should exist");
     }
+
 
 }

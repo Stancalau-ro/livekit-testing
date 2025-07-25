@@ -44,3 +44,19 @@ Feature: LiveKit Access Token Generation
   Scenario: Generate agent token for Ivy
     When an access token is created with identity "Ivy" and room "AgentRoom" with grants "agent:true,canPublishData:true"
     Then the access token for "Ivy" in room "AgentRoom" should be valid
+
+  Scenario: Generate access token with expiration for Jack
+    When an access token is created with identity "Jack" and room "TempRoom" with grants "canPublish:true,canSubscribe:true" that expires in 30 seconds
+    Then the access token for "Jack" in room "TempRoom" should be valid
+
+  Scenario: Generate access token with long expiration for Kate
+    When an access token is created with identity "Kate" and room "LongTermRoom" with grants "roomAdmin:true" that expires in 60 minutes
+    Then the access token for "Kate" in room "LongTermRoom" should be valid
+
+  Scenario: Generate access token with expiration and custom attributes for Leo
+    When an access token is created with identity "Leo" and room "CustomExpRoom" with grants "canPublish:true,canSubscribe:true" and attributes "role=presenter,session=demo" that expires in 45 seconds
+    Then the access token for "Leo" in room "CustomExpRoom" should be valid
+
+  Scenario: Generate access token with minute-based expiration for Maya
+    When an access token is created with identity "Maya" and room "MeetingRoom" with grants "roomRecord:true,canPublish:true" and attributes "department=marketing,level=manager" that expires in 2 minutes
+    Then the access token for "Maya" in room "MeetingRoom" should be valid

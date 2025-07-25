@@ -118,7 +118,7 @@ And attributes "description=Testing\, debugging\, development,role=admin"
 ## Best Practices
 
 - **Code Writing:**
-  - Never write code before explaining what your approach will be
+  - Create an overview of the changes and ask for approval before coding
 
 ## Enterprise-Level Project Considerations
 

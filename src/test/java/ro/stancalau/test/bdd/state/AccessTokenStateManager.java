@@ -51,11 +51,20 @@ public class AccessTokenStateManager {
     }
     
     public AccessToken createTokenWithDynamicGrants(String identity, String roomName, List<String> grantStrings, Map<String, String> customAttributes) {
-        log.info("Creating access token for user: {} in room: {} with grants: {} and attributes: {}", 
-                identity, roomName, grantStrings, customAttributes);
+        return createTokenWithDynamicGrants(identity, roomName, grantStrings, customAttributes, null);
+    }
+    
+    public AccessToken createTokenWithDynamicGrants(String identity, String roomName, List<String> grantStrings, Map<String, String> customAttributes, Long ttlMillis) {
+        log.info("Creating access token for user: {} in room: {} with grants: {}, attributes: {}, and TTL: {} ms", 
+                identity, roomName, grantStrings, customAttributes, ttlMillis);
         
         AccessToken token = new AccessToken(apiKey, apiSecret);
         token.setIdentity(identity);
+        
+        // Set expiration if provided
+        if (ttlMillis != null) {
+            token.setTtl(ttlMillis);
+        }
         
         // Add custom attributes
         if (customAttributes != null && !customAttributes.isEmpty()) {
