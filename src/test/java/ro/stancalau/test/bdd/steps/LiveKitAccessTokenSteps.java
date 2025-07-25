@@ -1,16 +1,12 @@
 package ro.stancalau.test.bdd.steps;
 
-import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.livekit.server.*;
 import lombok.extern.slf4j.Slf4j;
-import org.testcontainers.containers.Network;
 import ro.stancalau.test.bdd.state.AccessTokenStateManager;
-import ro.stancalau.test.framework.docker.LiveKitContainer;
-import ro.stancalau.test.framework.factory.LiveKitContainerFactory;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.util.*;
@@ -20,42 +16,14 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 public class LiveKitAccessTokenSteps {
 
-    private Network network;
-    private LiveKitContainer liveKitContainer;
     private AccessTokenStateManager stateManager;
     private String apiKey = "devkey";
     private String apiSecret = "secret";
 
     @Before
     public void setUp() {
-        log.info("Setting up LiveKit BDD test environment");
-        network = Network.newNetwork();
+        log.info("Setting up access token state manager");
         stateManager = new AccessTokenStateManager(apiKey, apiSecret);
-    }
-
-    @After
-    public void tearDown() {
-        log.info("Tearing down LiveKit BDD test environment");
-        if (stateManager != null) {
-            stateManager.clearAll();
-        }
-        if (liveKitContainer != null && liveKitContainer.isRunning()) {
-            liveKitContainer.stop();
-        }
-        if (network != null) {
-            network.close();
-        }
-    }
-
-    @Given("a LiveKit server is running in a container")
-    public void aLiveKitServerIsRunningInAContainer() {
-        log.info("Starting LiveKit container for BDD test");
-        String configPath = "src/test/resources/livekit/config/config.yaml";
-        liveKitContainer = LiveKitContainerFactory.createBddContainer("bdd-livekit", network, configPath);
-        liveKitContainer.start();
-        
-        assertTrue(liveKitContainer.isRunning(), "LiveKit container should be running");
-        log.info("LiveKit container started successfully at: {}", liveKitContainer.getHttpLink());
     }
 
     @Given("LiveKit server credentials are available")
