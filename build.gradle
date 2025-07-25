@@ -33,6 +33,7 @@ dependencies {
     implementation "ch.qos.logback:logback-classic:$logback_version"
 
     implementation "io.livekit:livekit-server:$livekit_server_version"
+    testImplementation "com.auth0:java-jwt:$auth0_jwt_version"
 }
 
 test {
