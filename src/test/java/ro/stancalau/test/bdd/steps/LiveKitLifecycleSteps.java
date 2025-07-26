@@ -9,7 +9,7 @@ import ro.stancalau.test.bdd.state.ContainerStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.factory.LiveKitContainerFactory;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 public class LiveKitLifecycleSteps {
@@ -17,18 +17,15 @@ public class LiveKitLifecycleSteps {
     private ContainerStateManager containerManager;
 
     @Before
-    public void setUp() {
-        log.info("Setting up LiveKit lifecycle environment");
+    public void setUpLiveKitLifecycleSteps() {
         containerManager = ContainerStateManager.getInstance();
     }
 
     @After
-    public void tearDown() {
-        log.info("Tearing down LiveKit lifecycle environment");
+    public void tearDownLiveKitLifecycleSteps() {
         if (containerManager != null) {
-            containerManager.cleanup();
+            containerManager.cleanup(LiveKitContainer.class);
         }
-        ContainerStateManager.reset();
     }
 
     @Given("a LiveKit server is running in a container with service name {string}")
@@ -39,12 +36,12 @@ public class LiveKitLifecycleSteps {
             
             String configPath = "src/test/resources/livekit/config/config.yaml";
             LiveKitContainer liveKitContainer = LiveKitContainerFactory.createBddContainer(serviceName, network, configPath);
-            
-            containerManager.registerContainer(serviceName, liveKitContainer);
+
             liveKitContainer.start();
-            
-            assertTrue(containerManager.isContainerRunning(serviceName), "LiveKit container with service name " + serviceName + " should be running");
+            assertTrue(liveKitContainer.isRunning(), "LiveKit container with service name " + serviceName + " should be running");
+
             log.info("LiveKit container started successfully at: {}", liveKitContainer.getHttpLink());
+            containerManager.registerContainer(serviceName, liveKitContainer);
         } else {
             log.info("LiveKit container with service name {} is already running", serviceName);
         }

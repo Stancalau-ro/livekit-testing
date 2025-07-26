@@ -1,18 +1,21 @@
 package ro.stancalau.test.bdd.steps;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.Claim;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.Before;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import io.cucumber.datatable.DataTable;
-import io.livekit.server.*;
+import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
 import ro.stancalau.test.bdd.state.AccessTokenStateManager;
+import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.util.StringParsingUtils;
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.interfaces.DecodedJWT;
-import com.auth0.jwt.interfaces.Claim;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -20,13 +23,10 @@ import static org.junit.jupiter.api.Assertions.*;
 public class LiveKitAccessTokenSteps {
 
     private AccessTokenStateManager stateManager;
-    private String apiKey = "devkey";
-    private String apiSecret = "secret";
 
     @Before
-    public void setUp() {
-        log.info("Setting up access token state manager");
-        stateManager = new AccessTokenStateManager(apiKey, apiSecret);
+    public void setUpLiveKitAccessTokenSteps() {
+        stateManager = new AccessTokenStateManager(LiveKitContainer.API_KEY, LiveKitContainer.SECRET);
     }
 
     @When("an access token is created with identity {string} and room {string}")

@@ -88,17 +88,19 @@ public class ContainerStateManager {
             network = null;
         }
     }
-    
-    public void cleanup() {
-        log.info("Cleaning up all containers and network");
-        stopAllContainers();
-        closeNetwork();
-    }
-    
-    public static void reset() {
-        if (instance != null) {
-            instance.cleanup();
-            instance = null;
+
+    public void cleanup(Class<? extends GenericContainer> clazz) {
+        log.info("Cleaning up all containers of type: {}", clazz.getName());
+
+        for (Map.Entry<String, GenericContainer<?>> entry : containers.entrySet()) {
+            String serviceName = entry.getKey();
+            GenericContainer<?> container = entry.getValue();
+            if (container.isRunning() && clazz.isInstance(container)) {
+                log.info("Stopping container for service: {}", serviceName);
+                container.stop();
+            }
         }
+        containers.clear();
     }
+
 }
