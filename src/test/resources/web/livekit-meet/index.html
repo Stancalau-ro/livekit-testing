@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveKit Meet - Local Test Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .logo {
+            width: 64px;
+            height: 64px;
+            background: #007aff;
+            border-radius: 12px;
+            margin: 0 auto 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        h1 {
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+        
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+        
+        .button {
+            width: 100%;
+            padding: 14px;
+            background: #007aff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-bottom: 1rem;
+        }
+        
+        .button:hover {
+            background: #0056b3;
+        }
+        
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .meeting-room {
+            display: none;
+            text-align: center;
+        }
+        
+        .video-container {
+            background: #000;
+            border-radius: 8px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            margin-bottom: 1rem;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        
+        .control-btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .mute-btn {
+            background: #ff3b30;
+            color: white;
+        }
+        
+        .camera-btn {
+            background: #34c759;
+            color: white;
+        }
+        
+        .leave-btn {
+            background: #ff9500;
+            color: white;
+        }
+        
+        .status {
+            margin-top: 1rem;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            color: #d63031;
+            border: 1px solid #fab1a0;
+        }
+        
+        .success {
+            background: #eef;
+            color: #00b894;
+            border: 1px solid #81ecec;
+        }
+        
+        .url-display {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            word-break: break-all;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="joinForm" class="join-form">
+            <div class="header">
+                <div class="logo">LK</div>
+                <h1>LiveKit Meet</h1>
+                <p class="subtitle">Test page for local development and testing</p>
+            </div>
+            
+            <form id="meetingForm">
+                <div class="form-group">
+                    <label for="liveKitUrl">LiveKit Server URL:</label>
+                    <input type="text" id="liveKitUrl" name="liveKitUrl" 
+                           placeholder="ws://localhost:7880" value="ws://localhost:7880">
+                </div>
+                
+                <div class="form-group">
+                    <label for="token">Access Token:</label>
+                    <input type="text" id="token" name="token" 
+                           placeholder="Enter your LiveKit access token" value="test">
+                </div>
+                
+                <div class="form-group">
+                    <label for="roomName">Room Name:</label>
+                    <input type="text" id="roomName" name="roomName" 
+                           placeholder="Enter room name" value="TestRoom">
+                </div>
+                
+                <div class="form-group">
+                    <label for="participantName">Your Name:</label>
+                    <input type="text" id="participantName" name="participantName" 
+                           placeholder="Enter your name" value="Test User">
+                </div>
+                
+                <button type="submit" class="button">Join Meeting</button>
+            </form>
+            
+            <div id="urlDisplay" class="url-display" style="display: none;">
+                <strong>Current URL:</strong> <span id="currentUrl"></span>
+            </div>
+            
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div id="meetingRoom" class="meeting-room">
+            <div class="header">
+                <h2>Meeting Room: <span id="roomTitle"></span></h2>
+            </div>
+            
+            <div class="video-container">
+                <div>Video feed would appear here<br><small>This is a mock interface for testing</small></div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-btn mute-btn" id="muteBtn">Mute</button>
+                <button class="control-btn camera-btn" id="cameraBtn">Camera Off</button>
+                <button class="control-btn leave-btn" id="leaveBtn">Leave</button>
+            </div>
+            
+            <div id="connectionStatus" class="status">
+                Connected to: <span id="serverUrl"></span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Mock LiveKit functionality for testing
+        class MockLiveKitClient {
+            constructor() {
+                this.connected = false;
+                this.muted = false;
+                this.cameraOff = false;
+            }
+            
+            async connect(url, token, roomName, participantName) {
+                // Simulate connection delay
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Validate basic parameters
+                if (!url || !token || !roomName || !participantName) {
+                    throw new Error('Missing required parameters');
+                }
+                
+                // Simple validation for localhost URLs
+                if (!url.includes('localhost') && !url.includes('127.0.0.1')) {
+                    console.warn('Non-localhost URL detected:', url);
+                }
+                
+                this.connected = true;
+                this.url = url;
+                this.roomName = roomName;
+                this.participantName = participantName;
+                
+                return {
+                    room: roomName,
+                    participant: participantName,
+                    url: url
+                };
+            }
+            
+            disconnect() {
+                this.connected = false;
+                this.muted = false;
+                this.cameraOff = false;
+            }
+            
+            toggleMute() {
+                this.muted = !this.muted;
+                return this.muted;
+            }
+            
+            toggleCamera() {
+                this.cameraOff = !this.cameraOff;
+                return this.cameraOff;
+            }
+        }
+        
+        const client = new MockLiveKitClient();
+        
+        // DOM elements
+        const joinForm = document.getElementById('joinForm');
+        const meetingRoom = document.getElementById('meetingRoom');
+        const meetingForm = document.getElementById('meetingForm');
+        const statusDiv = document.getElementById('status');
+        const urlDisplay = document.getElementById('urlDisplay');
+        const currentUrlSpan = document.getElementById('currentUrl');
+        
+        // Form inputs
+        const liveKitUrlInput = document.getElementById('liveKitUrl');
+        const tokenInput = document.getElementById('token');
+        const roomNameInput = document.getElementById('roomName');
+        const participantNameInput = document.getElementById('participantName');
+        
+        // Meeting room elements
+        const roomTitle = document.getElementById('roomTitle');
+        const serverUrl = document.getElementById('serverUrl');
+        const muteBtn = document.getElementById('muteBtn');
+        const cameraBtn = document.getElementById('cameraBtn');
+        const leaveBtn = document.getElementById('leaveBtn');
+        
+        // Parse URL parameters on load and populate all fields
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Populate all form fields from query string parameters
+            const fields = [
+                { param: 'liveKitUrl', element: liveKitUrlInput, default: 'ws://localhost:7880' },
+                { param: 'token', element: tokenInput, default: 'test' },
+                { param: 'roomName', element: roomNameInput, default: 'TestRoom' },
+                { param: 'participantName', element: participantNameInput, default: 'Test User' }
+            ];
+            
+            fields.forEach(field => {
+                const paramValue = urlParams.get(field.param);
+                if (paramValue) {
+                    field.element.value = paramValue;
+                } else if (!field.element.value) {
+                    // Only set default if field is empty
+                    field.element.value = field.default;
+                }
+            });
+            
+            // Show current URL if query parameters exist
+            if (window.location.search) {
+                currentUrlSpan.textContent = window.location.href;
+                urlDisplay.style.display = 'block';
+            }
+            
+            // Auto-submit form if autoJoin parameter is present
+            if (urlParams.get('autoJoin') === 'true') {
+                // Add small delay to ensure page is fully loaded
+                setTimeout(() => {
+                    meetingForm.dispatchEvent(new Event('submit', { bubbles: true }));
+                }, 100);
+            }
+        });
+        
+        // Handle form submission
+        meetingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const liveKitUrl = liveKitUrlInput.value.trim();
+            const token = tokenInput.value.trim();
+            const roomName = roomNameInput.value.trim();
+            const participantName = participantNameInput.value.trim();
+            
+            if (!liveKitUrl || !token || !roomName || !participantName) {
+                showStatus('Please fill in all fields', 'error');
+                return;
+            }
+            
+            showStatus('Connecting to LiveKit server...', 'info');
+            
+            try {
+                const result = await client.connect(liveKitUrl, token, roomName, participantName);
+                
+                // Update URL with parameters
+                const url = new URL(window.location);
+                url.searchParams.set('liveKitUrl', liveKitUrl);
+                url.searchParams.set('token', token);
+                url.searchParams.set('roomName', roomName);
+                url.searchParams.set('participantName', participantName);
+                window.history.pushState({}, '', url);
+                
+                // Show meeting room
+                showMeetingRoom(result);
+                
+            } catch (error) {
+                showStatus(`Connection failed: ${error.message}`, 'error');
+            }
+        });
+        
+        // Control buttons
+        muteBtn.addEventListener('click', () => {
+            const muted = client.toggleMute();
+            muteBtn.textContent = muted ? 'Unmute' : 'Mute';
+            muteBtn.style.background = muted ? '#ff9500' : '#ff3b30';
+        });
+        
+        cameraBtn.addEventListener('click', () => {
+            const cameraOff = client.toggleCamera();
+            cameraBtn.textContent = cameraOff ? 'Camera On' : 'Camera Off';
+            cameraBtn.style.background = cameraOff ? '#ff9500' : '#34c759';
+        });
+        
+        leaveBtn.addEventListener('click', () => {
+            client.disconnect();
+            showJoinForm();
+        });
+        
+        function showStatus(message, type = 'info') {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+            statusDiv.style.display = 'block';
+            
+            if (type !== 'error') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 3000);
+            }
+        }
+        
+        function showMeetingRoom(result) {
+            joinForm.style.display = 'none';
+            meetingRoom.style.display = 'block';
+            
+            roomTitle.textContent = result.room;
+            serverUrl.textContent = result.url;
+            
+            showStatus(`Connected to room "${result.room}" as "${result.participant}"`, 'success');
+        }
+        
+        function showJoinForm() {
+            meetingRoom.style.display = 'none';
+            joinForm.style.display = 'block';
+            
+            // Reset button states
+            muteBtn.textContent = 'Mute';
+            muteBtn.style.background = '#ff3b30';
+            cameraBtn.textContent = 'Camera Off';
+            cameraBtn.style.background = '#34c759';
+            
+            showStatus('Left the meeting', 'info');
+        }
+    </script>
+</body>
+</html>

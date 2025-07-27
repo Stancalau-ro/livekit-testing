@@ -17,6 +17,10 @@ public class SeleniumConfig {
 
     private WebDriver driver;
 
+    public SeleniumConfig(String browser) {
+        this(browser, null);
+    }
+
     public SeleniumConfig(String browser, String allowInsecureUrl) {
         if (browser.contains("firefox")) {
             FirefoxOptions options = getFirefoxOptions();

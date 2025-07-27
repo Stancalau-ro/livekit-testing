@@ -25,7 +25,7 @@ public class LiveKitRoomSteps {
     @Before
     public void setUpLiveKitRoomSteps() {
         containerManager = ContainerStateManager.getInstance();
-        roomClientManager = new RoomClientStateManager(containerManager);
+        roomClientManager = RoomClientStateManager.getInstance();
     }
 
     @After

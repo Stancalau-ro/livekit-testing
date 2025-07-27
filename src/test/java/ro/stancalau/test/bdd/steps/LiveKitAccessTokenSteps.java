@@ -26,7 +26,7 @@ public class LiveKitAccessTokenSteps {
 
     @Before
     public void setUpLiveKitAccessTokenSteps() {
-        stateManager = new AccessTokenStateManager(LiveKitContainer.API_KEY, LiveKitContainer.SECRET);
+        stateManager = AccessTokenStateManager.getInstance();
     }
 
     @When("an access token is created with identity {string} and room {string}")

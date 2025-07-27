@@ -2,6 +2,7 @@ package ro.stancalau.test.bdd.state;
 
 import io.livekit.server.*;
 import lombok.extern.slf4j.Slf4j;
+import ro.stancalau.test.framework.docker.LiveKitContainer;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -12,13 +13,21 @@ import java.util.Map;
 @Slf4j
 public class AccessTokenStateManager {
     
+    private static AccessTokenStateManager instance;
     private final String apiKey;
     private final String apiSecret;
     private final Map<String, Map<String, AccessToken>> tokens = new HashMap<>();
     
-    public AccessTokenStateManager(String apiKey, String apiSecret) {
+    private AccessTokenStateManager(String apiKey, String apiSecret) {
         this.apiKey = apiKey;
         this.apiSecret = apiSecret;
+    }
+    
+    public static AccessTokenStateManager getInstance() {
+        if (instance == null) {
+            instance = new AccessTokenStateManager(LiveKitContainer.API_KEY, LiveKitContainer.SECRET);
+        }
+        return instance;
     }
 
     public AccessToken createTokenWithRoom(String identity, String roomName) {

@@ -13,11 +13,19 @@ import java.util.Map;
 @Slf4j
 public class RoomClientStateManager {
 
+    private static RoomClientStateManager instance;
     private final ContainerStateManager containerStateManager;
     private final Map<String, RoomServiceClient> roomServiceClients = new HashMap<>();
 
-    public RoomClientStateManager(ContainerStateManager containerStateManager) {
+    private RoomClientStateManager(ContainerStateManager containerStateManager) {
         this.containerStateManager = containerStateManager;
+    }
+    
+    public static RoomClientStateManager getInstance() {
+        if (instance == null) {
+            instance = new RoomClientStateManager(ContainerStateManager.getInstance());
+        }
+        return instance;
     }
 
     public RoomServiceClient getRoomServiceClient(String serviceName) {
