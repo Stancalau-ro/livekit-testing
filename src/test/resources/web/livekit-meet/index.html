@@ -9,87 +9,95 @@
 <body>
     <div class="container">
         <div id="joinForm" class="join-form">
-            <div class="header">
-                <div class="logo">LK</div>
-                <h1>LiveKit Meet</h1>
-                <p class="subtitle">Real WebRTC testing with LiveKit</p>
+            <div class="join-form-content">
+                <div class="header">
+                    <div class="logo">LK</div>
+                    <h1>LiveKit Meet</h1>
+                    <p class="subtitle">Real WebRTC testing with LiveKit</p>
+                </div>
+                
+                <form id="meetingForm">
+                    <div class="form-group">
+                        <label for="liveKitUrl">LiveKit Server URL:</label>
+                        <input type="text" id="liveKitUrl" name="liveKitUrl" 
+                               placeholder="ws://localhost:7880" value="ws://localhost:7880" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="token">Access Token:</label>
+                        <input type="text" id="token" name="token" 
+                               placeholder="Enter your LiveKit access token" value="test" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="roomName">Room Name:</label>
+                        <input type="text" id="roomName" name="roomName" 
+                               placeholder="Enter room name" value="TestRoom" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="participantName">Your Name:</label>
+                        <input type="text" id="participantName" name="participantName" 
+                               placeholder="Enter your name" value="Test User" required>
+                    </div>
+                    
+                    <button type="submit" class="button" id="joinBtn">Join Meeting</button>
+                </form>
+                
+                <div id="status" class="status" style="display: block;">Page loading...</div>
             </div>
             
-            <form id="meetingForm">
-                <div class="form-group">
-                    <label for="liveKitUrl">LiveKit Server URL:</label>
-                    <input type="text" id="liveKitUrl" name="liveKitUrl" 
-                           placeholder="ws://localhost:7880" value="ws://localhost:7880" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="token">Access Token:</label>
-                    <input type="text" id="token" name="token" 
-                           placeholder="Enter your LiveKit access token" value="test" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="roomName">Room Name:</label>
-                    <input type="text" id="roomName" name="roomName" 
-                           placeholder="Enter room name" value="TestRoom" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="participantName">Your Name:</label>
-                    <input type="text" id="participantName" name="participantName" 
-                           placeholder="Enter your name" value="Test User" required>
-                </div>
-                
-                <button type="submit" class="button" id="joinBtn">Join Meeting</button>
-            </form>
-            
-            <div id="status" class="status" style="display: block;">Page loading...</div>
-            
-            <div id="autoJoinStatus" class="detailed-status" style="display: block;">
-                <h3>Auto-Join Status:</h3>
-                <div id="autoJoinSteps">
-                    <div class="status-step pending" id="auto-step-params">⏳ Checking URL parameters...</div>
-                    <div class="status-step pending" id="auto-step-fields">⏳ Populating form fields...</div>
-                    <div class="status-step pending" id="auto-step-submit">⏳ Auto-submitting form...</div>
+            <div class="join-form-logs">
+                <div id="autoJoinStatus" class="detailed-status" style="display: block;">
+                    <h3>Auto-Join Status:</h3>
+                    <div id="autoJoinSteps">
+                        <div class="status-step pending" id="auto-step-params">⏳ Checking URL parameters...</div>
+                        <div class="status-step pending" id="auto-step-fields">⏳ Populating form fields...</div>
+                        <div class="status-step pending" id="auto-step-submit">⏳ Auto-submitting form...</div>
+                    </div>
                 </div>
             </div>
         </div>
         
         <div id="meetingRoom" class="meeting-room">
-            <div class="header">
-                <h2>Meeting Room: <span id="roomTitle"></span></h2>
-            </div>
-            
-            <div class="video-container">
-                <video id="localVideo" class="video-element" autoplay muted playsinline></video>
-                <div id="noVideoMessage" style="display: none;">Camera Off</div>
-            </div>
-            
-            <div id="remoteVideos" class="remote-videos"></div>
-            
-            <div class="controls">
-                <button class="control-btn mute-btn" id="muteBtn">Unmute</button>
-                <button class="control-btn camera-btn" id="cameraBtn">Camera On</button>
-                <button class="control-btn leave-btn" id="leaveBtn">Leave</button>
-            </div>
-            
-            <div id="connectionStatus" class="status info">
-                Initializing...
-            </div>
-            
-            <div id="detailedStatus" class="detailed-status">
-                <h3>Connection Progress:</h3>
-                <div id="statusSteps">
-                    <div class="status-step" id="step-sdk-load">🔄 Loading LiveKit SDK...</div>
-                    <div class="status-step" id="step-media">⏳ Accessing camera and microphone...</div>
-                    <div class="status-step" id="step-room">⏳ Creating room instance...</div>
-                    <div class="status-step" id="step-connect">⏳ Connecting to LiveKit server...</div>
-                    <div class="status-step" id="step-webrtc">⏳ Establishing WebRTC connection...</div>
-                    <div class="status-step" id="step-complete">⏳ Finalizing connection...</div>
+            <div class="meeting-content">
+                <div class="header">
+                    <h2>Meeting Room: <span id="roomTitle"></span></h2>
                 </div>
-                <div id="technicalDetails" class="technical-details">
-                    <h4>Technical Details:</h4>
-                    <div id="techInfo"></div>
+                
+                <div class="video-container">
+                    <video id="localVideo" class="video-element" autoplay muted playsinline></video>
+                    <div id="noVideoMessage" style="display: none;">Camera Off</div>
+                </div>
+                
+                <div id="remoteVideos" class="remote-videos"></div>
+                
+                <div class="controls">
+                    <button class="control-btn mute-btn" id="muteBtn">Unmute</button>
+                    <button class="control-btn camera-btn" id="cameraBtn">Camera On</button>
+                    <button class="control-btn leave-btn" id="leaveBtn">Leave</button>
+                </div>
+                
+                <div id="connectionStatus" class="status info">
+                    Initializing...
+                </div>
+            </div>
+            
+            <div class="meeting-logs">
+                <div id="detailedStatus" class="detailed-status">
+                    <h3>Connection Progress:</h3>
+                    <div id="statusSteps">
+                        <div class="status-step" id="step-sdk-load">🔄 Loading LiveKit SDK...</div>
+                        <div class="status-step" id="step-media">⏳ Accessing camera and microphone...</div>
+                        <div class="status-step" id="step-room">⏳ Creating room instance...</div>
+                        <div class="status-step" id="step-connect">⏳ Connecting to LiveKit server...</div>
+                        <div class="status-step" id="step-webrtc">⏳ Establishing WebRTC connection...</div>
+                        <div class="status-step" id="step-complete">⏳ Finalizing connection...</div>
+                    </div>
+                    <div id="technicalDetails" class="technical-details">
+                        <h4>Technical Details:</h4>
+                        <div id="techInfo"></div>
+                    </div>
                 </div>
             </div>
         </div>

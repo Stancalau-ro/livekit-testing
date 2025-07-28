@@ -486,7 +486,7 @@ class LiveKitMeetClient {
     
     showMeetingRoom(roomName) {
         this.joinForm.style.display = 'none';
-        this.meetingRoom.style.display = 'block';
+        this.meetingRoom.style.display = 'flex';
         this.roomTitle.textContent = roomName;
     }
     

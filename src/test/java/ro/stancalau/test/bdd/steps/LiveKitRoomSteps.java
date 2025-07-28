@@ -18,13 +18,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Slf4j
 public class LiveKitRoomSteps {
 
-    private ContainerStateManager containerManager;
     private RoomClientStateManager roomClientManager;
     private List<LivekitModels.Room> lastFetchedRooms;
 
     @Before
     public void setUpLiveKitRoomSteps() {
-        containerManager = ContainerStateManager.getInstance();
         roomClientManager = RoomClientStateManager.getInstance();
     }
 
@@ -76,7 +74,6 @@ public class LiveKitRoomSteps {
     public void fetchAllRoomsFromService(String serviceName) {
         lastFetchedRooms = getRooms(serviceName);
     }
-
 
     @Then("the room count should be {int}")
     public void theRoomCountShouldBe(int expectedCount) {

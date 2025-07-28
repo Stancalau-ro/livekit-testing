@@ -16,6 +16,7 @@ import ro.stancalau.test.framework.state.RoomClientStateManager;
 import ro.stancalau.test.framework.state.WebDriverStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
+import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -76,12 +77,6 @@ public class LiveKitWebrtcSteps {
         }
     }
 
-    @When("I open a Chrome browser with LiveKit Meet page")
-    public void iOpenAChromeBrowserWithLiveKitMeetPage() {
-        log.info("Opening Chrome browser for WebRTC testing");
-        WebDriver driver = webDriverManager.createWebDriver("meet", "default", "chrome");
-        assertNotNull(driver, "Chrome browser should be initialized");
-    }
 
     @When("I open a Chrome browser with LiveKit Meet page as {string}")
     public void iOpenAChromeBrowserWithLiveKitMeetPageAs(String participantId) {
@@ -90,20 +85,14 @@ public class LiveKitWebrtcSteps {
         assertNotNull(driver, "Chrome browser should be initialized for " + participantId);
     }
 
-    @When("I open another Chrome browser with LiveKit Meet page as {string}")
-    public void iOpenAnotherChromeBrowserWithLiveKitMeetPageAs(String participantId) {
-        iOpenAChromeBrowserWithLiveKitMeetPageAs(participantId);
-    }
 
     @When("I connect to room {string} as {string} using the access token")
     public void iConnectToRoomAsUsingTheAccessToken(String roomName, String participantName) {
         AccessToken token = accessTokenManager.getLastToken(participantName, roomName);
         assertNotNull(token, "Access token should exist for " + participantName + " in room " + roomName);
         
-        // Determine actor name - use "default" for single participant scenarios, participantName for multi-participant
-        String actorName = webDriverManager.hasWebDriver("meet", participantName) ? participantName : "default";
-        WebDriver driver = webDriverManager.getWebDriver("meet", actorName);
-        assertNotNull(driver, "WebDriver should exist for actor: " + actorName);
+        WebDriver driver = webDriverManager.getWebDriver("meet", participantName);
+        assertNotNull(driver, "WebDriver should exist for participant: " + participantName);
         
         String liveKitUrl = getLiveKitServerUrl();
         String tokenString = token.toJwt();
@@ -115,27 +104,25 @@ public class LiveKitWebrtcSteps {
         assertNotNull(meetInstance, "LiveKitMeet instance should be created");
     }
 
-    @And("I wait for successful connection")
-    public void iWaitForSuccessfulConnection() {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
+    @And("I wait for successful connection for {string}")
+    public void iWaitForSuccessfulConnectionFor(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         
         try {
             boolean connected = meetInstance.waitForConnection();
             if (!connected) {
-                // Get detailed error information from the page before failing
                 String errorDetails = meetInstance.getPageErrorDetails();
-                String failureMessage = "Should successfully connect to the meeting";
+                String failureMessage = participantName + " should successfully connect to the meeting";
                 if (errorDetails != null && !errorDetails.trim().isEmpty()) {
                     failureMessage += ". Browser error: " + errorDetails;
                 }
                 fail(failureMessage);
             }
-            log.info("Successfully connected to meeting");
+            log.info("{} successfully connected to meeting", participantName);
         } catch (Exception e) {
-            // Capture any additional error details from the page
             String errorDetails = meetInstance.getPageErrorDetails();
-            String failureMessage = "Connection failed with exception: " + e.getMessage();
+            String failureMessage = "Connection failed for " + participantName + " with exception: " + e.getMessage();
             if (errorDetails != null && !errorDetails.trim().isEmpty()) {
                 failureMessage += ". Browser error: " + errorDetails;
             }
@@ -143,58 +130,55 @@ public class LiveKitWebrtcSteps {
         }
     }
 
-    @Then("the connection should be successful")
-    public void theConnectionShouldBeSuccessful() {
-        iWaitForSuccessfulConnection();
+    @Then("the connection should be successful for {string}")
+    public void theConnectionShouldBeSuccessfulFor(String participantName) {
+        iWaitForSuccessfulConnectionFor(participantName);
     }
 
-    @Then("I should be in the meeting room")
-    public void iShouldBeInTheMeetingRoom() {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
-        assertTrue(meetInstance.isInMeetingRoom(), "Should be in meeting room");
-        log.info("Verified user is in meeting room");
+    @Then("{string} should be in the meeting room")
+    public void participantShouldBeInTheMeetingRoom(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        assertTrue(meetInstance.isInMeetingRoom(), participantName + " should be in meeting room");
+        log.info("Verified {} is in meeting room", participantName);
     }
 
-    @Then("the meeting room should be visible")
-    public void theMeetingRoomShouldBeVisible() {
-        iShouldBeInTheMeetingRoom();
-    }
 
-    @Then("the room name should display {string}")
-    public void theRoomNameShouldDisplay(String expectedRoomName) {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
+    @Then("{string} should see room name {string}")
+    public void participantShouldSeeRoomName(String participantName, String expectedRoomName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         String actualRoomName = meetInstance.getCurrentRoomName();
-        assertEquals(expectedRoomName, actualRoomName, "Room name should match expected value");
-        log.info("Verified room name displays correctly: {}", actualRoomName);
+        assertEquals(expectedRoomName, actualRoomName, participantName + " should see correct room name");
+        log.info("Verified {} sees room name: {}", participantName, actualRoomName);
     }
 
-    @And("I can toggle camera controls")
-    public void iCanToggleCameraControls() {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
+    @And("{string} can toggle camera controls")
+    public void participantCanToggleCameraControls(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         meetInstance.toggleCamera();
         meetInstance.toggleCamera();
-        log.info("Successfully toggled camera controls");
+        log.info("{} successfully toggled camera controls", participantName);
     }
 
-    @And("I can toggle mute controls")
-    public void iCanToggleMuteControls() {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
+    @And("{string} can toggle mute controls")
+    public void participantCanToggleMuteControls(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         meetInstance.toggleMute();
         meetInstance.toggleMute();
-        log.info("Successfully toggled mute controls");
+        log.info("{} successfully toggled mute controls", participantName);
     }
 
-    @Then("both participants should be connected to the meeting room")
-    public void bothParticipantsShouldBeConnectedToTheMeetingRoom() {
-        assertEquals(2, meetInstances.size(), "Should have exactly 2 meet instances");
+    @Then("participants {string} should be connected to the meeting room")
+    public void participantsShouldBeConnectedToTheMeetingRoom(String participantList) {
+        String[] participants = StringParsingUtils.parseCommaSeparatedList(participantList).toArray(new String[0]);
+        assertEquals(participants.length, meetInstances.size(), "Should have exactly " + participants.length + " meet instances");
         
-        for (Map.Entry<String, LiveKitMeet> entry : meetInstances.entrySet()) {
-            String participantName = entry.getKey();
-            LiveKitMeet meetInstance = entry.getValue();
+        for (String participantName : participants) {
+            LiveKitMeet meetInstance = meetInstances.get(participantName);
+            assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
             
             boolean connected = meetInstance.waitForConnection();
             assertTrue(connected, "Participant " + participantName + " should be connected");
@@ -204,11 +188,13 @@ public class LiveKitWebrtcSteps {
         }
     }
 
-    @Then("both participants should see room name {string}")
-    public void bothParticipantsShouldSeeRoomName(String expectedRoomName) {
-        for (Map.Entry<String, LiveKitMeet> entry : meetInstances.entrySet()) {
-            String participantName = entry.getKey();
-            LiveKitMeet meetInstance = entry.getValue();
+    @Then("participants {string} should see room name {string}")
+    public void participantsShouldSeeRoomName(String participantList, String expectedRoomName) {
+        String[] participants = StringParsingUtils.parseCommaSeparatedList(participantList).toArray(new String[0]);
+        
+        for (String participantName : participants) {
+            LiveKitMeet meetInstance = meetInstances.get(participantName);
+            assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
             
             String actualRoomName = meetInstance.getCurrentRoomName();
             assertEquals(expectedRoomName, actualRoomName, 
@@ -218,36 +204,36 @@ public class LiveKitWebrtcSteps {
         }
     }
 
-    @And("I leave the meeting")
-    public void iLeaveTheMeeting() {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
+    @And("{string} leaves the meeting")
+    public void participantLeavesTheMeeting(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         meetInstance.stop();
-        log.info("Left the meeting");
+        log.info("{} left the meeting", participantName);
     }
 
-    @Then("I should be disconnected from the room")
-    public void iShouldBeDisconnectedFromTheRoom() {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
+    @Then("{string} should be disconnected from the room")
+    public void participantShouldBeDisconnectedFromTheRoom(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         boolean disconnected = meetInstance.disconnected();
-        assertTrue(disconnected, "Should be disconnected from the room");
-        log.info("Verified disconnection from room");
+        assertTrue(disconnected, participantName + " should be disconnected from the room");
+        log.info("Verified {} is disconnected from room", participantName);
     }
 
-    @Then("the join form should be visible again")
-    public void theJoinFormShouldBeVisibleAgain() {
-        LiveKitMeet meetInstance = getDefaultMeetInstance();
-        assertNotNull(meetInstance, "Meet instance should exist");
-        assertTrue(meetInstance.isJoinFormVisible(), "Join form should be visible");
-        log.info("Verified join form is visible again");
+    @Then("{string} should see the join form again")
+    public void participantShouldSeeTheJoinFormAgain(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        assertTrue(meetInstance.isJoinFormVisible(), "Join form should be visible for " + participantName);
+        log.info("Verified {} sees join form again", participantName);
     }
 
-    @And("I close the browser")
-    public void iCloseTheBrowser() {
-        webDriverManager.closeWebDriver("meet", "default");
-        meetInstances.remove("default");
-        log.info("Closed browser");
+    @And("{string} closes the browser")
+    public void participantClosesTheBrowser(String participantName) {
+        webDriverManager.closeWebDriver("meet", participantName);
+        meetInstances.remove(participantName);
+        log.info("{} closed browser", participantName);
     }
 
     @Then("the room should still exist in the LiveKit server")
@@ -276,15 +262,4 @@ public class LiveKitWebrtcSteps {
         return container.getNetworkWs();
     }
     
-    /**
-     * Get the default meet instance - used for single participant scenarios
-     */
-    private LiveKitMeet getDefaultMeetInstance() {
-        // First try to find a single meet instance
-        if (meetInstances.size() == 1) {
-            return meetInstances.values().iterator().next();
-        }
-        // Otherwise look for the "default" entry
-        return meetInstances.get("default");
-    }
 }
