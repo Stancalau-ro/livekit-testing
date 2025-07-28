@@ -72,8 +72,8 @@ public class LiveKitRoomSteps {
         }
     }
 
-    @When("I fetch all rooms from service {string}")
-    public void fetchAllRoomsFromService(String serviceName) {
+    @When("all rooms are fetched from service {string}")
+    public void allRoomsAreFetchedFromService(String serviceName) {
         lastFetchedRooms = getRooms(serviceName);
     }
 
@@ -83,8 +83,8 @@ public class LiveKitRoomSteps {
         assertEquals(expectedCount, lastFetchedRooms.size(), "Room count does not match expected value");
     }
 
-    @When("I create a room {string} using service {string}")
-    public void createARoomUsingService(String roomName, String serviceName) {
+    @When("room {string} is created using service {string}")
+    public void aRoomIsCreatedUsingService(String roomName, String serviceName) {
         LivekitModels.Room createdRoom = createRoom(serviceName, roomName);
         assertNotNull(createdRoom, "Room should have been created");
         log.info("Created room '{}' with SID: {} using service '{}'", roomName, createdRoom.getSid(), serviceName);
@@ -106,7 +106,7 @@ public class LiveKitRoomSteps {
         }
     }
 
-    @Then("the room {string} should exist in service {string}")
+    @Then("room {string} should exist in service {string}")
     public void theRoomShouldExistInService(String roomName, String serviceName) {
         List<LivekitModels.Room> rooms = getRooms(serviceName);
         boolean roomExists = rooms.stream().anyMatch(room -> roomName.equals(room.getName()));
@@ -114,7 +114,7 @@ public class LiveKitRoomSteps {
         log.info("Verified room '{}' exists in service '{}'", roomName, serviceName);
     }
 
-    @Then("the room {string} should have {int} active participants in service {string}")
+    @Then("room {string} should have {int} active participants in service {string}")
     public void theRoomShouldHaveActiveParticipantsInService(String roomName, int expectedCount, String serviceName) {
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
         assertEquals(expectedCount, participants.size(), "Room '" + roomName + "' should have " + expectedCount + " active participants");

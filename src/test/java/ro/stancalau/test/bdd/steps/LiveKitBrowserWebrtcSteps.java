@@ -75,16 +75,16 @@ public class LiveKitBrowserWebrtcSteps {
     }
 
 
-    @When("I open a Chrome browser with LiveKit Meet page as {string}")
-    public void iOpenAChromeBrowserWithLiveKitMeetPageAs(String participantId) {
+    @When("{string} opens a Chrome browser with LiveKit Meet page")
+    public void opensAChromeBrowserWithLiveKitMeetPage(String participantId) {
         log.info("Opening Chrome browser for participant: {}", participantId);
         WebDriver driver = webDriverManager.createWebDriver("meet", participantId, "chrome");
         assertNotNull(driver, "Chrome browser should be initialized for " + participantId);
     }
 
 
-    @When("I connect to room {string} as {string} using the access token")
-    public void iConnectToRoomAsUsingTheAccessToken(String roomName, String participantName) {
+    @When("{string} connects to room {string} using the access token")
+    public void connectsToRoomUsingTheAccessToken(String participantName, String roomName) {
         AccessToken token = accessTokenManager.getLastToken(participantName, roomName);
         assertNotNull(token, "Access token should exist for " + participantName + " in room " + roomName);
         
@@ -101,8 +101,8 @@ public class LiveKitBrowserWebrtcSteps {
         assertNotNull(meetInstance, "LiveKitMeet instance should be created");
     }
 
-    @And("I wait for successful connection for {string}")
-    public void iWaitForSuccessfulConnectionFor(String participantName) {
+    @And("connection is established successfully for {string}")
+    public void connectionIsEstablishedSuccessfullyFor(String participantName) {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         
@@ -129,7 +129,7 @@ public class LiveKitBrowserWebrtcSteps {
 
     @Then("the connection should be successful for {string}")
     public void theConnectionShouldBeSuccessfulFor(String participantName) {
-        iWaitForSuccessfulConnectionFor(participantName);
+        connectionIsEstablishedSuccessfullyFor(participantName);
     }
 
     @And("{string} can toggle camera controls")
