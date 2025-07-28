@@ -1,4 +1,4 @@
-package ro.stancalau.test.bdd.state;
+package ro.stancalau.test.framework.state;
 
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
@@ -7,7 +7,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.VncRecordingContainer;
 import org.testcontainers.lifecycle.TestDescription;
 import ro.stancalau.test.framework.selenium.SeleniumConfig;
-import ro.stancalau.test.util.TestConfig;
+import ro.stancalau.test.framework.util.TestConfig;
 
 import java.io.File;
 import java.util.HashMap;
@@ -23,13 +23,12 @@ public class WebDriverStateManager {
     private final Map<String, WebDriver> webDrivers = new ConcurrentHashMap<>();
     private final Map<String, BrowserWebDriverContainer<?>> browserContainers = new ConcurrentHashMap<>();
     private final Map<String, TestDescription> testDescriptions = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> testResults = new ConcurrentHashMap<>(); // Track test success/failure
+    private final Map<String, Boolean> testResults = new ConcurrentHashMap<>();
     private final ContainerStateManager containerStateManager;
     private final File recDir;
     
     private WebDriverStateManager() {
         this.containerStateManager = ContainerStateManager.getInstance();
-        // Use absolute path to ensure recordings are saved in correct location
         this.recDir = new File(System.getProperty("user.dir"), "out/bdd/browser-recordings");
         this.recDir.mkdirs();
         log.info("Browser recordings will be saved to: {}", this.recDir.getAbsolutePath());
@@ -62,17 +61,14 @@ public class WebDriverStateManager {
         BrowserWebDriverContainer<?> browserContainer = createBrowserContainer(key, browser);
         WebDriver driver = browserContainer.getWebDriver();
         
-        // Create TestDescription for recording
         TestDescription testDescription = createTestDescription(key);
         testDescriptions.put(key, testDescription);
         
-        // Start recording if enabled
         if (TestConfig.isRecordingEnabled()) {
             browserContainer.beforeTest(testDescription);
             log.info("Started recording for WebDriver key: {}", key);
         }
         
-        // Initialize test as successful (will be marked as failed if needed)
         testResults.put(key, true);
         
         webDrivers.put(key, driver);
@@ -87,13 +83,12 @@ public class WebDriverStateManager {
      */
     private BrowserWebDriverContainer<?> createBrowserContainer(String name, String browser) {
         Network network = containerStateManager.getOrCreateNetwork();
-        String insecureUrl = "http://host.docker.internal:*"; // Allow access to host services
+        String insecureUrl = "http://host.docker.internal:*,http://webserver";
         
         BrowserWebDriverContainer<?> browserContainer = new BrowserWebDriverContainer<>()
                 .withCapabilities(SeleniumConfig.getChromeOptions(insecureUrl))
                 .withNetwork(network);
         
-        // Configure recording based on TestConfig
         String recordingMode = TestConfig.getRecordingMode();
         if (TestConfig.isRecordingEnabled()) {
             log.info("Creating browser container with VNC recording enabled (mode: {})", recordingMode);
@@ -220,7 +215,6 @@ public class WebDriverStateManager {
         if (driver != null || container != null) {
             log.info("Closing WebDriver and container for purpose: {}, actor: {}", purpose, actor);
             
-            // Close WebDriver first
             if (driver != null) {
                 try {
                     driver.quit();
@@ -230,15 +224,11 @@ public class WebDriverStateManager {
                 }
             }
             
-            // Finalize recording and stop container
             if (container != null) {
                 try {
-                    // Finalize recording if enabled
                     if (testDescription != null && TestConfig.isRecordingEnabled()) {
-                        // Pass correct test result to TestContainers
                         Optional<Throwable> testFailure = Optional.empty();
                         if (testPassed != null && !testPassed) {
-                            // Create a dummy exception to indicate test failure
                             testFailure = Optional.of(new AssertionError("BDD test step failed"));
                         }
                         
@@ -246,7 +236,6 @@ public class WebDriverStateManager {
                         String result = testPassed != null && testPassed ? "PASSED" : "FAILED";
                         log.info("Finalized recording for WebDriver key: {} (result: {})", key, result);
                         
-                        // Wait for recording file to actually be written
                         waitForRecordingFile(testDescription, testPassed);
                     }
                     
@@ -268,7 +257,6 @@ public class WebDriverStateManager {
     public void closeWebDriversForPurpose(String purpose) {
         log.info("Closing all WebDrivers for purpose: {}", purpose);
         
-        // Close WebDrivers
         webDrivers.entrySet().removeIf(entry -> {
             String key = entry.getKey();
             if (key.startsWith(purpose + ":")) {
@@ -279,26 +267,24 @@ public class WebDriverStateManager {
                     return true;
                 } catch (Exception e) {
                     log.warn("Error closing WebDriver with key: {}: {}", key, e.getMessage());
-                    return true; // Remove even if close failed
+                    return true;
                 }
             }
             return false;
         });
         
-        // Stop corresponding browser containers
         browserContainers.entrySet().removeIf(entry -> {
             String key = entry.getKey();
             if (key.startsWith(purpose + ":")) {
                 BrowserWebDriverContainer<?> container = entry.getValue();
                 try {
-                    // Give VNC recorder time to finalize before stopping
                     Thread.sleep(1000);
                     container.stop();
                     log.debug("Stopped browser container with key: {}", key);
                     return true;
                 } catch (Exception e) {
                     log.warn("Error stopping browser container with key: {}: {}", key, e.getMessage());
-                    return true; // Remove even if stop failed
+                    return true;
                 }
             }
             return false;
@@ -324,27 +310,25 @@ public class WebDriverStateManager {
                     return true;
                 } catch (Exception e) {
                     log.warn("Error closing WebDriver with key: {}: {}", key, e.getMessage());
-                    return true; // Remove even if close failed
+                    return true;
                 }
             }
             return false;
         });
         
-        // Stop corresponding browser containers
         browserContainers.entrySet().removeIf(entry -> {
             String key = entry.getKey();
             String[] parts = key.split(":");
             if (parts.length >= 2 && parts[1].equals(actor)) {
                 BrowserWebDriverContainer<?> container = entry.getValue();
                 try {
-                    // Give VNC recorder time to finalize before stopping
                     Thread.sleep(1000);
                     container.stop();
                     log.debug("Stopped browser container with key: {}", key);
                     return true;
                 } catch (Exception e) {
                     log.warn("Error stopping browser container with key: {}: {}", key, e.getMessage());
-                    return true; // Remove even if stop failed
+                    return true;
                 }
             }
             return false;
@@ -357,7 +341,6 @@ public class WebDriverStateManager {
     public void closeAllWebDrivers() {
         log.info("Closing all WebDrivers and containers, count: {}", webDrivers.size());
         
-        // Close all WebDrivers
         for (Map.Entry<String, WebDriver> entry : webDrivers.entrySet()) {
             String key = entry.getKey();
             WebDriver driver = entry.getValue();
@@ -370,16 +353,13 @@ public class WebDriverStateManager {
         }
         webDrivers.clear();
         
-        // Stop all browser containers with recording finalization
         for (Map.Entry<String, BrowserWebDriverContainer<?>> entry : browserContainers.entrySet()) {
             String key = entry.getKey();
             BrowserWebDriverContainer<?> container = entry.getValue();
             TestDescription testDescription = testDescriptions.get(key);
             
             try {
-                // Finalize recording if enabled
                 if (testDescription != null && TestConfig.isRecordingEnabled()) {
-                    // For bulk cleanup, default to passed unless we know it failed
                     Boolean testPassed = testResults.get(key);
                     Optional<Throwable> testFailure = Optional.empty();
                     if (testPassed != null && !testPassed) {
@@ -390,7 +370,6 @@ public class WebDriverStateManager {
                     String result = testPassed != null && testPassed ? "PASSED" : "FAILED";
                     log.info("Finalized recording for WebDriver key: {} (result: {})", key, result);
                     
-                    // Wait for recording file to actually be written
                     waitForRecordingFile(testDescription, testPassed);
                 }
                 container.stop();
@@ -427,8 +406,8 @@ public class WebDriverStateManager {
     private void waitForRecordingFile(TestDescription testDescription, Boolean testPassed) {
         String status = (testPassed != null && testPassed) ? "PASSED" : "FAILED";
         String expectedFilePrefix = status + "-" + testDescription.getFilesystemFriendlyName();
-        int maxAttempts = 20; // Maximum 20 attempts 
-        int attemptMs = 100;  // Start with 100ms delays
+        int maxAttempts = 20;
+        int attemptMs = 100;
         
         log.debug("Waiting for recording file with prefix: {}", expectedFilePrefix);
         
@@ -438,19 +417,17 @@ public class WebDriverStateManager {
             );
             
             if (recordings != null && recordings.length > 0) {
-                // Found recording file(s) - verify they have content
                 for (File recording : recordings) {
                     if (recording.length() > 0) {
                         log.debug("Recording file found after {}ms: {} (size: {} bytes)", 
                                 attempt * attemptMs, recording.getName(), recording.length());
-                        return; // Success!
+                        return;
                     }
                 }
             }
             
             try {
                 Thread.sleep(attemptMs);
-                // Exponential backoff: 100ms, 150ms, 225ms, 337ms, 500ms, 500ms...
                 attemptMs = Math.min(500, (int)(attemptMs * 1.5));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -459,7 +436,6 @@ public class WebDriverStateManager {
             }
         }
         
-        // Calculate total time spent waiting
         int totalTimeMs = 0;
         int tempMs = 100;
         for (int i = 1; i <= maxAttempts; i++) {

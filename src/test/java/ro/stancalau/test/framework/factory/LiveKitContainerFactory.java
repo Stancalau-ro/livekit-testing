@@ -4,7 +4,7 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.Network;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
-import ro.stancalau.test.util.TestConfig;
+import ro.stancalau.test.framework.util.TestConfig;
 
 import javax.annotation.Nullable;
 

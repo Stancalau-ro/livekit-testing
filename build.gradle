@@ -38,15 +38,29 @@ dependencies {
 
 test {
     useJUnitPlatform()
-    
+
     // Pass LiveKit version from gradle.properties to tests
     systemProperty 'livekit.version', project.findProperty('livekit_docker_version') ?: 'v1.8.4'
-    
+
     // Allow overriding via command line: ./gradlew test -Plivekit_docker_version=v1.8.5
     if (project.hasProperty('livekit_docker_version')) {
         systemProperty 'livekit.version', project.property('livekit_docker_version')
     }
+
+    // Forward cucumber system properties
+    systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
+    systemProperty "cucumber.filter.name", System.getProperty("cucumber.filter.name")
 }
+
+task bddTest(type: Test) {
+    useJUnitPlatform()
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    include '**/RunCucumberTests.class'
+}
+
+build.dependsOn bddTest
 
 clean {
     delete 'out'

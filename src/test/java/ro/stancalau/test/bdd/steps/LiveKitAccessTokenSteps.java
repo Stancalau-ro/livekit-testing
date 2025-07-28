@@ -9,7 +9,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
-import ro.stancalau.test.bdd.state.AccessTokenStateManager;
+import ro.stancalau.test.framework.state.AccessTokenStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
@@ -229,7 +229,6 @@ public class LiveKitAccessTokenSteps {
     }
 
     private Map<String, Object> getTokenAttributes(DecodedJWT decodedJWT) {
-        // Custom attributes are stored in the "attributes" claim as a nested object
         Claim attributesClaim = decodedJWT.getClaim("attributes");
         
         if (attributesClaim != null && !attributesClaim.isNull()) {
@@ -279,7 +278,6 @@ public class LiveKitAccessTokenSteps {
             Map<String, Object> videoGrants = videoClaim.asMap();
             if (videoGrants != null) {
                 List<List<String>> grants = dataTable.asLists(String.class);
-                // Skip header row
                 for (int i = 1; i < grants.size(); i++) {
                     String grantName = grants.get(i).get(0);
                     
@@ -329,7 +327,6 @@ public class LiveKitAccessTokenSteps {
         Map<String, Object> attributes = getTokenAttributes(decodedJWT);
         
         List<List<String>> attributeNames = dataTable.asLists(String.class);
-        // Skip header row
         for (int i = 1; i < attributeNames.size(); i++) {
             String attributeName = attributeNames.get(i).get(0);
             

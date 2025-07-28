@@ -1,7 +1,12 @@
-package ro.stancalau.test.util;
+package ro.stancalau.test.framework.util;
 
 import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.Arrays;
+import java.util.List;
+
+@Slf4j
 @UtilityClass
 public class TestConfig {
     
@@ -9,10 +14,11 @@ public class TestConfig {
     private static final String LIVEKIT_VERSION_PROPERTY = "livekit.version";
     private static final String LIVEKIT_VERSION_ENV = "LIVEKIT_VERSION";
     
-    // VNC Recording Configuration
     private static final String RECORDING_MODE_PROPERTY = "recording.mode";
     private static final String RECORDING_MODE_ENV = "RECORDING_MODE";
     private static final String DEFAULT_RECORDING_MODE = "all";
+    
+    private static final List<String> VALID_RECORDING_MODES = Arrays.asList("skip", "all", "failed");
     
     /**
      * Gets the LiveKit version to use for tests.
@@ -24,19 +30,16 @@ public class TestConfig {
      * - Default: v1.8.4
      */
     public static String getLiveKitVersion() {
-        // 1. Check system property first (highest priority)
         String version = System.getProperty(LIVEKIT_VERSION_PROPERTY);
         if (version != null && !version.trim().isEmpty()) {
             return version.trim();
         }
         
-        // 2. Check environment variable
         version = System.getenv(LIVEKIT_VERSION_ENV);
         if (version != null && !version.trim().isEmpty()) {
             return version.trim();
         }
         
-        // 3. Fall back to default
         return DEFAULT_LIVEKIT_VERSION;
     }
     
@@ -62,19 +65,33 @@ public class TestConfig {
      * - Default: all
      */
     public static String getRecordingMode() {
-        // 1. Check system property first (highest priority)
         String mode = System.getProperty(RECORDING_MODE_PROPERTY);
         if (mode != null && !mode.trim().isEmpty()) {
-            return mode.trim().toLowerCase();
+            return validateAndNormalizeRecordingMode(mode.trim());
         }
         
-        // 2. Check environment variable
         mode = System.getenv(RECORDING_MODE_ENV);
         if (mode != null && !mode.trim().isEmpty()) {
-            return mode.trim().toLowerCase();
+            return validateAndNormalizeRecordingMode(mode.trim());
         }
         
-        // 3. Fall back to default
+        return DEFAULT_RECORDING_MODE;
+    }
+    
+    /**
+     * Validates and normalizes the recording mode value
+     * @param mode The raw recording mode value
+     * @return The validated and normalized recording mode, or default if invalid
+     */
+    private static String validateAndNormalizeRecordingMode(String mode) {
+        String normalizedMode = mode.toLowerCase();
+        
+        if (VALID_RECORDING_MODES.contains(normalizedMode)) {
+            return normalizedMode;
+        }
+        
+        log.warn("Invalid recording mode '{}'. Valid options are: {}. Falling back to default: '{}'", 
+                mode, VALID_RECORDING_MODES, DEFAULT_RECORDING_MODE);
         return DEFAULT_RECORDING_MODE;
     }
     
@@ -90,5 +107,13 @@ public class TestConfig {
      */
     public static boolean isRecordOnlyFailed() {
         return "failed".equals(getRecordingMode());
+    }
+    
+    /**
+     * Get the list of valid recording modes
+     * @return List of valid recording mode values
+     */
+    public static List<String> getValidRecordingModes() {
+        return VALID_RECORDING_MODES;
     }
 }

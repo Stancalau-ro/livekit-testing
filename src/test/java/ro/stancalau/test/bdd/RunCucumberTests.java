@@ -20,8 +20,5 @@ import org.junit.platform.suite.api.Suite;
 @SelectClasspathResource("features")
 @ConfigurationParameter(key = Constants.PLUGIN_PROPERTY_NAME, value = "pretty")
 @ConfigurationParameter(key = Constants.GLUE_PROPERTY_NAME, value = "ro.stancalau.test.bdd.steps")
-@ConfigurationParameter(key = Constants.FEATURES_PROPERTY_NAME, value = "src/test/resources/features")
 public class RunCucumberTests {
-    // This class serves as a test runner for Cucumber tests in IntelliJ IDEA
-    // No implementation needed - annotations handle the configuration
 }

@@ -1,4 +1,4 @@
-package ro.stancalau.test.bdd.state;
+package ro.stancalau.test.framework.state;
 
 import io.livekit.server.*;
 import lombok.extern.slf4j.Slf4j;
@@ -70,24 +70,20 @@ public class AccessTokenStateManager {
         AccessToken token = new AccessToken(apiKey, apiSecret);
         token.setIdentity(identity);
         
-        // Set expiration if provided
         if (ttlMillis != null) {
             token.setTtl(ttlMillis);
         }
         
-        // Add custom attributes
         if (customAttributes != null && !customAttributes.isEmpty()) {
             for (Map.Entry<String, String> entry : customAttributes.entrySet()) {
                 token.getAttributes().put(entry.getKey(), entry.getValue());
             }
         }
         
-        // Always add RoomName and RoomJoin for room-based tokens
         List<VideoGrant> grants = new ArrayList<>();
         grants.add(new RoomName(roomName));
         grants.add(new RoomJoin(true));
         
-        // Parse and add additional grants dynamically
         grants.addAll(parseGrants(grantStrings, roomName));
         
         if (!grants.isEmpty()) {

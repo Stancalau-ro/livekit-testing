@@ -10,10 +10,10 @@ import io.livekit.server.AccessToken;
 import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
-import ro.stancalau.test.bdd.state.AccessTokenStateManager;
-import ro.stancalau.test.bdd.state.ContainerStateManager;
-import ro.stancalau.test.bdd.state.RoomClientStateManager;
-import ro.stancalau.test.bdd.state.WebDriverStateManager;
+import ro.stancalau.test.framework.state.AccessTokenStateManager;
+import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.state.RoomClientStateManager;
+import ro.stancalau.test.framework.state.WebDriverStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
 
@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class LiveKitWebrtcSteps {
@@ -31,7 +32,6 @@ public class LiveKitWebrtcSteps {
     private AccessTokenStateManager accessTokenManager;
     private WebDriverStateManager webDriverManager;
     
-    // Store LiveKit Meet instances by actor
     private final Map<String, LiveKitMeet> meetInstances = new ConcurrentHashMap<>();
 
     @Before
@@ -44,7 +44,6 @@ public class LiveKitWebrtcSteps {
 
     @After
     public void tearDownLiveKitWebrtcSteps(io.cucumber.java.Scenario scenario) {
-        // Mark WebDriver tests as failed if the scenario failed
         if (scenario.isFailed() && webDriverManager != null) {
             // Mark all active WebDrivers for this scenario as failed
             webDriverManager.getAllWebDrivers().keySet().forEach(key -> {
@@ -56,7 +55,6 @@ public class LiveKitWebrtcSteps {
             });
         }
         
-        // Clean up all meet instances
         meetInstances.values().forEach(meet -> {
             try {
                 meet.closeWindow();
@@ -66,12 +64,10 @@ public class LiveKitWebrtcSteps {
         });
         meetInstances.clear();
         
-        // Clean up all WebDrivers through the manager
         if (webDriverManager != null) {
             webDriverManager.closeAllWebDrivers();
         }
         
-        // Clean up state managers
         if (roomClientManager != null) {
             roomClientManager.clearAll();
         }
@@ -123,9 +119,28 @@ public class LiveKitWebrtcSteps {
     public void iWaitForSuccessfulConnection() {
         LiveKitMeet meetInstance = getDefaultMeetInstance();
         assertNotNull(meetInstance, "Meet instance should exist");
-        boolean connected = meetInstance.waitForConnection();
-        assertTrue(connected, "Should successfully connect to the meeting");
-        log.info("Successfully connected to meeting");
+        
+        try {
+            boolean connected = meetInstance.waitForConnection();
+            if (!connected) {
+                // Get detailed error information from the page before failing
+                String errorDetails = meetInstance.getPageErrorDetails();
+                String failureMessage = "Should successfully connect to the meeting";
+                if (errorDetails != null && !errorDetails.trim().isEmpty()) {
+                    failureMessage += ". Browser error: " + errorDetails;
+                }
+                fail(failureMessage);
+            }
+            log.info("Successfully connected to meeting");
+        } catch (Exception e) {
+            // Capture any additional error details from the page
+            String errorDetails = meetInstance.getPageErrorDetails();
+            String failureMessage = "Connection failed with exception: " + e.getMessage();
+            if (errorDetails != null && !errorDetails.trim().isEmpty()) {
+                failureMessage += ". Browser error: " + errorDetails;
+            }
+            fail(failureMessage);
+        }
     }
 
     @Then("the connection should be successful")
@@ -159,7 +174,6 @@ public class LiveKitWebrtcSteps {
     public void iCanToggleCameraControls() {
         LiveKitMeet meetInstance = getDefaultMeetInstance();
         assertNotNull(meetInstance, "Meet instance should exist");
-        // Toggle camera twice to test functionality
         meetInstance.toggleCamera();
         meetInstance.toggleCamera();
         log.info("Successfully toggled camera controls");
@@ -169,7 +183,6 @@ public class LiveKitWebrtcSteps {
     public void iCanToggleMuteControls() {
         LiveKitMeet meetInstance = getDefaultMeetInstance();
         assertNotNull(meetInstance, "Meet instance should exist");
-        // Toggle mute twice to test functionality  
         meetInstance.toggleMute();
         meetInstance.toggleMute();
         log.info("Successfully toggled mute controls");
@@ -232,9 +245,7 @@ public class LiveKitWebrtcSteps {
 
     @And("I close the browser")
     public void iCloseTheBrowser() {
-        // Close the default WebDriver
         webDriverManager.closeWebDriver("meet", "default");
-        // Remove the default meet instance
         meetInstances.remove("default");
         log.info("Closed browser");
     }
@@ -261,8 +272,8 @@ public class LiveKitWebrtcSteps {
         assertNotNull(container, "LiveKit container should be running");
         assertTrue(container.isRunning(), "LiveKit container should be running");
         
-        // Return WebSocket URL for the container
-        return container.getlocalWs();
+        // Return network WebSocket URL accessible from other containers in the same network
+        return container.getNetworkWs();
     }
     
     /**

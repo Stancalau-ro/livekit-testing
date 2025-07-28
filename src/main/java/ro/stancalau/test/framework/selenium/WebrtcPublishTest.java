@@ -80,7 +80,6 @@ public class WebrtcPublishTest {
             WebElement streamButton = driver.findElement(By.id("stop_publish_button"));
             streamButton.click();
         } catch (Exception e) {
-            // ignore
         }
     }
 

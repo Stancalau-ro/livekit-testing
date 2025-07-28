@@ -1,4 +1,4 @@
-package ro.stancalau.test.bdd.state;
+package ro.stancalau.test.framework.state;
 
 import io.livekit.server.RoomServiceClient;
 import livekit.LivekitModels;

@@ -18,6 +18,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Run only BDD/Cucumber tests
 ./gradlew test --tests "ro.stancalau.test.bdd.RunCucumberTests"
 
+# Run specific BDD scenario by name (recommended for development and debugging)
+./gradlew test --tests "ro.stancalau.test.bdd.RunCucumberTests" -Dcucumber.filter.name="<scenario name>"
+
+# Examples of running specific scenarios:
+./gradlew test --tests "ro.stancalau.test.bdd.RunCucumberTests" -Dcucumber.filter.name="Successfully publish video to a room with Chrome browser"
+./gradlew test --tests "ro.stancalau.test.bdd.RunCucumberTests" -Dcucumber.filter.name="Generate access token with admin permissions for Dave"
+
 # Override LiveKit version for tests
 ./gradlew test -Plivekit_docker_version=v1.8.5
 
@@ -131,6 +138,8 @@ And attributes "description=Testing\, debugging\, development,role=admin"
 
 - **Code Writing:**
   - Create an overview of the changes and ask for approval before coding
+  - Avoid adding inline comments unless they describe the reason behind a code decision or something surprising
+  - Do not add javadoc blocks
 
 ## Enterprise-Level Project Considerations
 
@@ -138,3 +147,22 @@ And attributes "description=Testing\, debugging\, development,role=admin"
   - Configurable
   - Thoroughly tested
   - Respect SOLID principles
+
+## Testing Tips
+
+### Single Scenario Execution
+- **Always run single scenarios during development** to avoid timeouts and speed up feedback
+- Use the Cucumber filter by scenario name: `-Dcucumber.filter.name="<exact scenario name>"`
+- This is much faster than running all tests and allows for focused debugging
+- Example: `./gradlew test --tests "ro.stancalau.test.bdd.RunCucumberTests" -Dcucumber.filter.name="Successfully publish video to a room with Chrome browser"`
+
+### BDD Test Development Workflow
+1. Write or modify a single scenario in a `.feature` file
+2. Run only that scenario using the name filter to test your changes
+3. Once the scenario passes, run the full test suite to ensure no regressions
+4. **Never run all scenarios** during active development unless necessary
+
+### Test Isolation
+- Each BDD scenario is completely isolated with fresh containers and state
+- Browser recordings are saved for each test run for debugging WebRTC issues
+- VNC recordings can be controlled via `-Drecording.mode=[skip|all|failed]`

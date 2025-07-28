@@ -1,0 +1,285 @@
+/* LiveKit Meet - Test Page Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    max-width: 800px;
+    width: 90%;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.logo {
+    width: 64px;
+    height: 64px;
+    background: #007aff;
+    border-radius: 12px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+h1 {
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    color: #666;
+    font-size: 16px;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+}
+
+input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s;
+}
+
+input:focus {
+    outline: none;
+    border-color: #007aff;
+}
+
+.button {
+    width: 100%;
+    padding: 14px;
+    background: #007aff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 1rem;
+}
+
+.button:hover {
+    background: #0056b3;
+}
+
+.button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.meeting-room {
+    display: none;
+    text-align: center;
+}
+
+.video-container {
+    background: #000;
+    border-radius: 8px;
+    min-height: 400px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    margin-bottom: 1rem;
+    position: relative;
+}
+
+.video-element {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.remote-videos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 1rem;
+}
+
+.remote-video {
+    width: 200px;
+    height: 150px;
+    background: #333;
+    border-radius: 8px;
+    position: relative;
+}
+
+.remote-video video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.participant-name {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.control-btn {
+    padding: 12px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    min-width: 100px;
+}
+
+.mute-btn {
+    background: #ff3b30;
+    color: white;
+}
+
+.mute-btn.muted {
+    background: #ff9500;
+}
+
+.camera-btn {
+    background: #34c759;
+    color: white;
+}
+
+.camera-btn.off {
+    background: #ff9500;
+}
+
+.leave-btn {
+    background: #ff9500;
+    color: white;
+}
+
+.status {
+    margin-top: 1rem;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #666;
+}
+
+.error {
+    background: #fee;
+    color: #d63031;
+    border: 1px solid #fab1a0;
+}
+
+.success {
+    background: #eef;
+    color: #00b894;
+    border: 1px solid #81ecec;
+}
+
+.info {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1px solid #90caf9;
+}
+
+.detailed-status {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.detailed-status h3 {
+    margin: 0 0 1rem 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.detailed-status h4 {
+    margin: 1rem 0 0.5rem 0;
+    color: #333;
+    font-size: 14px;
+}
+
+.status-step {
+    padding: 0.25rem 0;
+    font-family: monospace;
+}
+
+.status-step.pending {
+    color: #666;
+}
+
+.status-step.active {
+    color: #007aff;
+    font-weight: bold;
+}
+
+.status-step.completed {
+    color: #28a745;
+}
+
+.status-step.failed {
+    color: #dc3545;
+}
+
+.technical-details {
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 12px;
+    background: #fff;
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+}
+
+#techInfo {
+    white-space: pre-line;
+    color: #666;
+}

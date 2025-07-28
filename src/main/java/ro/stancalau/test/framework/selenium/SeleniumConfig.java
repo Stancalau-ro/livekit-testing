@@ -54,7 +54,7 @@ public class SeleniumConfig {
         options.addArguments("--reduce-security-for-testing");
         options.addArguments("--allow-running-insecure-content");
         if (allowInsecureUrl != null) {
-            options.addArguments("--unsafely-treat-insecure-origin-as-secure=http://" + allowInsecureUrl);
+            options.addArguments("--unsafely-treat-insecure-origin-as-secure=" + allowInsecureUrl);
         }
 
         options.setAcceptInsecureCerts(true);

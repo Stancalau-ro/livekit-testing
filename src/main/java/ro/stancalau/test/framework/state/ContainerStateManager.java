@@ -1,8 +1,9 @@
-package ro.stancalau.test.bdd.state;
+package ro.stancalau.test.framework.state;
 
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import ro.stancalau.test.framework.docker.WebServerContainer;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -15,7 +16,6 @@ public class ContainerStateManager {
     private final Map<String, GenericContainer<?>> containers = new HashMap<>();
     
     private ContainerStateManager() {
-        // Private constructor for singleton
     }
     
     public static ContainerStateManager getInstance() {
@@ -101,6 +101,26 @@ public class ContainerStateManager {
             }
         }
         containers.clear();
+    }
+    
+    /**
+     * Get or create a web server container for serving static files
+     * @param serviceName The service name for the web server
+     * @return The web server container
+     */
+    public WebServerContainer getOrCreateWebServer(String serviceName) {
+        WebServerContainer webServer = getContainer(serviceName, WebServerContainer.class);
+        
+        if (webServer == null) {
+            log.info("Creating new WebServerContainer for service: {}", serviceName);
+            webServer = new WebServerContainer()
+                    .withLiveKitMeetFiles()
+                    .withNetworkAliasAndStart(getOrCreateNetwork(), serviceName);
+            
+            registerContainer(serviceName, webServer);
+        }
+        
+        return webServer;
     }
 
 }

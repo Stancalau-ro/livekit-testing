@@ -39,19 +39,17 @@ public class StringParsingUtils {
         for (String pair : pairs) {
             String trimmedPair = pair.trim();
             
-            // Skip empty pairs
             if (trimmedPair.isEmpty()) {
                 continue;
             }
             
-            // Find the first unescaped equals sign
             int equalsIndex = findFirstUnescapedChar(trimmedPair, '=');
             
-            if (equalsIndex < 0) {  // No equals sign found
+            if (equalsIndex < 0) {
                 throw new IllegalArgumentException("Malformed key=value pair: '" + trimmedPair + "'. Expected format: key=value");
             }
             
-            if (equalsIndex == 0) {  // Equals sign at start (empty key)
+            if (equalsIndex == 0) {
                 throw new IllegalArgumentException("Empty key in key=value pair: '" + trimmedPair + "'");
             }
             
@@ -62,7 +60,6 @@ public class StringParsingUtils {
             
             String rawValue = trimmedPair.substring(equalsIndex + 1);
             
-            // Process escape sequences in the value
             String value = unescapeString(rawValue).trim();
             
             result.put(key, value);
@@ -101,7 +98,6 @@ public class StringParsingUtils {
             }
         }
         
-        // Handle trailing backslash
         if (escaped) {
             result.append('\\');
         }
@@ -123,13 +119,10 @@ public class StringParsingUtils {
             return result;
         }
         
-        // Handle empty or whitespace-only strings
         if (input.trim().isEmpty()) {
-            // If it's just whitespace, return empty list
             if (input.isEmpty()) {
                 return result;
             }
-            // If it contains only whitespace, return empty list for consistency with parseCommaSeparatedList behavior
             return result;
         }
         
@@ -140,19 +133,15 @@ public class StringParsingUtils {
             char c = input.charAt(i);
             
             if (escaped) {
-                // Previous character was backslash, add current character literally
                 current.append(c);
                 escaped = false;
             } else if (c == '\\') {
-                // Current character is backslash, mark as escaped
                 escaped = true;
             } else if (input.substring(i).startsWith(delimiter)) {
-                // Found unescaped delimiter
                 result.add(current.toString());
                 current = new StringBuilder();
-                i += delimiter.length() - 1; // Skip the delimiter characters
+                i += delimiter.length() - 1;
             } else {
-                // Regular character
                 current.append(c);
             }
         }
@@ -162,7 +151,6 @@ public class StringParsingUtils {
             current.append('\\');
         }
         
-        // Always add the last part (even if empty)
         result.add(current.toString());
         
         return result;

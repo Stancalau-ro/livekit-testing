@@ -5,7 +5,7 @@ import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.Network;
-import ro.stancalau.test.bdd.state.ContainerStateManager;
+import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.factory.LiveKitContainerFactory;
 

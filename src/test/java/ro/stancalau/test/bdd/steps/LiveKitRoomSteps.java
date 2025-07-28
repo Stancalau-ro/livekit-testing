@@ -7,8 +7,8 @@ import io.cucumber.java.en.When;
 import io.livekit.server.RoomServiceClient;
 import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
-import ro.stancalau.test.bdd.state.ContainerStateManager;
-import ro.stancalau.test.bdd.state.RoomClientStateManager;
+import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.state.RoomClientStateManager;
 
 import java.util.List;
 
