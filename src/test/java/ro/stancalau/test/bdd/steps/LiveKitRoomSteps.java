@@ -7,11 +7,13 @@ import io.cucumber.java.en.When;
 import io.livekit.server.RoomServiceClient;
 import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
-import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.state.RoomClientStateManager;
 
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 
+import static java.util.Objects.isNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -86,6 +88,37 @@ public class LiveKitRoomSteps {
         LivekitModels.Room createdRoom = createRoom(serviceName, roomName);
         assertNotNull(createdRoom, "Room should have been created");
         log.info("Created room '{}' with SID: {} using service '{}'", roomName, createdRoom.getSid(), serviceName);
+    }
+
+    public List<LivekitModels.ParticipantInfo> getParticipantInfo(String serviceName, String roomName) {
+        log.info("Fetching participant info for room '{}' using service '{}'", roomName, serviceName);
+        
+        RoomServiceClient client = getRoomServiceClient(serviceName);
+        
+        try {
+            List<LivekitModels.ParticipantInfo> result = client.listParticipants(roomName).execute().body();
+            List<LivekitModels.ParticipantInfo> participants = isNull(result) ? Collections.emptyList() : result;
+            log.info("Successfully fetched {} participants for room '{}' using service '{}'", participants.size(), roomName, serviceName);
+            return participants;
+        } catch (IOException e) {
+            log.error("Failed to fetch participant info for room '{}' using service '{}': {}", roomName, serviceName, e.getMessage(), e);
+            throw new RuntimeException("Failed to fetch participant info for room: " + roomName, e);
+        }
+    }
+
+    @Then("the room {string} should exist in service {string}")
+    public void theRoomShouldExistInService(String roomName, String serviceName) {
+        List<LivekitModels.Room> rooms = getRooms(serviceName);
+        boolean roomExists = rooms.stream().anyMatch(room -> roomName.equals(room.getName()));
+        assertEquals(true, roomExists, "Room '" + roomName + "' should exist in service '" + serviceName + "'");
+        log.info("Verified room '{}' exists in service '{}'", roomName, serviceName);
+    }
+
+    @Then("the room {string} should have {int} active participants in service {string}")
+    public void theRoomShouldHaveActiveParticipantsInService(String roomName, int expectedCount, String serviceName) {
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+        assertEquals(expectedCount, participants.size(), "Room '" + roomName + "' should have " + expectedCount + " active participants");
+        log.info("Verified room '{}' has {} active participants in service '{}'", roomName, expectedCount, serviceName);
     }
 
 }

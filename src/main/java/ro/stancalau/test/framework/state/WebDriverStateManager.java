@@ -44,7 +44,7 @@ public class WebDriverStateManager {
     /**
      * Create and register a WebDriver instance using BrowserWebDriverContainer
      * @param purpose The purpose of the WebDriver (e.g., "publish", "playback", "meet")
-     * @param actor The actor/participant name (e.g., "Publisher", "Participant1")
+     * @param actor The actor/participant name (e.g., "Publisher", "Jack")
      * @param browser The browser type (e.g., "chrome", "firefox")
      * @return The created WebDriver instance
      */
