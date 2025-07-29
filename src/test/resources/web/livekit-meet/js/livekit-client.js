@@ -321,9 +321,43 @@ class LiveKitMeetClient {
         });
         
         this.room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
-            console.log('Participant connected:', participant.identity);
+            console.log('*** ParticipantConnected EVENT FIRED ***', participant.identity);
+            console.log('Participant details:', {
+                identity: participant.identity,
+                tracks: participant.trackPublications.size,
+                trackList: Array.from(participant.trackPublications.values()).map(pub => ({
+                    kind: pub.kind,
+                    sid: pub.trackSid,
+                    subscribed: pub.isSubscribed
+                }))
+            });
             addTechnicalDetail(`👤 Participant connected: ${participant.identity}`);
             this.handleParticipantConnected(participant);
+            
+            // Manually attempt to subscribe to tracks if they exist
+            setTimeout(() => {
+                console.log('*** MANUAL SUBSCRIPTION ATTEMPT ***', participant.identity);
+                participant.trackPublications.forEach(async (publication, trackSid) => {
+                    console.log('Checking publication:', {
+                        kind: publication.kind,
+                        sid: trackSid,
+                        subscribed: publication.isSubscribed,
+                        track: !!publication.track
+                    });
+                    
+                    if (!publication.isSubscribed && publication.kind === 'video') {
+                        console.log('Manually subscribing to video track:', trackSid);
+                        addTechnicalDetail(`🔔 Manually subscribing to video track from ${participant.identity}`);
+                        try {
+                            await publication.setSubscribed(true);
+                            console.log('Manual subscription successful for:', trackSid);
+                        } catch (error) {
+                            console.error('Manual subscription failed:', error);
+                            addTechnicalDetail(`❌ Manual subscription failed: ${error.message}`);
+                        }
+                    }
+                });
+            }, 1000); // Give some time for auto-subscription first
         });
         
         this.room.on(LiveKit.RoomEvent.ParticipantDisconnected, (participant) => {
@@ -333,7 +367,14 @@ class LiveKitMeetClient {
         });
         
         this.room.on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            console.log('Track subscribed:', track.kind, participant.identity);
+            console.log('*** TrackSubscribed EVENT FIRED ***', track.kind, participant.identity);
+            console.log('Track details:', {
+                kind: track.kind,
+                sid: track.sid,
+                participant: participant.identity,
+                muted: track.isMuted,
+                enabled: track.isEnabled
+            });
             addTechnicalDetail(`🎥 Track subscribed: ${track.kind} from ${participant.identity}`);
             this.handleTrackSubscribed(track, participant);
         });
@@ -343,6 +384,65 @@ class LiveKitMeetClient {
             addTechnicalDetail(`🎥 Track unsubscribed: ${track.kind} from ${participant.identity}`);
             this.handleTrackUnsubscribed(track, participant);
         });
+
+        // Additional debugging events
+        this.room.on(LiveKit.RoomEvent.TrackPublished, (publication, participant) => {
+            console.log('*** TrackPublished EVENT ***', publication.kind, 'from', participant.identity);
+            addTechnicalDetail(`📤 Track published: ${publication.kind} from ${participant.identity}`);
+            
+            // Force subscription to video tracks immediately when they're published
+            if (publication.kind === 'video' && participant.identity !== this.room.localParticipant.identity) {
+                console.log('Forcing immediate subscription to video track:', publication.trackSid);
+                addTechnicalDetail(`🔔 Forcing subscription to video track from ${participant.identity}`);
+                setTimeout(async () => {
+                    try {
+                        await publication.setSubscribed(true);
+                        console.log('Forced subscription successful:', publication.trackSid);
+                        addTechnicalDetail(`✅ Forced subscription successful for ${participant.identity}`);
+                    } catch (error) {
+                        console.error('Forced subscription failed:', error);
+                        addTechnicalDetail(`❌ Forced subscription failed: ${error.message}`);
+                    }
+                }, 100);
+            }
+        });
+
+        this.room.on(LiveKit.RoomEvent.TrackUnpublished, (publication, participant) => {
+            console.log('*** TrackUnpublished EVENT ***', publication.kind, 'from', participant.identity);
+            addTechnicalDetail(`📤 Track unpublished: ${publication.kind} from ${participant.identity}`);
+        });
+
+        this.room.on(LiveKit.RoomEvent.TrackSubscriptionFailed, (trackSid, participant) => {
+            console.error('*** TrackSubscriptionFailed EVENT ***', trackSid, participant.identity);
+            addTechnicalDetail(`❌ Track subscription failed: ${trackSid} from ${participant.identity}`);
+        });
+
+        this.room.on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
+            console.log('*** TrackMuted EVENT ***', publication.kind, participant.identity);
+            addTechnicalDetail(`🔇 Track muted: ${publication.kind} from ${participant.identity}`);
+        });
+
+        this.room.on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
+            console.log('*** TrackUnmuted EVENT ***', publication.kind, participant.identity);
+            addTechnicalDetail(`🔊 Track unmuted: ${publication.kind} from ${participant.identity}`);
+        });
+        
+        // Periodic check to ensure all video tracks are subscribed
+        setInterval(() => {
+            if (this.room && this.room.state === 'connected') {
+                this.room.remoteParticipants.forEach((participant) => {
+                    participant.trackPublications.forEach((publication) => {
+                        if (publication.kind === 'video' && !publication.isSubscribed && !publication.track) {
+                            console.log('Found unsubscribed video track, forcing subscription:', publication.trackSid);
+                            addTechnicalDetail(`🔄 Periodic check: subscribing to ${participant.identity} video`);
+                            publication.setSubscribed(true).catch(error => {
+                                console.error('Periodic subscription failed:', error);
+                            });
+                        }
+                    });
+                });
+            }
+        }, 5000); // Check every 5 seconds
     }
     
     // OLD METHOD - Kept for reference. Now using room.localParticipant.enableCameraAndMicrophone()
@@ -422,20 +522,94 @@ class LiveKitMeetClient {
     }
     
     handleTrackSubscribed(track, participant) {
-        const participantDiv = this.participants.get(participant.identity);
+        console.log('*** TRACK SUBSCRIBED ***', track.kind, 'from', participant.identity);
+        addTechnicalDetail(`📺 Track subscribed: ${track.kind} from ${participant.identity}`);
+        
+        // Ensure participant div exists before trying to add track
+        let participantDiv = this.participants.get(participant.identity);
+        if (!participantDiv) {
+            console.log('Creating participant div for:', participant.identity);
+            this.handleParticipantConnected(participant);
+            participantDiv = this.participants.get(participant.identity);
+        }
+        
         const videoKind = (LiveKit.Track && LiveKit.Track.Kind && LiveKit.Track.Kind.Video) 
             ? LiveKit.Track.Kind.Video 
             : 'video';
+            
         if (participantDiv && track.kind === videoKind) {
+            console.log('Adding video element for:', participant.identity);
+            
+            // Remove any existing video elements for this participant first
+            const existingVideos = participantDiv.querySelectorAll('video');
+            existingVideos.forEach(video => video.remove());
+            
+            // Create new video element
             const videoElement = document.createElement('video');
             videoElement.autoplay = true;
             videoElement.playsInline = true;
+            videoElement.muted = false; // Don't mute remote videos
             videoElement.style.width = '100%';
             videoElement.style.height = '100%';
             videoElement.style.objectFit = 'cover';
+            videoElement.style.backgroundColor = '#000';
             
-            track.attach(videoElement);
-            participantDiv.insertBefore(videoElement, participantDiv.firstChild);
+            // Add event listeners to debug video loading
+            videoElement.addEventListener('loadstart', () => {
+                console.log('Video loading started for:', participant.identity);
+                addTechnicalDetail(`🎬 Video loading started for ${participant.identity}`);
+            });
+            
+            videoElement.addEventListener('loadeddata', () => {
+                console.log('Video data loaded for:', participant.identity);
+                addTechnicalDetail(`📹 Video data loaded for ${participant.identity}`);
+            });
+            
+            videoElement.addEventListener('canplay', () => {
+                console.log('Video can start playing for:', participant.identity);
+                addTechnicalDetail(`▶️ Video ready to play for ${participant.identity}`);
+            });
+            
+            videoElement.addEventListener('error', (e) => {
+                console.error('Video error for:', participant.identity, e);
+                addTechnicalDetail(`❌ Video error for ${participant.identity}: ${e.message || 'Unknown error'}`);
+            });
+            
+            // Attach track to video element
+            try {
+                track.attach(videoElement);
+                participantDiv.insertBefore(videoElement, participantDiv.firstChild);
+                
+                // Force play the video
+                videoElement.play().catch(e => {
+                    console.log('Autoplay prevented, user interaction required:', e);
+                    addTechnicalDetail(`⚠️ Autoplay prevented for ${participant.identity}`);
+                });
+                
+                addTechnicalDetail(`✅ Video element attached for ${participant.identity}`);
+                console.log('Video element attached successfully for:', participant.identity);
+                
+                // Debug track state
+                console.log('Track state:', {
+                    kind: track.kind,
+                    sid: track.sid,
+                    muted: track.isMuted,
+                    enabled: track.isEnabled,
+                    mediaStreamTrack: !!track.mediaStreamTrack
+                });
+                
+            } catch (error) {
+                console.error('Failed to attach video track:', error);
+                addTechnicalDetail(`❌ Failed to attach video track: ${error.message}`);
+            }
+        } else {
+            console.log('Could not attach video:', {
+                participantDiv: !!participantDiv,
+                trackKind: track.kind,
+                expectedKind: videoKind,
+                participant: participant.identity
+            });
+            addTechnicalDetail(`⚠️ Could not attach ${track.kind} track for ${participant.identity}`);
         }
     }
     
