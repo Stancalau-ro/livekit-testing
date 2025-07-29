@@ -9,6 +9,11 @@ class LiveKitMeetClient {
         this.audioEnabled = true;
         this.participants = new Map();
         
+        // Initialize global variables for test automation
+        window.subscriptionFailedEvents = [];
+        window.subscriptionPermissionDenied = false;
+        window.lastSubscriptionError = '';
+        
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -354,6 +359,24 @@ class LiveKitMeetClient {
                         } catch (error) {
                             console.error('Manual subscription failed:', error);
                             addTechnicalDetail(`❌ Manual subscription failed: ${error.message}`);
+                            
+                            // Capture manual subscription failure for test automation
+                            window.subscriptionFailedEvents.push({
+                                trackSid: trackSid,
+                                participantIdentity: participant.identity,
+                                error: error?.message || error?.toString() || 'Manual subscription failed',
+                                timestamp: Date.now(),
+                                type: 'manual'
+                            });
+                            
+                            // Check if it's a permission-related error
+                            const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
+                            if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
+                                window.subscriptionPermissionDenied = true;
+                                window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied for manual subscription';
+                            } else {
+                                window.lastSubscriptionError = error?.message || error?.toString() || 'Manual subscription failed';
+                            }
                         }
                     }
                 });
@@ -402,6 +425,24 @@ class LiveKitMeetClient {
                     } catch (error) {
                         console.error('Forced subscription failed:', error);
                         addTechnicalDetail(`❌ Forced subscription failed: ${error.message}`);
+                        
+                        // Capture forced subscription failure for test automation
+                        window.subscriptionFailedEvents.push({
+                            trackSid: publication.trackSid,
+                            participantIdentity: participant.identity,
+                            error: error?.message || error?.toString() || 'Forced subscription failed',
+                            timestamp: Date.now(),
+                            type: 'forced'
+                        });
+                        
+                        // Check if it's a permission-related error
+                        const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
+                        if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
+                            window.subscriptionPermissionDenied = true;
+                            window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied for forced subscription';
+                        } else {
+                            window.lastSubscriptionError = error?.message || error?.toString() || 'Forced subscription failed';
+                        }
                     }
                 }, 100);
             }
@@ -412,9 +453,26 @@ class LiveKitMeetClient {
             addTechnicalDetail(`📤 Track unpublished: ${publication.kind} from ${participant.identity}`);
         });
 
-        this.room.on(LiveKit.RoomEvent.TrackSubscriptionFailed, (trackSid, participant) => {
-            console.error('*** TrackSubscriptionFailed EVENT ***', trackSid, participant.identity);
+        this.room.on(LiveKit.RoomEvent.TrackSubscriptionFailed, (trackSid, participant, error) => {
+            console.error('*** TrackSubscriptionFailed EVENT ***', trackSid, participant.identity, error);
             addTechnicalDetail(`❌ Track subscription failed: ${trackSid} from ${participant.identity}`);
+            
+            // Capture subscription failure for test automation
+            window.subscriptionFailedEvents.push({
+                trackSid: trackSid,
+                participantIdentity: participant.identity,
+                error: error?.message || error?.toString() || 'Unknown subscription error',
+                timestamp: Date.now()
+            });
+            
+            // Check if it's a permission-related error
+            const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
+            if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
+                window.subscriptionPermissionDenied = true;
+                window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied';
+            } else {
+                window.lastSubscriptionError = error?.message || error?.toString() || 'Subscription failed';
+            }
         });
 
         this.room.on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
@@ -437,6 +495,24 @@ class LiveKitMeetClient {
                             addTechnicalDetail(`🔄 Periodic check: subscribing to ${participant.identity} video`);
                             publication.setSubscribed(true).catch(error => {
                                 console.error('Periodic subscription failed:', error);
+                                
+                                // Capture periodic subscription failure for test automation
+                                window.subscriptionFailedEvents.push({
+                                    trackSid: publication.trackSid,
+                                    participantIdentity: participant.identity,
+                                    error: error?.message || error?.toString() || 'Periodic subscription failed',
+                                    timestamp: Date.now(),
+                                    type: 'periodic'
+                                });
+                                
+                                // Check if it's a permission-related error
+                                const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
+                                if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
+                                    window.subscriptionPermissionDenied = true;
+                                    window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied for periodic subscription';
+                                } else {
+                                    window.lastSubscriptionError = error?.message || error?.toString() || 'Periodic subscription failed';
+                                }
                             });
                         }
                     });

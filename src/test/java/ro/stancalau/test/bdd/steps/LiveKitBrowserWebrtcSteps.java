@@ -2,6 +2,7 @@ package ro.stancalau.test.bdd.steps;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
+import io.cucumber.java.Scenario;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.And;
@@ -42,7 +43,7 @@ public class LiveKitBrowserWebrtcSteps {
     }
 
     @After
-    public void tearDownLiveKitWebrtcSteps(io.cucumber.java.Scenario scenario) {
+    public void tearDownLiveKitWebrtcSteps(Scenario scenario) {
         if (scenario.isFailed() && webDriverManager != null) {
             // Mark all active WebDrivers for this scenario as failed
             webDriverManager.getAllWebDrivers().keySet().forEach(key -> {
@@ -74,7 +75,6 @@ public class LiveKitBrowserWebrtcSteps {
             accessTokenManager.clearAll();
         }
     }
-
 
     @When("{string} opens a Chrome browser with LiveKit Meet page")
     public void opensAChromeBrowserWithLiveKitMeetPage(String participantId) {
@@ -198,6 +198,65 @@ public class LiveKitBrowserWebrtcSteps {
         webDriverManager.closeWebDriver("meet", participantName);
         meetInstances.remove(participantName);
         log.info("{} closed browser", participantName);
+    }
+    
+    @Then("participant {string} should have video subscription blocked due to permissions")
+    public void participantShouldHaveVideoSubscriptionBlockedDueToPermissions(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, participantName + " should have an active LiveKit Meet instance");
+        
+        WebDriver driver = webDriverManager.getWebDriver("meet", participantName);
+        assertNotNull(driver, "WebDriver should exist for " + participantName);
+        
+        try {
+            // Wait a bit for subscription processing
+            Thread.sleep(3000);
+            
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            
+            // Check if any subscription failures were captured
+            Long subscriptionFailedCount = (Long) js.executeScript(
+                "return window.subscriptionFailedEvents ? window.subscriptionFailedEvents.length : 0;"
+            );
+            
+            // Check if permission denied flag was set
+            Boolean permissionDenied = (Boolean) js.executeScript(
+                "return window.subscriptionPermissionDenied || false;"
+            );
+            
+            // Get the error message if available
+            String errorMessage = (String) js.executeScript(
+                "return window.lastSubscriptionError || '';"
+            );
+            
+            // Check the number of video elements that are actually playing video (fallback check)
+            Long playingVideoElements = (Long) js.executeScript(
+                "try { return Array.from(document.querySelectorAll('video')).filter(v => " +
+                "v.videoWidth > 0 && v.videoHeight > 0 && !v.paused && !v.ended && v.readyState >= 2).length; } catch(e) { return 0; }"
+            );
+            
+            // Check if client has any subscribed tracks (fallback check)
+            Long subscribedTracks = (Long) js.executeScript(
+                "try { return window.liveKitClient && window.liveKitClient.room ? " +
+                "Array.from(window.liveKitClient.room.tracks.values()).filter(t => t.kind === 'video' && t.isSubscribed).length : 0; } catch(e) { return 0; }"
+            );
+            
+            log.info("Video subscription check for {}: subscriptionFailedCount={}, permissionDenied={}, errorMessage='{}', playingVideoElements={}, subscribedTracks={}", 
+                     participantName, subscriptionFailedCount, permissionDenied, errorMessage, playingVideoElements, subscribedTracks);
+            
+            // A participant without subscribe permission should either have subscription failures OR no playing/subscribed tracks
+            boolean hasSubscriptionFailures = subscriptionFailedCount > 0 || permissionDenied;
+            boolean hasNoVideoPlayback = playingVideoElements == 0 && subscribedTracks == 0;
+            
+            assertTrue(hasSubscriptionFailures || hasNoVideoPlayback, 
+                participantName + " should have video subscription blocked (failedEvents: " + subscriptionFailedCount + 
+                ", permissionDenied: " + permissionDenied + ", playingVideos: " + playingVideoElements + 
+                ", subscribedTracks: " + subscribedTracks + ", error: '" + errorMessage + "')");
+            
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail("Test interrupted while checking subscription status");
+        }
     }
 
     private String getLiveKitServerUrl() {

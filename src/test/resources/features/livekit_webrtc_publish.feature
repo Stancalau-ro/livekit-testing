@@ -40,3 +40,14 @@ Feature: LiveKit WebRTC Video Publishing
     Then "TemporaryUser" should be disconnected from the room
     And "TemporaryUser" should see the join form again
     And room "TemporaryUser" should have 0 active participants in service "livekit1"
+
+  Scenario: Participant without publish permission can join but cannot publish video
+    Given an access token is created with identity "NotAPublisher" and room "RestrictedRoom" with grants "canPublish:false,canSubscribe:true"
+    And room "RestrictedRoom" is created using service "livekit1"
+
+    When "NotAPublisher" opens a Chrome browser with LiveKit Meet page
+    And "NotAPublisher" connects to room "RestrictedRoom" using the access token
+    And connection is established successfully for "NotAPublisher"
+
+    Then room "RestrictedRoom" should have 1 active participants in service "livekit1"
+    And participant "NotAPublisher" should not be publishing video in room "RestrictedRoom" using service "livekit1"

@@ -173,6 +173,35 @@ public class LiveKitRoomSteps {
         assertEquals(1, videoTrackCount, "Participant '" + participantIdentity + "' should have 1 published video track after waiting");
     }
 
+    @Then("participant {string} should not be publishing video in room {string} using service {string}")
+    public void participantShouldNotBePublishingVideoInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
+        // Wait briefly to ensure connection is established
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+        
+        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+            .filter(p -> participantIdentity.equals(p.getIdentity()))
+            .findFirst()
+            .orElse(null);
+        
+        assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
+        
+        // Check that no video tracks are published
+        long videoTrackCount = targetParticipant.getTracksList().stream()
+            .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
+            .count();
+        
+        log.info("Verified participant '{}' is NOT publishing video in room '{}' using service '{}' (video tracks: {})", 
+                participantIdentity, roomName, serviceName, videoTrackCount);
+                
+        assertEquals(0, videoTrackCount, "Participant '" + participantIdentity + "' should have 0 published video tracks");
+    }
+
     @Then("participant {string} should see {int} remote video tracks in room {string} using service {string}")
     public void participantShouldSeeRemoteVideoTracksInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);

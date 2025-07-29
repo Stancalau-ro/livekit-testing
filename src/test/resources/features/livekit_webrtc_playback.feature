@@ -25,3 +25,22 @@ Feature: LiveKit WebRTC Video Playback
 
     Then room "VideoRoom" should have 2 active participants in service "livekit1"
     And participant "Subscriber" should see 1 remote video tracks in room "VideoRoom" using service "livekit1"
+
+  Scenario: Participant without subscribe permission cannot view other participants' video
+    Given an access token is created with identity "Publisher" and room "NoViewRoom" with grants "canPublish:true,canSubscribe:true"
+    And an access token is created with identity "NoSubscriber" and room "NoViewRoom" with grants "canPublish:false,canSubscribe:false"
+    And room "NoViewRoom" is created using service "livekit1"
+
+    When "Publisher" opens a Chrome browser with LiveKit Meet page
+    And "Publisher" connects to room "NoViewRoom" using the access token
+    And connection is established successfully for "Publisher"
+
+    Then room "NoViewRoom" should have 1 active participants in service "livekit1"
+    And participant "Publisher" should be publishing video in room "NoViewRoom" using service "livekit1"
+
+    When "NoSubscriber" opens a Chrome browser with LiveKit Meet page
+    And "NoSubscriber" connects to room "NoViewRoom" using the access token
+    And connection is established successfully for "NoSubscriber"
+
+    Then room "NoViewRoom" should have 2 active participants in service "livekit1"
+    And participant "NoSubscriber" should have video subscription blocked due to permissions
