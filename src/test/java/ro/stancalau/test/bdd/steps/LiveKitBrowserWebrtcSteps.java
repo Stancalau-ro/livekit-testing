@@ -76,13 +76,12 @@ public class LiveKitBrowserWebrtcSteps {
         }
     }
 
-    @When("{string} opens a Chrome browser with LiveKit Meet page")
-    public void opensAChromeBrowserWithLiveKitMeetPage(String participantId) {
-        log.info("Opening Chrome browser for participant: {}", participantId);
-        WebDriver driver = webDriverManager.createWebDriver("meet", participantId, "chrome");
-        assertNotNull(driver, "Chrome browser should be initialized for " + participantId);
+    @When("{string} opens a {string} browser with LiveKit Meet page")
+    public void opensABrowserWithLiveKitMeetPage(String participantId, String browser) {
+        log.info("Opening {} browser for participant: {}", browser, participantId);
+        WebDriver driver = webDriverManager.createWebDriver("meet", participantId, browser.toLowerCase());
+        assertNotNull(driver, browser + " browser should be initialized for " + participantId);
     }
-
 
     @When("{string} connects to room {string} using the access token")
     public void connectsToRoomUsingTheAccessToken(String participantName, String roomName) {

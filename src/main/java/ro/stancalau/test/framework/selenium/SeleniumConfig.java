@@ -6,8 +6,8 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
-import org.openqa.selenium.safari.SafariDriver;
-import org.openqa.selenium.safari.SafariOptions;
+import org.openqa.selenium.edge.EdgeDriver;
+import org.openqa.selenium.edge.EdgeOptions;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -28,9 +28,12 @@ public class SeleniumConfig {
         } else if (browser.contains("chrome")) {
             ChromeOptions options = getChromeOptions(allowInsecureUrl);
             driver = new ChromeDriver(options);
+        } else if (browser.contains("edge")) {
+            EdgeOptions options = getEdgeOptions(allowInsecureUrl);
+            driver = new EdgeDriver(options);
         } else {
-            SafariOptions options = new SafariOptions();
-            driver = new SafariDriver(options);
+            ChromeOptions options = getChromeOptions(allowInsecureUrl);
+            driver = new ChromeDriver(options);
         }
 
         driver.manage().timeouts().implicitlyWait(5, TimeUnit.SECONDS);
@@ -38,14 +41,71 @@ public class SeleniumConfig {
 
     public static FirefoxOptions getFirefoxOptions() {
         FirefoxOptions options = new FirefoxOptions();
+        // Basic media permissions
         options.addPreference("permissions.default.microphone", 1);
         options.addPreference("permissions.default.camera", 1);
+        
+        // Fake media streams for testing
+        options.addPreference("media.navigator.streams.fake", true);
+        options.addPreference("media.navigator.permission.disabled", true);
+        
+        // WebRTC specific settings
+        options.addPreference("media.autoplay.default", 0);
+        options.addPreference("media.autoplay.enabled", true);
+        options.addPreference("media.peerconnection.enabled", true);
+        options.addPreference("media.peerconnection.ice.relay_only", false);
+        options.addPreference("media.peerconnection.use_document_iceservers", false);
+        options.addPreference("media.peerconnection.identity.enabled", false);
+        options.addPreference("media.peerconnection.identity.timeout", 1);
+        options.addPreference("media.peerconnection.turn.disable", false);
+        options.addPreference("media.peerconnection.ice.tcp", true);
+        options.addPreference("media.peerconnection.ice.default_address_only", false);
+        
+        // Security and insecure origins
+        options.addPreference("media.devices.insecure.enabled", true);
+        options.addPreference("media.getusermedia.insecure.enabled", true);
+        options.addPreference("network.websocket.allowInsecureFromHTTPS", true);
+        options.addPreference("security.mixed_content.block_active_content", false);
+        
+        // WebSocket specific settings for container networking
+        options.addPreference("network.websocket.max-connections", 200);
+        options.addPreference("network.http.speculative-parallel-limit", 0);
+        
+        // Additional settings
+        options.addPreference("dom.webnotifications.enabled", false);
+        options.addPreference("devtools.console.stdout.content", true);
+        
+        // Enable logging
+        options.addPreference("webrtc.logging.browser_level", "verbose");
+        options.addPreference("webrtc.logging.aec_debug_dump", true);
+        
+        // Add Firefox arguments
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        
         options.setAcceptInsecureCerts(true);
         return options;
     }
 
     public static ChromeOptions getChromeOptions(String allowInsecureUrl) {
         ChromeOptions options = new ChromeOptions();
+        options.addArguments("use-fake-device-for-media-stream");
+        options.addArguments("use-fake-ui-for-media-stream");
+        options.addArguments("--disable-field-trial-config");
+        options.addArguments("--disable-features=WebRtcHideLocalIpsWithMdnsg");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--reduce-security-for-testing");
+        options.addArguments("--allow-running-insecure-content");
+        if (allowInsecureUrl != null) {
+            options.addArguments("--unsafely-treat-insecure-origin-as-secure=" + allowInsecureUrl);
+        }
+
+        options.setAcceptInsecureCerts(true);
+        return options;
+    }
+
+    public static EdgeOptions getEdgeOptions(String allowInsecureUrl) {
+        EdgeOptions options = new EdgeOptions();
         options.addArguments("use-fake-device-for-media-stream");
         options.addArguments("use-fake-ui-for-media-stream");
         options.addArguments("--disable-field-trial-config");

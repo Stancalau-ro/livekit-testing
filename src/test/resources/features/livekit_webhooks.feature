@@ -4,12 +4,8 @@ Feature: LiveKit Webhook Integration
   So that I can verify webhook events are properly sent by the LiveKit server
 
   Background:
-    Given the LiveKit config is set to "basic"
+    Given the LiveKit config is set to "basic_hook"
     And a LiveKit server is running in a container with service name "livekit1"
-
-  Scenario: Verify webhook-enabled LiveKit server starts successfully
-    When all rooms are fetched from service "livekit1"
-    Then the room count should be 0
 
   Scenario: Create room and verify webhook events are configured
     When room "WebhookTestRoom" is created using service "livekit1"

@@ -51,7 +51,9 @@ class LiveKitMeetClient {
     }
     
     async handleJoinMeeting(e) {
-        e.preventDefault();
+        if (e.preventDefault) {
+            e.preventDefault();
+        }
         
         // Add big visual indicator that form was submitted
         document.getElementById('status').textContent = '🚀 FORM SUBMITTED - Starting connection process...';

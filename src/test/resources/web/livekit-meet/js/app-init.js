@@ -103,7 +103,30 @@ window.addEventListener('load', () => {
                 // Hide auto-join status and show connection status
                 document.getElementById('autoJoinStatus').style.display = 'none';
                 
-                document.getElementById('meetingForm').dispatchEvent(new Event('submit', { bubbles: true }));
+                const form = document.getElementById('meetingForm');
+                
+                // Try multiple methods for Firefox compatibility
+                try {
+                    if (form.requestSubmit) {
+                        form.requestSubmit();
+                    } else {
+                        const submitEvent = new Event('submit', { 
+                            bubbles: true, 
+                            cancelable: true 
+                        });
+                        const dispatched = form.dispatchEvent(submitEvent);
+                        
+                        // If event wasn't prevented, also try direct submit
+                        if (dispatched) {
+                            form.submit();
+                        }
+                    }
+                } catch (e) {
+                    // Fallback: directly call the join function
+                    if (window.liveKitClient && window.liveKitClient.handleJoinMeeting) {
+                        window.liveKitClient.handleJoinMeeting(new Event('submit'));
+                    }
+                }
             }
         }, 1000);
     } else {

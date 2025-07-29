@@ -105,9 +105,27 @@ public class WebDriverStateManager {
         Network network = containerStateManager.getOrCreateNetwork();
         String insecureUrl = "http://host.docker.internal:*,http://webserver";
         
-        BrowserWebDriverContainer<?> browserContainer = new BrowserWebDriverContainer<>()
-                .withCapabilities(SeleniumConfig.getChromeOptions(insecureUrl))
-                .withNetwork(network);
+        BrowserWebDriverContainer<?> browserContainer;
+        
+        switch (browser.toLowerCase()) {
+            case "firefox":
+                browserContainer = new BrowserWebDriverContainer<>()
+                        .withCapabilities(SeleniumConfig.getFirefoxOptions())
+                        .withNetwork(network)
+                        .withEnv("MOZ_FAKE_MEDIA_STREAMS", "1");
+                break;
+            case "edge":
+                browserContainer = new BrowserWebDriverContainer<>()
+                        .withCapabilities(SeleniumConfig.getEdgeOptions(insecureUrl))
+                        .withNetwork(network);
+                break;
+            case "chrome":
+            default:
+                browserContainer = new BrowserWebDriverContainer<>()
+                        .withCapabilities(SeleniumConfig.getChromeOptions(insecureUrl))
+                        .withNetwork(network);
+                break;
+        }
         
         String recordingMode = TestConfig.getRecordingMode();
         if (TestConfig.isRecordingEnabled()) {
