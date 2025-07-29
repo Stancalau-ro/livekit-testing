@@ -51,8 +51,7 @@ public class DockerImageUtils {
     public static void buildDockerImage(String imageName, String version, String baseDirectory) {
         try {
             String projectRoot = System.getProperty("user.dir");
-            String pathVersion = version.replace(".", "_");
-            Path dockerContextPath = Paths.get(projectRoot, baseDirectory, pathVersion);
+            Path dockerContextPath = Paths.get(projectRoot, baseDirectory, version);
             
             log.info("Building Docker image {} from context: {}", imageName, dockerContextPath);
             
