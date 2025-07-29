@@ -4,7 +4,8 @@ Feature: LiveKit WebRTC Video Playback
   So that I can verify participants can subscribe to and view other participants' video streams
 
   Background:
-    Given a LiveKit server is running in a container with service name "livekit1"
+    Given the LiveKit config is set to "basic"
+    And a LiveKit server is running in a container with service name "livekit1"
 
   Scenario: Publisher and subscriber can share video in a room
     Given an access token is created with identity "Publisher" and room "VideoRoom" with grants "canPublish:true,canSubscribe:true"

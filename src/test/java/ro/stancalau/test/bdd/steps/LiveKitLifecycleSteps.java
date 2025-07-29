@@ -8,6 +8,7 @@ import org.testcontainers.containers.Network;
 import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.factory.LiveKitContainerFactory;
+import ro.stancalau.test.framework.util.TestConfig;
 
 import javax.annotation.Nullable;
 
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class LiveKitLifecycleSteps {
 
     private ContainerStateManager containerManager;
+    private String defaultConfigProfile = "basic";
 
     @Before
     public void setUpLiveKitLifecycleSteps() {
@@ -30,16 +32,21 @@ public class LiveKitLifecycleSteps {
         }
     }
 
-    @Given("a LiveKit server is running in a container with service name {string}")
-    public void aLiveKitServerIsRunningInAContainerWithServiceName(String serviceName) {
-        getOrCreateContainer(serviceName, null);
+    @Given("the LiveKit config is set to {string}")
+    public void theLiveKitConfigIsSetTo(String profileName) {
+        this.defaultConfigProfile = profileName;
+        log.info("LiveKit config profile set to: {}", profileName);
     }
 
-    /**
-     * @param configPath ConfigPath pattern: src/test/resources/livekit/config/config.yaml
-     */
-    @Given("a LiveKit server is running in a container with service name {string} using config {string}")
-    public void aLiveKitServerIsRunningInAContainerWithServiceName(String serviceName, String configPath) {
+    @Given("a LiveKit server is running in a container with service name {string}")
+    public void aLiveKitServerIsRunningInAContainerWithServiceName(String serviceName) {
+        String configPath = TestConfig.resolveConfigPath(defaultConfigProfile);
+        getOrCreateContainer(serviceName, configPath);
+    }
+
+    @Given("a LiveKit server is running in a container with service name {string} using config profile {string}")
+    public void aLiveKitServerIsRunningInAContainerWithServiceNameUsingConfigProfile(String serviceName, String profileName) {
+        String configPath = TestConfig.resolveConfigPath(profileName);
         getOrCreateContainer(serviceName, configPath);
     }
 

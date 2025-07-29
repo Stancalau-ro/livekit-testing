@@ -4,7 +4,8 @@ Feature: LiveKit WebRTC Video Publishing
   So that I can verify clients can publish video streams to LiveKit rooms
 
   Background:
-    Given a LiveKit server is running in a container with service name "livekit1"
+    Given the LiveKit config is set to "basic"
+    And a LiveKit server is running in a container with service name "livekit1"
 
   Scenario: Multiple participants can join the same room and publish video
     Given an access token is created with identity "Jack" and room "MultiRoom" with grants "canPublish:true,canSubscribe:true"

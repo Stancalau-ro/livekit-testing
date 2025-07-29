@@ -4,7 +4,8 @@ Feature: LiveKit Room Management
   So that I can create and list rooms on the LiveKit server
 
   Background:
-    Given a LiveKit server is running in a container with service name "livekit1"
+    Given the LiveKit config is set to "basic"
+    And a LiveKit server is running in a container with service name "livekit1"
 
   Scenario: Verify no rooms exist on a fresh LiveKit container
     When all rooms are fetched from service "livekit1"

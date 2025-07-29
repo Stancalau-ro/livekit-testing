@@ -3,6 +3,7 @@ package ro.stancalau.test.framework.util;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 
@@ -19,6 +20,8 @@ public class TestConfig {
     private static final String DEFAULT_RECORDING_MODE = "all";
     
     private static final List<String> VALID_RECORDING_MODES = Arrays.asList("skip", "all", "failed");
+    
+    private static final String CONFIG_BASE_PATH = "src/test/resources/livekit/config";
     
     /**
      * Gets the LiveKit version to use for tests.
@@ -115,5 +118,70 @@ public class TestConfig {
      */
     public static List<String> getValidRecordingModes() {
         return VALID_RECORDING_MODES;
+    }
+    
+    /**
+     * Resolves the configuration path for a given profile using the current LiveKit version.
+     * Falls back to the latest available version if the current version is not found.
+     * 
+     * @param profileName The profile name (e.g., "basic", "basic_hook")
+     * @return The full path to the configuration file
+     */
+    public static String resolveConfigPath(String profileName) {
+        String currentVersion = getLiveKitVersion();
+        String versionedPath = CONFIG_BASE_PATH + "/" + currentVersion + "/" + profileName + "/config.yaml";
+        
+        File versionedConfig = new File(versionedPath);
+        if (versionedConfig.exists()) {
+            log.debug("Using configuration for version {} and profile {}: {}", currentVersion, profileName, versionedPath);
+            return versionedPath;
+        }
+        
+        log.warn("Configuration not found for version {} and profile {}. Searching for latest available version...", 
+                currentVersion, profileName);
+        
+        String latestVersionPath = findLatestVersionConfig(profileName);
+        if (latestVersionPath != null) {
+            return latestVersionPath;
+        }
+        
+        throw new IllegalStateException(String.format(
+                "No configuration found for profile '%s'. Searched in %s and all available version directories.",
+                profileName, versionedPath));
+    }
+    
+    /**
+     * Finds the latest available configuration for a given profile by scanning version directories.
+     * 
+     * @param profileName The profile name to search for
+     * @return The path to the latest available config, or null if none found
+     */
+    private static String findLatestVersionConfig(String profileName) {
+        File configBaseDir = new File(CONFIG_BASE_PATH);
+        if (!configBaseDir.exists() || !configBaseDir.isDirectory()) {
+            log.error("Configuration base directory does not exist: {}", CONFIG_BASE_PATH);
+            return null;
+        }
+        
+        File[] versionDirs = configBaseDir.listFiles(File::isDirectory);
+        if (versionDirs == null || versionDirs.length == 0) {
+            log.error("No version directories found in: {}", CONFIG_BASE_PATH);
+            return null;
+        }
+        
+        Arrays.sort(versionDirs, (a, b) -> b.getName().compareTo(a.getName()));
+        
+        for (File versionDir : versionDirs) {
+            String candidatePath = versionDir.getPath() + "/" + profileName + "/config.yaml";
+            File candidateConfig = new File(candidatePath);
+            
+            if (candidateConfig.exists()) {
+                log.warn("Using fallback configuration for profile {} from version {}: {}", 
+                        profileName, versionDir.getName(), candidatePath);
+                return candidatePath;
+            }
+        }
+        
+        return null;
     }
 }

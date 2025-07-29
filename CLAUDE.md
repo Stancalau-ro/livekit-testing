@@ -96,6 +96,7 @@ This is a **LiveKit testing framework** that provides Docker-based integration t
 - LiveKit versions configured via `gradle.properties` (`livekit_docker_version`) 
 - Can be overridden with system properties or command line arguments
 - Test containers automatically use the specified version
+- Configuration profiles are version-aware, falling back to latest available version if current version config is not found
 
 **Test Isolation:**
 - Unit tests and Cucumber tests are properly isolated
@@ -153,6 +154,21 @@ And attributes "description=Testing\, debugging\, development,role=admin"
 
 - **Step Definition Language:**
   - All BDD steps must use 3rd person subject-focused language
+
+- **LiveKit Configuration Per Feature:**
+  - Each feature file can specify its own LiveKit configuration profile using the Background section
+  - Use the step: `Given the LiveKit config is set to "<profile-name>"`
+  - Profile names automatically resolve to version-specific paths using the current LiveKit version
+  - If the current version doesn't have the profile, the system falls back to the latest available version
+  - Available profiles:
+    - `basic` - Basic LiveKit configuration (default)
+    - `basic_hook` - LiveKit with webhook support
+  - Example Background section:
+    ```gherkin
+    Background:
+      Given the LiveKit config is set to "basic_hook"
+      And a LiveKit server is running in a container with service name "livekit1"
+    ```
 
 ## Testing Tips
 

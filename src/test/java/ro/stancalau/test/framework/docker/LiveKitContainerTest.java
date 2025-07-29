@@ -15,7 +15,6 @@ public class LiveKitContainerTest {
         log.info("Starting LiveKit container test");
         
         try (Network network = Network.newNetwork()) {
-            String configPath = "src/test/resources/livekit/config/config.yaml";
             LiveKitContainer container = LiveKitContainerFactory.createIntegrationTestContainer("test-livekit", network);
             
             assertNotNull(container, "Container should be created");
