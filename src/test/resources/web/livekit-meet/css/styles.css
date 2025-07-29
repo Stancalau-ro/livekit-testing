@@ -314,9 +314,12 @@ input:focus {
     border-radius: 4px;
     margin-top: 0.5rem;
     border: 1px solid #e1e5e9;
+    scroll-behavior: smooth;
 }
 
 #techInfo {
     white-space: pre-line;
     color: #666;
+    min-height: 100%;
+    display: block;
 }

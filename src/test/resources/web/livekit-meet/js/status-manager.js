@@ -63,7 +63,11 @@ class StatusManager {
         const techInfoDiv = document.getElementById('techInfo');
         if (techInfoDiv) {
             techInfoDiv.textContent = this.techDetails.join('\n');
-            techInfoDiv.scrollTop = techInfoDiv.scrollHeight;
+            // Scroll the parent container, not the content div
+            const parentContainer = techInfoDiv.parentElement;
+            if (parentContainer) {
+                parentContainer.scrollTop = parentContainer.scrollHeight;
+            }
         }
     }
     

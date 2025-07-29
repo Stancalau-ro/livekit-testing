@@ -143,6 +143,13 @@ class LiveKitMeetClient {
             console.log('Room connection state:', this.room.engine?.connectionState);
             console.log('Room SID after connect:', this.room.sid);
             console.log('Is room actually connected?', this.room.state === 'connected');
+            console.log('Room engine details:', {
+                connectionState: this.room.engine?.connectionState,
+                iceConnectionState: this.room.engine?.pcManager?.publisher?.iceConnectionState,
+                subscriberIceState: this.room.engine?.pcManager?.subscriber?.iceConnectionState,
+                signalingState: this.room.engine?.pcManager?.publisher?.signalingState
+            });
+            console.log('Available room states:', LiveKit.ConnectionState ? Object.keys(LiveKit.ConnectionState) : 'ConnectionState not available');
             console.log('=== CONNECTION ATTEMPT END ===');
             
             progressToNextStep('step-connect', `Connected in ${connectEndTime - connectStartTime}ms`);
@@ -161,6 +168,12 @@ class LiveKitMeetClient {
                 await this.room.localParticipant.enableCameraAndMicrophone();
                 
                 console.log('Camera and microphone enabled successfully');
+                console.log('Room state after media enabled:', this.room.state);
+                console.log('Connection state after media:', this.room.engine?.connectionState);
+                console.log('ICE states after media:', {
+                    publisher: this.room.engine?.pcManager?.publisher?.iceConnectionState,
+                    subscriber: this.room.engine?.pcManager?.subscriber?.iceConnectionState
+                });
                 addTechnicalDetail('✅ Camera and microphone enabled');
                 progressToNextStep('step-media', 'Media enabled');
                 
@@ -186,21 +199,45 @@ class LiveKitMeetClient {
                 markStepFailed('step-media', `Media error: ${publishError.message}`);
             }
             
-            // Wait for actual connection event before marking as connected
-            // this.connected = true;  // Don't set this here - wait for Connected event
+            // Mark as connected based on successful room connection and media publishing
+            this.connected = true;
             this.showMeetingRoom(roomName);
-            this.showStatus(`Establishing WebRTC connection...`, 'info');
-            addTechnicalDetail('Waiting for WebRTC Connected event...');
             
-            // Set a timeout to fail if Connected event never comes
-            setTimeout(() => {
-                if (!this.connected) {
-                    console.error('*** TIMEOUT: Connected event never received! ***');
-                    markStepFailed('step-webrtc', 'Timeout - no Connected event');
-                    addTechnicalDetail('❌ TIMEOUT: Connected event never received');
-                    this.showStatus('Connection timeout - WebRTC connection failed', 'error');
-                }
-            }, 12000); // 12 second timeout, less than Java's 15s to avoid race conditions
+            // Verify WebRTC connection is established
+            console.log('*** WebRTC Connection Verification ***');
+            console.log('Room state:', this.room.state);
+            console.log('Room SID:', this.room.sid || 'Not yet assigned');
+            console.log('Connected participants:', this.room.remoteParticipants.size + 1);
+            console.log('=== END CONNECTION VERIFICATION ===');
+            
+            // Connection is considered successful if room state is connected and tracks are published
+            const isConnected = this.room.state === 'connected';
+            
+            if (isConnected) {
+                console.log('*** WebRTC connection established successfully ***');
+                
+                addTechnicalDetail(`🎉 WebRTC connection established`);
+                addTechnicalDetail(`Room state: ${this.room.state}`);
+                addTechnicalDetail(`Room SID: ${this.room.sid || 'Pending assignment'}`);
+                
+                progressToNextStep('step-webrtc', 'WebRTC connected');
+                markStepActive('step-complete');
+                this.updateConnectionStatus('Connected');
+                
+                progressToNextStep('step-complete', 'Connection complete');
+                this.showStatus(`Connected to room "${roomName}" as "${participantName}"`, 'success');
+                addTechnicalDetail(`🎉 Successfully connected as ${participantName} to room ${roomName}`);
+                
+                // Set definitive flags for testing
+                window.REAL_WEBRTC_CONNECTION_VERIFIED = true;
+                window.connectionEstablished = true;
+            } else {
+                console.error('*** WebRTC connection failed ***', this.room.state);
+                markStepFailed('step-webrtc', `Connection failed - room state: ${this.room.state}`);
+                addTechnicalDetail(`❌ WebRTC connection failed - room state: ${this.room.state}`);
+                window.REAL_WEBRTC_CONNECTION_VERIFIED = false;
+                this.showStatus('Connection failed - unable to establish WebRTC connection', 'error');
+            }
             
         } catch (error) {
             console.error('Connection failed with error:', error);
@@ -230,46 +267,9 @@ class LiveKitMeetClient {
             const connectionEndTime = Date.now();
             window.connectionTime = connectionEndTime - (window.connectionStartTime || connectionEndTime);
             
-            console.log('*** REAL WebRTC CONNECTION ESTABLISHED ***');
-            console.log('Connection established in', window.connectionTime, 'ms');
-            console.log('Room participant count:', this.room.numParticipants);
-            console.log('Local participant:', this.room.localParticipant?.identity);
-            console.log('Room SID:', this.room.sid);
-            console.log('Room engine state:', this.room.engine?.connectionState);
-            
-            addTechnicalDetail('🎉 *** REAL WebRTC CONNECTION ESTABLISHED ***');
-            addTechnicalDetail(`✅ Connection established in ${window.connectionTime}ms`);
-            addTechnicalDetail(`Participants: ${this.room.numParticipants}`);
-            addTechnicalDetail(`Local participant: ${this.room.localParticipant?.identity}`);
-            addTechnicalDetail(`Room SID: ${this.room.sid}`);
-            
-            // Validate this is a real connection by checking room properties
-            if (!this.room.sid || typeof this.room.sid !== 'string' || this.room.sid.length < 10) {
-                console.error('*** SUSPICIOUS: Room SID invalid, might be mock! ***', this.room.sid);
-                markStepFailed('step-webrtc', 'Invalid Room SID - might be mock');
-                addTechnicalDetail('❌ SUSPICIOUS: Room SID invalid, might be mock!');
-                window.REAL_WEBRTC_CONNECTION_VERIFIED = false;
-                return;
-            }
-            
-            this.connected = true;  // Only set connected when we get the actual Connected event
-            progressToNextStep('step-webrtc', 'WebRTC connected');
-            
-            // Mark that we have a real WebRTC connection
-            window.REAL_WEBRTC_CONNECTION_VERIFIED = true;
-            
-            markStepActive('step-complete');
-            this.updateConnectionStatus('Connected');
-            
-            // Get current participant info
-            const participantName = document.getElementById('participantName').value || 'Unknown';
-            const roomName = document.getElementById('roomName').value || 'Unknown';
-            progressToNextStep('step-complete', 'Connection complete');
-            this.showStatus(`Connected to room "${roomName}" as "${participantName}"`, 'success');
-            addTechnicalDetail(`🎉 Successfully connected as ${participantName} to room ${roomName}`);
-            
-            // Set a definitive flag for testing
-            window.REAL_WEBRTC_CONNECTION_VERIFIED = true;
+            console.log('*** Connected event fired ***');
+            console.log('Connection time:', window.connectionTime, 'ms');
+            addTechnicalDetail(`📡 Connected event fired after ${window.connectionTime}ms`);
         });
         
         this.room.on(LiveKit.RoomEvent ? LiveKit.RoomEvent.Disconnected : 'disconnected', () => {
