@@ -99,15 +99,25 @@ class LiveKitMeetClient {
             progressToNextStep('step-room', 'Room created');
             addTechnicalDetail(`✅ Room instance created with resolution: ${videoResolution.width}x${videoResolution.height}`);
             
+            // Debug: Log available LiveKit events
+            console.log('=== DEBUGGING LIVEKIT EVENTS ===');
+            console.log('LiveKit object:', LiveKit);
+            console.log('LiveKit.RoomEvent object:', LiveKit.RoomEvent);
+            if (LiveKit.RoomEvent) {
+                console.log('Available room events:', Object.keys(LiveKit.RoomEvent));
+                addTechnicalDetail('Available events: ' + Object.keys(LiveKit.RoomEvent).join(', '));
+            } else {
+                console.error('LiveKit.RoomEvent is undefined!');
+                addTechnicalDetail('❌ LiveKit.RoomEvent is undefined!');
+            }
+            console.log('Room object after creation:', this.room);
+            console.log('Room constructor:', this.room.constructor.name);
+            addTechnicalDetail('Room created: ' + this.room.constructor.name);
+            console.log('=== END DEBUG ===');
+            
             this.setupRoomEventListeners();
             
-            // Get user media first
-            markStepActive('step-media');
-            this.showStatus('Accessing camera and microphone...', 'info');
-            await this.enableCameraAndMicrophone();
-            
-            // Connect to room
-            progressToNextStep('step-media', 'Media ready');
+            // Connect to room first (before getting media)
             markStepActive('step-connect');
             this.showStatus('Connecting to LiveKit server...', 'info');
             addTechnicalDetail('Starting connection to LiveKit server...');
@@ -141,6 +151,41 @@ class LiveKitMeetClient {
             addTechnicalDetail(`Room state: ${this.room.state}`);
             addTechnicalDetail(`Room SID: ${this.room.sid}`);
             
+            // Enable camera and microphone immediately after connection
+            try {
+                markStepActive('step-media');
+                this.showStatus('Accessing camera and microphone...', 'info');
+                addTechnicalDetail('Enabling camera and microphone after connection...');
+                
+                console.log('*** Calling enableCameraAndMicrophone() ***');
+                await this.room.localParticipant.enableCameraAndMicrophone();
+                
+                console.log('Camera and microphone enabled successfully');
+                addTechnicalDetail('✅ Camera and microphone enabled');
+                progressToNextStep('step-media', 'Media enabled');
+                
+                // Get the tracks that were created
+                const cameraPublication = this.room.localParticipant.getTrackPublication(LiveKit.Track.Source.Camera);
+                const micPublication = this.room.localParticipant.getTrackPublication(LiveKit.Track.Source.Microphone);
+                
+                this.localVideoTrack = cameraPublication?.track;
+                this.localAudioTrack = micPublication?.track;
+                
+                // Attach video to display
+                if (this.localVideoTrack) {
+                    this.localVideoTrack.attach(this.localVideo);
+                    addTechnicalDetail('✅ Video track attached to display');
+                    this.updateVideoDisplay();
+                }
+                
+                console.log('All tracks published successfully');
+                addTechnicalDetail('🎉 All tracks published successfully');
+            } catch (publishError) {
+                console.error('Failed to enable camera/microphone:', publishError);
+                addTechnicalDetail(`❌ Failed to enable camera/microphone: ${publishError.message}`);
+                markStepFailed('step-media', `Media error: ${publishError.message}`);
+            }
+            
             // Wait for actual connection event before marking as connected
             // this.connected = true;  // Don't set this here - wait for Connected event
             this.showMeetingRoom(roomName);
@@ -172,7 +217,16 @@ class LiveKitMeetClient {
     }
     
     setupRoomEventListeners() {
-        this.room.on(LiveKit.RoomEvent.Connected, async () => {
+        console.log('=== SETTING UP ROOM EVENT LISTENERS ===');
+        console.log('Room object for event setup:', this.room);
+        console.log('Setting up Connected event listener...');
+        
+        // Test if the event name exists
+        const connectedEvent = LiveKit.RoomEvent ? LiveKit.RoomEvent.Connected : 'connected';
+        console.log('Using Connected event:', connectedEvent);
+        addTechnicalDetail('Using Connected event: ' + connectedEvent);
+        
+        this.room.on(connectedEvent, async () => {
             const connectionEndTime = Date.now();
             window.connectionTime = connectionEndTime - (window.connectionStartTime || connectionEndTime);
             
@@ -201,28 +255,8 @@ class LiveKitMeetClient {
             this.connected = true;  // Only set connected when we get the actual Connected event
             progressToNextStep('step-webrtc', 'WebRTC connected');
             
-            // Now publish the tracks after successful connection
-            try {
-                if (this.localVideoTrack && this.localAudioTrack) {
-                    console.log('Publishing tracks after successful connection...');
-                    addTechnicalDetail('Publishing video and audio tracks...');
-                    
-                    await this.room.localParticipant.publishTrack(this.localVideoTrack);
-                    addTechnicalDetail('✅ Video track published');
-                    
-                    await this.room.localParticipant.publishTrack(this.localAudioTrack);
-                    addTechnicalDetail('✅ Audio track published');
-                    
-                    console.log('All tracks published successfully after connection');
-                    addTechnicalDetail('🎉 All tracks published successfully');
-                } else {
-                    console.warn('Tracks not available for publishing');
-                    addTechnicalDetail('⚠️ Warning: Tracks not available for publishing');
-                }
-            } catch (publishError) {
-                console.error('Failed to publish tracks:', publishError);
-                addTechnicalDetail(`❌ Failed to publish tracks: ${publishError.message}`);
-            }
+            // Mark that we have a real WebRTC connection
+            window.REAL_WEBRTC_CONNECTION_VERIFIED = true;
             
             markStepActive('step-complete');
             this.updateConnectionStatus('Connected');
@@ -238,7 +272,7 @@ class LiveKitMeetClient {
             window.REAL_WEBRTC_CONNECTION_VERIFIED = true;
         });
         
-        this.room.on(LiveKit.RoomEvent.Disconnected, () => {
+        this.room.on(LiveKit.RoomEvent ? LiveKit.RoomEvent.Disconnected : 'disconnected', () => {
             console.log('*** DISCONNECTED from room ***');
             addTechnicalDetail('⚠️ Disconnected from room');
             this.handleDisconnection();
@@ -311,58 +345,59 @@ class LiveKitMeetClient {
         });
     }
     
-    async enableCameraAndMicrophone() {
-        try {
-            console.log('=== MEDIA ACQUISITION START ===');
-            addTechnicalDetail('Starting media acquisition...');
-            
-            // Create local video track with fallback for video resolution
-            const videoResolution = (LiveKit.VideoPresets && LiveKit.VideoPresets.h720 && LiveKit.VideoPresets.h720.resolution) 
-                ? LiveKit.VideoPresets.h720.resolution 
-                : { width: 1280, height: 720 };
-            
-            addTechnicalDetail(`Video resolution: ${videoResolution.width}x${videoResolution.height}`);
-            
-            console.log('Creating video track with resolution:', videoResolution);
-            addTechnicalDetail('Creating video track...');
-            this.localVideoTrack = await LiveKit.createLocalVideoTrack({
-                resolution: videoResolution,
-            });
-            console.log('Video track created:', this.localVideoTrack);
-            addTechnicalDetail('✅ Video track created');
-            
-            // Create local audio track
-            console.log('Creating audio track...');
-            addTechnicalDetail('Creating audio track...');
-            this.localAudioTrack = await LiveKit.createLocalAudioTrack();
-            console.log('Audio track created:', this.localAudioTrack);
-            addTechnicalDetail('✅ Audio track created');
-            
-            // Attach local video to video element
-            console.log('Attaching video track to element...');
-            addTechnicalDetail('Attaching video track to display...');
-            this.localVideoTrack.attach(this.localVideo);
-            
-            // Don't publish tracks yet - wait until after room connection
-            console.log('Tracks created but not published yet - waiting for room connection');
-            addTechnicalDetail('✅ Tracks created, waiting for room connection to publish');
-            
-            this.updateVideoDisplay();
-            console.log('=== MEDIA ACQUISITION END ===');
-            addTechnicalDetail('✅ Media acquisition completed');
-            
-        } catch (error) {
-            console.error('=== MEDIA ACQUISITION FAILED ===');
-            console.error('Failed to access camera/microphone:', error);
-            console.error('Error name:', error.name);
-            console.error('Error message:', error.message);
-            console.error('Error stack:', error.stack);
-            addTechnicalDetail(`❌ Media acquisition failed: ${error.message}`);
-            markStepFailed('step-media', `Media error: ${error.message}`);
-            this.showStatus('Failed to access camera/microphone. Please check permissions.', 'error');
-            throw error;
-        }
-    }
+    // OLD METHOD - Kept for reference. Now using room.localParticipant.enableCameraAndMicrophone()
+    // async enableCameraAndMicrophone() {
+    //     try {
+    //         console.log('=== MEDIA ACQUISITION START ===');
+    //         addTechnicalDetail('Starting media acquisition...');
+    //         
+    //         // Create local video track with fallback for video resolution
+    //         const videoResolution = (LiveKit.VideoPresets && LiveKit.VideoPresets.h720 && LiveKit.VideoPresets.h720.resolution) 
+    //             ? LiveKit.VideoPresets.h720.resolution 
+    //             : { width: 1280, height: 720 };
+    //         
+    //         addTechnicalDetail(`Video resolution: ${videoResolution.width}x${videoResolution.height}`);
+    //         
+    //         console.log('Creating video track with resolution:', videoResolution);
+    //         addTechnicalDetail('Creating video track...');
+    //         this.localVideoTrack = await LiveKit.createLocalVideoTrack({
+    //             resolution: videoResolution,
+    //         });
+    //         console.log('Video track created:', this.localVideoTrack);
+    //         addTechnicalDetail('✅ Video track created');
+    //         
+    //         // Create local audio track
+    //         console.log('Creating audio track...');
+    //         addTechnicalDetail('Creating audio track...');
+    //         this.localAudioTrack = await LiveKit.createLocalAudioTrack();
+    //         console.log('Audio track created:', this.localAudioTrack);
+    //         addTechnicalDetail('✅ Audio track created');
+    //         
+    //         // Attach local video to video element
+    //         console.log('Attaching video track to element...');
+    //         addTechnicalDetail('Attaching video track to display...');
+    //         this.localVideoTrack.attach(this.localVideo);
+    //         
+    //         // Don't publish tracks yet - wait until after room connection
+    //         console.log('Tracks created but not published yet - waiting for room connection');
+    //         addTechnicalDetail('✅ Tracks created, waiting for room connection to publish');
+    //         
+    //         this.updateVideoDisplay();
+    //         console.log('=== MEDIA ACQUISITION END ===');
+    //         addTechnicalDetail('✅ Media acquisition completed');
+    //         
+    //     } catch (error) {
+    //         console.error('=== MEDIA ACQUISITION FAILED ===');
+    //         console.error('Failed to access camera/microphone:', error);
+    //         console.error('Error name:', error.name);
+    //         console.error('Error message:', error.message);
+    //         console.error('Error stack:', error.stack);
+    //         addTechnicalDetail(`❌ Media acquisition failed: ${error.message}`);
+    //         markStepFailed('step-media', `Media error: ${error.message}`);
+    //         this.showStatus('Failed to access camera/microphone. Please check permissions.', 'error');
+    //         throw error;
+    //     }
+    // }
     
     handleParticipantConnected(participant) {
         const participantDiv = document.createElement('div');

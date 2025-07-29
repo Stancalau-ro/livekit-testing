@@ -11,6 +11,6 @@ Feature: LiveKit Room Management
     Then the room count should be 0
 
   Scenario: Verify room count is 1 after creating a room
-    When a room "TestRoom" is created using service "livekit1"
+    When room "TestRoom" is created using service "livekit1"
     And all rooms are fetched from service "livekit1"
     Then the room count should be 1

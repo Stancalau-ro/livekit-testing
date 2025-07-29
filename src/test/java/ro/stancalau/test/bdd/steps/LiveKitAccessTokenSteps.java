@@ -10,7 +10,6 @@ import io.cucumber.java.en.When;
 import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
 import ro.stancalau.test.framework.state.AccessTokenStateManager;
-import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.util.HashMap;

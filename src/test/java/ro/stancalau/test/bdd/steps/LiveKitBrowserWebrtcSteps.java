@@ -7,6 +7,7 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.And;
 import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import ro.stancalau.test.framework.state.AccessTokenStateManager;
 import ro.stancalau.test.framework.state.ContainerStateManager;
@@ -199,7 +200,6 @@ public class LiveKitBrowserWebrtcSteps {
         log.info("{} closed browser", participantName);
     }
 
-
     private String getLiveKitServerUrl() {
         LiveKitContainer container = containerManager.getContainer("livekit1", LiveKitContainer.class);
         assertNotNull(container, "LiveKit container should be running");
@@ -208,5 +208,4 @@ public class LiveKitBrowserWebrtcSteps {
         // Return network WebSocket URL accessible from other containers in the same network
         return container.getNetworkWs();
     }
-    
 }

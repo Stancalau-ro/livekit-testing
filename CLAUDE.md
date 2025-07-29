@@ -133,6 +133,7 @@ And attributes "description=Testing\, debugging\, development,role=admin"
 
 - **Commit Messages:**
   - Never add Co-Authored-By and Claude references to commit messages
+  - Commit messages need to only specify most important changes and focus on the improvement not the implementation details
 
 ## Best Practices
 
@@ -147,6 +148,11 @@ And attributes "description=Testing\, debugging\, development,role=admin"
   - Configurable
   - Thoroughly tested
   - Respect SOLID principles
+
+## BDD Guidelines
+
+- **Step Definition Language:**
+  - All BDD steps must use 3rd person subject-focused language
 
 ## Testing Tips
 
