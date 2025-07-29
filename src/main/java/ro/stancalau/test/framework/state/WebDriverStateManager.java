@@ -25,13 +25,33 @@ public class WebDriverStateManager {
     private final Map<String, TestDescription> testDescriptions = new ConcurrentHashMap<>();
     private final Map<String, Boolean> testResults = new ConcurrentHashMap<>();
     private final ContainerStateManager containerStateManager;
-    private final File recDir;
+    private String currentScenarioRecordingPath;
     
     private WebDriverStateManager() {
         this.containerStateManager = ContainerStateManager.getInstance();
-        this.recDir = new File(System.getProperty("user.dir"), "out/bdd/browser-recordings");
-        this.recDir.mkdirs();
-        log.info("Browser recordings will be saved to: {}", this.recDir.getAbsolutePath());
+    }
+    
+    /**
+     * Set the scenario-specific recording path for all subsequent WebDriver creations
+     */
+    public void setScenarioRecordingPath(String scenarioPath) {
+        this.currentScenarioRecordingPath = scenarioPath + "/recordings";
+        log.info("Set scenario recording path to: {}", this.currentScenarioRecordingPath);
+    }
+    
+    /**
+     * Get the current recording directory (scenario-specific), creating it lazily if needed
+     */
+    private File getCurrentRecordingDir() {
+        if (currentScenarioRecordingPath == null) {
+            throw new IllegalStateException("Scenario recording path must be set before creating WebDrivers");
+        }
+        File recDir = new File(currentScenarioRecordingPath);
+        if (!recDir.exists()) {
+            recDir.mkdirs();
+            log.debug("Created recording directory: {}", recDir.getAbsolutePath());
+        }
+        return recDir;
     }
     
     public static WebDriverStateManager getInstance() {
@@ -92,7 +112,8 @@ public class WebDriverStateManager {
         String recordingMode = TestConfig.getRecordingMode();
         if (TestConfig.isRecordingEnabled()) {
             log.info("Creating browser container with VNC recording enabled (mode: {})", recordingMode);
-            log.info("Recordings will be saved to: {}", recDir.getAbsolutePath());
+            File currentRecDir = getCurrentRecordingDir();
+            log.info("Recordings will be saved to: {}", currentRecDir.getAbsolutePath());
             
             BrowserWebDriverContainer.VncRecordingMode vncMode;
             if (TestConfig.isRecordOnlyFailed()) {
@@ -101,7 +122,7 @@ public class WebDriverStateManager {
                 vncMode = BrowserWebDriverContainer.VncRecordingMode.RECORD_ALL;
             }
             
-            browserContainer = browserContainer.withRecordingMode(vncMode, recDir, VncRecordingContainer.VncRecordingFormat.MP4);
+            browserContainer = browserContainer.withRecordingMode(vncMode, getCurrentRecordingDir(), VncRecordingContainer.VncRecordingFormat.MP4);
         } else {
             log.info("Creating browser container with VNC recording disabled (mode: {})", recordingMode);
         }
@@ -111,8 +132,9 @@ public class WebDriverStateManager {
         
         log.info("Started browser container with alias: {} - VNC URL: {}", name, browserContainer.getVncAddress());
         if (TestConfig.isRecordingEnabled()) {
+            File currentRecDir = getCurrentRecordingDir();
             log.info("Recording directory permissions: readable={}, writable={}", 
-                    recDir.canRead(), recDir.canWrite());
+                    currentRecDir.canRead(), currentRecDir.canWrite());
         }
         
         return browserContainer;
@@ -412,7 +434,8 @@ public class WebDriverStateManager {
         log.debug("Waiting for recording file with prefix: {}", expectedFilePrefix);
         
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            File[] recordings = recDir.listFiles((dir, name) -> 
+            File currentRecDir = getCurrentRecordingDir();
+            File[] recordings = currentRecDir.listFiles((dir, name) -> 
                 name.startsWith(expectedFilePrefix) && name.endsWith(".mp4")
             );
             

@@ -188,3 +188,85 @@ And attributes "description=Testing\, debugging\, development,role=admin"
 - Each BDD scenario is completely isolated with fresh containers and state
 - Browser recordings are saved for each test run for debugging WebRTC issues
 - VNC recordings can be controlled via `-Drecording.mode=[skip|all|failed]`
+
+## Test Artifact Preservation System
+
+The framework automatically preserves logs and recordings from each BDD scenario for audit and debugging purposes:
+
+### Unified Test Artifacts
+- **BDD Scenario Artifacts**: Each scenario gets a timestamped directory in `out/bdd/scenarios/`
+- **Integration Test Logs**: Unit/integration tests get separate logs in `out/integration-tests/logs/`
+- **LiveKit Server Logs**: Complete container logs from all LiveKit services
+- **VNC Recordings**: Browser test recordings with WebRTC interactions
+- **Directory Structures**: 
+  - BDD: `out/bdd/scenarios/{FeatureName}/{ScenarioName}/{Timestamp}/`
+    - `docker/{ServiceName}/` - LiveKit container logs
+    - `recordings/` - VNC browser recordings
+  - Integration: `out/integration-tests/logs/{Alias}/{Timestamp}/`
+
+### Artifact Types Preserved
+- **LiveKit Server Logs**: JSON-formatted logs from LiveKit containers
+  - Server startup and configuration
+  - API requests (CreateRoom, DeleteRoom, ListParticipants, etc.)
+  - WebRTC connection events and participant lifecycle
+  - Room state management and cleanup
+- **VNC Browser Recordings**: MP4 recordings of browser interactions
+  - WebRTC connection establishment and testing
+  - Video publishing and subscription flows
+  - Named by test result: `PASSED-webdriver-meet-{participant}-{timestamp}.mp4`
+- **Test Execution Logs**: Framework and BDD step execution logs (when generated)
+
+### Usage Examples
+```bash
+# Test artifacts are automatically preserved after each scenario
+./gradlew test --tests "ro.stancalau.test.bdd.RunCucumberTests" -Dcucumber.filter.name="Your scenario name"
+
+# Check preserved artifacts
+ls out/bdd/scenarios/
+
+# Example directory structures:
+
+# BDD Tests - Unified Structure:
+out/bdd/scenarios/
+├── Livekit_Webrtc_Publish/
+│   ├── Multiple_participants_can_join_the_same_room_and_publish_video/
+│   │   └── 2025-07-29_18-14-54/
+│   │       ├── docker/
+│   │       │   └── livekit1/
+│   │       │       └── livekit.log
+│   │       └── recordings/
+│   │           ├── PASSED-webdriver-meet-Jack-20250729-181522.mp4
+│   │           └── PASSED-webdriver-meet-Jill-20250729-181520.mp4
+│   └── Participant_without_publish_permission_can_join_but_cannot_publish_video/
+│       └── 2025-07-29_18-15-49/
+│           ├── docker/
+│           │   └── livekit1/
+│           │       └── livekit.log
+│           └── recordings/
+│               └── PASSED-webdriver-meet-NotAPublisher-20250729-181609.mp4
+└── Livekit_Webrtc_Playback/
+    └── Publisher_and_subscriber_can_share_video_in_a_room/
+        └── 2025-07-29_18-20-15/
+            ├── docker/
+            │   └── livekit1/
+            │       └── livekit.log
+            └── recordings/
+                ├── PASSED-webdriver-meet-Publisher-20250729-182035.mp4
+                └── PASSED-webdriver-meet-Subscriber-20250729-182037.mp4
+
+# Integration Tests:
+out/integration-tests/logs/
+└── test-livekit/
+    └── 2025-07-29_18-15-46/
+        └── livekit.log
+```
+
+### Implementation Details
+- **Unified Storage**: Both logs and recordings are stored under the same scenario-specific path structure
+- **Direct Log Binding**: Container logs are bound directly to scenario paths during container creation
+- **Dynamic Recording Paths**: VNC recordings are directed to scenario-specific folders automatically
+- **LiveKitLifecycleSteps**: Creates containers and sets WebDriver recording paths for each scenario
+- **WebDriverStateManager**: Manages scenario-specific recording directories for browser tests
+- **LogPreservationSteps**: Cucumber hooks for test artifact logging
+- **Enhanced Logging**: Logback configuration with structured logging for framework components
+- **Efficient Storage**: Only services and recordings from each scenario are preserved in that scenario's folder

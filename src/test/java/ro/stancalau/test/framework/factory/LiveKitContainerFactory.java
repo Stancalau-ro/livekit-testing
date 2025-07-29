@@ -69,13 +69,27 @@ public class LiveKitContainerFactory {
     }
 
     /**
+     * Creates a LiveKit container for BDD tests with scenario-specific log destination
+     */
+    public static LiveKitContainer createBddContainerWithScenarioLogs(String alias, Network network, @Nullable String configFilePath, String logDestinationPath) {
+        String version = TestConfig.getLiveKitVersion();
+        log.info("Creating BDD LiveKit container '{}' with version '{}', config '{}', and log destination '{}'", alias, version, configFilePath, logDestinationPath);
+        return LiveKitContainer.createContainer(alias, network, version, configFilePath, logDestinationPath);
+    }
+
+    /**
      * Creates a LiveKit container for integration tests with explicit version
      */
     public static LiveKitContainer createIntegrationTestContainer(String alias, Network network) {
         String version = TestConfig.getLiveKitVersion();
         String configPath = "src/test/resources/livekit/config/config.yaml";
-        log.info("Creating integration test LiveKit container '{}' with version '{}' and config '{}'", alias, version, configPath);
-        return createContainer(alias, network, version, configPath);
+        
+        // Create integration test specific log path with timestamp
+        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+        String integrationLogPath = "out/integration-tests/logs/" + alias + "/" + timestamp;
+        
+        log.info("Creating integration test LiveKit container '{}' with version '{}', config '{}', and log path '{}'", alias, version, configPath, integrationLogPath);
+        return LiveKitContainer.createContainer(alias, network, version, configPath, integrationLogPath);
     }
 
     /**
@@ -83,7 +97,12 @@ public class LiveKitContainerFactory {
      */
     public static LiveKitContainer createIntegrationTestContainerWithoutConfig(String alias, Network network) {
         String version = TestConfig.getLiveKitVersion();
-        log.info("Creating integration test LiveKit container '{}' with version '{}' (no config)", alias, version);
-        return createContainer(alias, network, version, null);
+        
+        // Create integration test specific log path with timestamp
+        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+        String integrationLogPath = "out/integration-tests/logs/" + alias + "/" + timestamp;
+        
+        log.info("Creating integration test LiveKit container '{}' with version '{}' (no config) and log path '{}'", alias, version, integrationLogPath);
+        return LiveKitContainer.createContainer(alias, network, version, null, integrationLogPath);
     }
 }

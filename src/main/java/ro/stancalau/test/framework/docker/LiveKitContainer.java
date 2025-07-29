@@ -31,7 +31,14 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
     }
 
     public static LiveKitContainer createContainer(String alias, Network network, String livekitVersion, @Nullable String configFilePath) {
-        String logDirPath = "out/bdd/docker/livekit/" + alias;
+        return createContainer(alias, network, livekitVersion, configFilePath, null);
+    }
+
+    public static LiveKitContainer createContainer(String alias, Network network, String livekitVersion, @Nullable String configFilePath, @Nullable String logDestinationPath) {
+        String logDirPath = (logDestinationPath != null) 
+            ? logDestinationPath 
+            : "out/bdd/docker/livekit/" + alias;
+        
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
 
@@ -103,6 +110,4 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         }
         return getNetworkAliases().get(0);
     }
-
-
 }
