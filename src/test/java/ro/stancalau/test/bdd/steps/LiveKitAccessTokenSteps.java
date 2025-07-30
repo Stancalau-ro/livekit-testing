@@ -4,12 +4,10 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.cucumber.datatable.DataTable;
-import io.cucumber.java.Before;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
-import ro.stancalau.test.framework.state.AccessTokenStateManager;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.util.HashMap;
@@ -21,47 +19,41 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 public class LiveKitAccessTokenSteps {
 
-    private AccessTokenStateManager stateManager;
-
-    @Before
-    public void setUpLiveKitAccessTokenSteps() {
-        stateManager = AccessTokenStateManager.getInstance();
-    }
 
     @When("an access token is created with identity {string} and room {string}")
     public void anAccessTokenIsCreatedWithIdentityAndRoom(String identity, String roomName) {
-        AccessToken token = stateManager.createTokenWithRoom(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().createTokenWithRoom(identity, roomName);
         assertNotNull(token, "Access token should be created");
     }
 
     @When("an access token is created with identity {string} and room {string} with publish permissions")
     public void anAccessTokenIsCreatedWithIdentityAndRoomWithPublishPermissions(String identity, String roomName) {
-        AccessToken token = stateManager.createTokenWithRoomAndPermissions(identity, roomName, true, false);
+        AccessToken token = ManagerProvider.tokens().createTokenWithRoomAndPermissions(identity, roomName, true, false);
         assertNotNull(token, "Access token should be created");
     }
 
     @When("an access token is created with identity {string} and room {string} with subscribe permissions")
     public void anAccessTokenIsCreatedWithIdentityAndRoomWithSubscribePermissions(String identity, String roomName) {
-        AccessToken token = stateManager.createTokenWithRoomAndPermissions(identity, roomName, false, true);
+        AccessToken token = ManagerProvider.tokens().createTokenWithRoomAndPermissions(identity, roomName, false, true);
         assertNotNull(token, "Access token should be created");
     }
 
     @When("an access token is created with identity {string} and room {string} with publish and subscribe permissions")
     public void anAccessTokenIsCreatedWithIdentityAndRoomWithPublishAndSubscribePermissions(String identity, String roomName) {
-        AccessToken token = stateManager.createTokenWithRoomAndPermissions(identity, roomName, true, true);
+        AccessToken token = ManagerProvider.tokens().createTokenWithRoomAndPermissions(identity, roomName, true, true);
         assertNotNull(token, "Access token should be created");
     }
 
     @When("an access token is created with identity {string} and room {string} that expires in {int} seconds")
     public void anAccessTokenIsCreatedWithIdentityThatExpiresInSeconds(String identity, String roomName, int seconds) {
-        AccessToken token = stateManager.createTokenWithExpiration(identity, seconds * 1000L);
+        AccessToken token = ManagerProvider.tokens().createTokenWithExpiration(identity, seconds * 1000L);
         assertNotNull(token, "Access token should be created");
     }
 
     @When("an access token is created with identity {string} and room {string} with grants {string}")
     public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrants(String identity, String roomName, String grantsString) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
-        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, null);
+        AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, null);
         assertNotNull(token, "Access token should be created");
     }
 
@@ -69,7 +61,7 @@ public class LiveKitAccessTokenSteps {
     public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsAndAttributes(String identity, String roomName, String grantsString, String attributesString) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
-        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, attributes);
+        AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, attributes);
         assertNotNull(token, "Access token should be created");
     }
 
@@ -77,7 +69,7 @@ public class LiveKitAccessTokenSteps {
     public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsThatExpiresInSeconds(String identity, String roomName, String grantsString, int seconds) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         long ttlMillis = seconds * 1000L;
-        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
+        AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
         assertNotNull(token, "Access token should be created");
     }
 
@@ -86,7 +78,7 @@ public class LiveKitAccessTokenSteps {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
         long ttlMillis = seconds * 1000L;
-        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, attributes, ttlMillis);
+        AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, attributes, ttlMillis);
         assertNotNull(token, "Access token should be created");
     }
 
@@ -94,7 +86,7 @@ public class LiveKitAccessTokenSteps {
     public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsThatExpiresInMinutes(String identity, String roomName, String grantsString, int minutes) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         long ttlMillis = minutes * 60 * 1000L;
-        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
+        AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
         assertNotNull(token, "Access token should be created");
     }
 
@@ -103,7 +95,7 @@ public class LiveKitAccessTokenSteps {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
         long ttlMillis = minutes * 60 * 1000L;
-        AccessToken token = stateManager.createTokenWithDynamicGrants(identity, roomName, grants, attributes, ttlMillis);
+        AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, attributes, ttlMillis);
         assertNotNull(token, "Access token should be created");
     }
 
@@ -115,7 +107,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should be valid")
     public void theAccessTokenForInRoomShouldBeValid(String identity, String roomName) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String tokenString = token.toJwt();
@@ -128,12 +120,12 @@ public class LiveKitAccessTokenSteps {
     @Then("the access token for {string} should contain room {string}")
     public void theAccessTokenForShouldContainRoom(String identity, String expectedRoom) {
         log.info("Verifying access token for {} contains room: {}", identity, expectedRoom);
-        assertTrue(stateManager.hasTokenForRoom(expectedRoom), "Token for room " + expectedRoom + " should exist");
+        assertTrue(ManagerProvider.tokens().hasTokenForRoom(expectedRoom), "Token for room " + expectedRoom + " should exist");
     }
 
     @Then("the access token for {string} in room {string} should have grant {string} set to {string}")
     public void theAccessTokenForInRoomShouldHaveGrantSetTo(String identity, String roomName, String grantName, String expectedValue) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();
@@ -153,7 +145,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should not have grant {string}")
     public void theAccessTokenForInRoomShouldNotHaveGrant(String identity, String roomName, String grantName) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();
@@ -174,7 +166,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should have attribute {string} set to {string}")
     public void theAccessTokenForInRoomShouldHaveAttributeSetTo(String identity, String roomName, String attributeName, String expectedValue) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();
@@ -192,7 +184,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should not have attribute {string}")
     public void theAccessTokenForInRoomShouldNotHaveAttribute(String identity, String roomName, String attributeName) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();
@@ -240,7 +232,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should have the following grants:")
     public void theAccessTokenForInRoomShouldHaveTheFollowingGrants(String identity, String roomName, DataTable dataTable) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();
@@ -266,7 +258,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should not have the following grants:")
     public void theAccessTokenForInRoomShouldNotHaveTheFollowingGrants(String identity, String roomName, DataTable dataTable) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();
@@ -292,7 +284,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should have the following attributes:")
     public void theAccessTokenForInRoomShouldHaveTheFollowingAttributes(String identity, String roomName, DataTable dataTable) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();
@@ -317,7 +309,7 @@ public class LiveKitAccessTokenSteps {
 
     @Then("the access token for {string} in room {string} should not have the following attributes:")
     public void theAccessTokenForInRoomShouldNotHaveTheFollowingAttributes(String identity, String roomName, DataTable dataTable) {
-        AccessToken token = stateManager.getLastToken(identity, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(identity, roomName);
         assertNotNull(token, "Access token for " + identity + " in room " + roomName + " should not be null");
         
         String jwtToken = token.toJwt();

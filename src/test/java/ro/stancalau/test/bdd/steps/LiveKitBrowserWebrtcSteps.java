@@ -18,39 +18,25 @@ import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
+import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class LiveKitBrowserWebrtcSteps {
-
-    private ContainerStateManager containerManager;
-    private RoomClientStateManager roomClientManager;
-    private AccessTokenStateManager accessTokenManager;
-    private WebDriverStateManager webDriverManager;
     
-    private final Map<String, LiveKitMeet> meetInstances = new ConcurrentHashMap<>();
+    private final Map<String, LiveKitMeet> meetInstances = new HashMap<>();
 
-    @Before
-    public void setUpLiveKitWebrtcSteps() {
-        containerManager = ContainerStateManager.getInstance();
-        roomClientManager = RoomClientStateManager.getInstance();
-        accessTokenManager = AccessTokenStateManager.getInstance();
-        webDriverManager = WebDriverStateManager.getInstance();
-    }
 
     @After
     public void tearDownLiveKitWebrtcSteps(Scenario scenario) {
-        if (scenario.isFailed() && webDriverManager != null) {
-            // Mark all active WebDrivers for this scenario as failed
-            webDriverManager.getAllWebDrivers().keySet().forEach(key -> {
-                String[] parts = webDriverManager.parseKey(key);
+        if (scenario.isFailed() && ManagerProvider.webDrivers() != null) {
+            ManagerProvider.webDrivers().getAllWebDrivers().keySet().forEach(key -> {
+                String[] parts = ManagerProvider.webDrivers().parseKey(key);
                 if (parts != null && parts.length == 2) {
-                    webDriverManager.markTestFailed(parts[0], parts[1]);
-                    log.info("Marked WebDriver test as FAILED due to scenario failure: {}", key);
+                    ManagerProvider.webDrivers().markTestFailed(parts[0], parts[1]);
                 }
             });
         }
@@ -64,39 +50,38 @@ public class LiveKitBrowserWebrtcSteps {
         });
         meetInstances.clear();
         
-        if (webDriverManager != null) {
-            webDriverManager.closeAllWebDrivers();
+        if (ManagerProvider.webDrivers() != null) {
+            ManagerProvider.webDrivers().closeAllWebDrivers();
         }
         
+        RoomClientStateManager roomClientManager = ManagerProvider.getRoomClientManager();
         if (roomClientManager != null) {
             roomClientManager.clearAll();
         }
-        if (accessTokenManager != null) {
-            accessTokenManager.clearAll();
+        if (ManagerProvider.tokens() != null) {
+            ManagerProvider.tokens().clearAll();
         }
     }
 
     @When("{string} opens a {string} browser with LiveKit Meet page")
     public void opensABrowserWithLiveKitMeetPage(String participantId, String browser) {
-        log.info("Opening {} browser for participant: {}", browser, participantId);
-        WebDriver driver = webDriverManager.createWebDriver("meet", participantId, browser.toLowerCase());
+        WebDriver driver = ManagerProvider.webDrivers().createWebDriver("meet", participantId, browser.toLowerCase());
         assertNotNull(driver, browser + " browser should be initialized for " + participantId);
     }
 
     @When("{string} connects to room {string} using the access token")
     public void connectsToRoomUsingTheAccessToken(String participantName, String roomName) {
-        AccessToken token = accessTokenManager.getLastToken(participantName, roomName);
+        AccessToken token = ManagerProvider.tokens().getLastToken(participantName, roomName);
         assertNotNull(token, "Access token should exist for " + participantName + " in room " + roomName);
         
-        WebDriver driver = webDriverManager.getWebDriver("meet", participantName);
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
         assertNotNull(driver, "WebDriver should exist for participant: " + participantName);
         
         String liveKitUrl = getLiveKitServerUrl();
         String tokenString = token.toJwt();
         
-        log.info("Connecting {} to room {} using LiveKit URL: {}", participantName, roomName, liveKitUrl);
         
-        LiveKitMeet meetInstance = new LiveKitMeet(driver, liveKitUrl, tokenString, roomName, participantName);
+        LiveKitMeet meetInstance = new LiveKitMeet(driver, liveKitUrl, tokenString, roomName, participantName, ManagerProvider.containers());
         meetInstances.put(participantName, meetInstance);
         assertNotNull(meetInstance, "LiveKitMeet instance should be created");
     }
@@ -116,8 +101,7 @@ public class LiveKitBrowserWebrtcSteps {
                 }
                 fail(failureMessage);
             }
-            log.info("{} successfully connected to meeting", participantName);
-        } catch (Exception e) {
+            } catch (Exception e) {
             String errorDetails = meetInstance.getPageErrorDetails();
             String failureMessage = "Connection failed for " + participantName + " with exception: " + e.getMessage();
             if (errorDetails != null && !errorDetails.trim().isEmpty()) {
@@ -138,7 +122,6 @@ public class LiveKitBrowserWebrtcSteps {
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         meetInstance.toggleCamera();
         meetInstance.toggleCamera();
-        log.info("{} successfully toggled camera controls", participantName);
     }
 
     @And("{string} can toggle mute controls")
@@ -147,7 +130,6 @@ public class LiveKitBrowserWebrtcSteps {
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         meetInstance.toggleMute();
         meetInstance.toggleMute();
-        log.info("{} successfully toggled mute controls", participantName);
     }
 
 
@@ -163,7 +145,6 @@ public class LiveKitBrowserWebrtcSteps {
             assertEquals(expectedRoomName, actualRoomName,
                 "Participant " + participantName + " should see correct room name");
 
-            log.info("Verified participant {} sees room name: {}", participantName, actualRoomName);
         }
     }
 
@@ -172,7 +153,6 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         meetInstance.stop();
-        log.info("{} left the meeting", participantName);
     }
 
     @Then("{string} should be disconnected from the room")
@@ -181,7 +161,6 @@ public class LiveKitBrowserWebrtcSteps {
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         boolean disconnected = meetInstance.disconnected();
         assertTrue(disconnected, participantName + " should be disconnected from the room");
-        log.info("Verified {} is disconnected from room", participantName);
     }
 
     @Then("{string} should see the join form again")
@@ -189,14 +168,12 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         assertTrue(meetInstance.isJoinFormVisible(), "Join form should be visible for " + participantName);
-        log.info("Verified {} sees join form again", participantName);
     }
 
     @And("{string} closes the browser")
     public void participantClosesTheBrowser(String participantName) {
-        webDriverManager.closeWebDriver("meet", participantName);
+        ManagerProvider.webDrivers().closeWebDriver("meet", participantName);
         meetInstances.remove(participantName);
-        log.info("{} closed browser", participantName);
     }
     
     @Then("participant {string} should have video subscription blocked due to permissions")
@@ -204,7 +181,7 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, participantName + " should have an active LiveKit Meet instance");
         
-        WebDriver driver = webDriverManager.getWebDriver("meet", participantName);
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
         assertNotNull(driver, "WebDriver should exist for " + participantName);
         
         try {
@@ -240,8 +217,6 @@ public class LiveKitBrowserWebrtcSteps {
                 "Array.from(window.liveKitClient.room.tracks.values()).filter(t => t.kind === 'video' && t.isSubscribed).length : 0; } catch(e) { return 0; }"
             );
             
-            log.info("Video subscription check for {}: subscriptionFailedCount={}, permissionDenied={}, errorMessage='{}', playingVideoElements={}, subscribedTracks={}", 
-                     participantName, subscriptionFailedCount, permissionDenied, errorMessage, playingVideoElements, subscribedTracks);
             
             // A participant without subscribe permission should either have subscription failures OR no playing/subscribed tracks
             boolean hasSubscriptionFailures = subscriptionFailedCount > 0 || permissionDenied;
@@ -259,7 +234,7 @@ public class LiveKitBrowserWebrtcSteps {
     }
 
     private String getLiveKitServerUrl() {
-        LiveKitContainer container = containerManager.getContainer("livekit1", LiveKitContainer.class);
+        LiveKitContainer container = ManagerProvider.containers().getContainer("livekit1", LiveKitContainer.class);
         assertNotNull(container, "LiveKit container should be running");
         assertTrue(container.isRunning(), "LiveKit container should be running");
         

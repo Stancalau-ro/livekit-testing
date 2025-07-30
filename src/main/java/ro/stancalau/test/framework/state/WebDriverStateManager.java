@@ -14,21 +14,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public class WebDriverStateManager {
     
-    private static WebDriverStateManager instance;
-    private final Map<String, WebDriver> webDrivers = new ConcurrentHashMap<>();
-    private final Map<String, BrowserWebDriverContainer<?>> browserContainers = new ConcurrentHashMap<>();
-    private final Map<String, TestDescription> testDescriptions = new ConcurrentHashMap<>();
-    private final Map<String, Boolean> testResults = new ConcurrentHashMap<>();
+    private final Map<String, WebDriver> webDrivers = new HashMap<>();
+    private final Map<String, BrowserWebDriverContainer<?>> browserContainers = new HashMap<>();
+    private final Map<String, TestDescription> testDescriptions = new HashMap<>();
+    private final Map<String, Boolean> testResults = new HashMap<>();
     private final ContainerStateManager containerStateManager;
     private String currentScenarioRecordingPath;
     
-    private WebDriverStateManager() {
-        this.containerStateManager = ContainerStateManager.getInstance();
+    public WebDriverStateManager(ContainerStateManager containerStateManager) {
+        this.containerStateManager = containerStateManager;
     }
     
     /**
@@ -54,12 +52,6 @@ public class WebDriverStateManager {
         return recDir;
     }
     
-    public static WebDriverStateManager getInstance() {
-        if (instance == null) {
-            instance = new WebDriverStateManager();
-        }
-        return instance;
-    }
     
     /**
      * Create and register a WebDriver instance using BrowserWebDriverContainer

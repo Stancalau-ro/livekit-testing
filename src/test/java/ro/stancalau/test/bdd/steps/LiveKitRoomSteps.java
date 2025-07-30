@@ -21,35 +21,26 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class LiveKitRoomSteps {
 
     public static final int POLLING_INTERVAL_MS = 500;
-    private RoomClientStateManager roomClientManager;
     private List<LivekitModels.Room> lastFetchedRooms;
 
-    @Before
-    public void setUpLiveKitRoomSteps() {
-        roomClientManager = RoomClientStateManager.getInstance();
-    }
 
     @After
     public void tearDownLiveKitRoomSteps() {
-        if (roomClientManager != null) {
-            roomClientManager.clearAll();
-        }
+        ManagerProvider.rooms().clearAll();
         lastFetchedRooms = null;
     }
 
     public RoomServiceClient getRoomServiceClient(String serviceName) {
-        return roomClientManager.getRoomServiceClient(serviceName);
+        return ManagerProvider.rooms().getRoomServiceClient(serviceName);
     }
 
     public LivekitModels.Room createRoom(String serviceName, String roomName) {
-        log.info("Creating room '{}' using service '{}'", roomName, serviceName);
 
         RoomServiceClient client = getRoomServiceClient(serviceName);
 
         try {
             LivekitModels.Room room = client.createRoom(roomName).execute().body();
             if (room != null) {
-                log.info("Successfully created room '{}' with SID: {}", roomName, room.getSid());
             }
             return room;
         } catch (Exception e) {
@@ -59,13 +50,11 @@ public class LiveKitRoomSteps {
     }
 
     public List<LivekitModels.Room> getRooms(String serviceName) {
-        log.info("Fetching all rooms using service '{}'", serviceName);
 
         RoomServiceClient client = getRoomServiceClient(serviceName);
 
         try {
             List<LivekitModels.Room> rooms = client.listRooms().execute().body();
-            log.info("Successfully fetched {} rooms using service '{}'", rooms.size(), serviceName);
             return rooms;
         } catch (Exception e) {
             log.error("Failed to fetch rooms using service '{}': {}", serviceName, e.getMessage(), e);
@@ -88,18 +77,15 @@ public class LiveKitRoomSteps {
     public void aRoomIsCreatedUsingService(String roomName, String serviceName) {
         LivekitModels.Room createdRoom = createRoom(serviceName, roomName);
         assertNotNull(createdRoom, "Room should have been created");
-        log.info("Created room '{}' with SID: {} using service '{}'", roomName, createdRoom.getSid(), serviceName);
     }
 
     public List<LivekitModels.ParticipantInfo> getParticipantInfo(String serviceName, String roomName) {
-        log.info("Fetching participant info for room '{}' using service '{}'", roomName, serviceName);
 
         RoomServiceClient client = getRoomServiceClient(serviceName);
 
         try {
             List<LivekitModels.ParticipantInfo> result = client.listParticipants(roomName).execute().body();
             List<LivekitModels.ParticipantInfo> participants = isNull(result) ? Collections.emptyList() : result;
-            log.info("Successfully fetched {} participants for room '{}' using service '{}'", participants.size(), roomName, serviceName);
             return participants;
         } catch (IOException e) {
             log.error("Failed to fetch participant info for room '{}' using service '{}': {}", roomName, serviceName, e.getMessage(), e);
@@ -112,7 +98,6 @@ public class LiveKitRoomSteps {
         List<LivekitModels.Room> rooms = getRooms(serviceName);
         boolean roomExists = rooms.stream().anyMatch(room -> roomName.equals(room.getName()));
         assertEquals(true, roomExists, "Room '" + roomName + "' should exist in service '" + serviceName + "'");
-        log.info("Verified room '{}' exists in service '{}'", roomName, serviceName);
     }
 
     @Then("room {string} should have {int} active participants in service {string}")
@@ -122,8 +107,6 @@ public class LiveKitRoomSteps {
             List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
 
             if (participants.size() == expectedCount) {
-                log.info("Verified room '{}' has {} active participants in service '{}' (attempt {})", 
-                    roomName, expectedCount, serviceName, attempt + 1);
                 return;
             }
 
@@ -162,8 +145,6 @@ public class LiveKitRoomSteps {
                     .count();
 
             if (videoTrackCount >= 1) {
-                log.info("Verified participant '{}' is publishing video in room '{}' using service '{}' (attempt {})",
-                        participantIdentity, roomName, serviceName, attempt + 1);
                 return;
             }
 
@@ -214,8 +195,6 @@ public class LiveKitRoomSteps {
                 .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
                 .count();
 
-        log.info("Verified participant '{}' is NOT publishing video in room '{}' using service '{}' (video tracks: {})",
-                participantIdentity, roomName, serviceName, videoTrackCount);
 
         assertEquals(0, videoTrackCount, "Participant '" + participantIdentity + "' should have 0 published video tracks");
     }
@@ -231,19 +210,15 @@ public class LiveKitRoomSteps {
                 .count();
 
         assertEquals(expectedCount, remoteVideoTrackCount, "Participant '" + participantIdentity + "' should see " + expectedCount + " remote video tracks");
-        log.info("Verified participant '{}' can see {} remote video tracks in room '{}' using service '{}'",
-                participantIdentity, expectedCount, roomName, serviceName);
     }
 
     @When("room {string} is deleted using service {string}")
     public void roomIsDeletedUsingService(String roomName, String serviceName) {
-        log.info("Deleting room '{}' using service '{}'", roomName, serviceName);
 
         RoomServiceClient client = getRoomServiceClient(serviceName);
 
         try {
             client.deleteRoom(roomName).execute();
-            log.info("Successfully deleted room '{}' using service '{}'", roomName, serviceName);
         } catch (IOException e) {
             log.error("Failed to delete room '{}' using service '{}': {}", roomName, serviceName, e.getMessage(), e);
             throw new RuntimeException("Failed to delete room: " + roomName, e);

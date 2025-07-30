@@ -26,17 +26,18 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 public class LiveKitWebhookSteps {
 
-    private ContainerStateManager containerManager;
-    private WebhookService webhookService;
-    private WebhookEventPoller webhookEventPoller;
+    private final WebhookService webhookService;
+    private final WebhookEventPoller webhookEventPoller;
     private String currentScenarioLogPath;
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
+    public LiveKitWebhookSteps() {
+        this.webhookService = new WebhookService();
+        this.webhookEventPoller = new WebhookEventPoller(webhookService);
+    }
+
     @Before
     public void setUpWebhookSteps(Scenario scenario) {
-        containerManager = ContainerStateManager.getInstance();
-        webhookService = new WebhookService();
-        webhookEventPoller = new WebhookEventPoller(webhookService);
                 
         String featureName = extractFeatureName(scenario.getUri().toString());
         String scenarioName = scenario.getName();
@@ -51,16 +52,16 @@ public class LiveKitWebhookSteps {
 
     @After
     public void tearDownWebhookSteps() {
-        if (containerManager != null) {
-            containerManager.cleanup(MockHttpServerContainer.class);
+        if (ManagerProvider.containers() != null) {
+            ManagerProvider.containers().cleanup(MockHttpServerContainer.class);
         }
     }
 
     @Given("a mock HTTP server is running in a container with service name {string}")
     public void aMockHttpServerIsRunningInAContainerWithServiceName(String serviceName) {
-        if (!containerManager.isContainerRunning(serviceName)) {
+        if (!ManagerProvider.containers().isContainerRunning(serviceName)) {
             log.info("Starting mock HTTP server container with service name {}", serviceName);
-            Network network = containerManager.getOrCreateNetwork();
+            Network network = ManagerProvider.containers().getOrCreateNetwork();
 
             MockHttpServerContainer mockServer = new MockHttpServerContainer(currentScenarioLogPath, serviceName);
             mockServer.withNetworkAliasAndStart(network, serviceName);
@@ -68,7 +69,7 @@ public class LiveKitWebhookSteps {
             assertTrue(mockServer.isRunning(), "Mock HTTP server container should be running");
             log.info("Mock HTTP server started successfully at: {}", mockServer.getNetworkUrl(serviceName));
             
-            containerManager.registerContainer(serviceName, mockServer);
+            ManagerProvider.containers().registerContainer(serviceName, mockServer);
         } else {
             log.info("Mock HTTP server container with service name {} is already running", serviceName);
         }
@@ -76,7 +77,7 @@ public class LiveKitWebhookSteps {
 
     @Then("{string} should have received a request containing {string}")
     public void theMockServerShouldHaveReceivedARequestContaining(String serviceName, String expectedContent) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");
@@ -100,7 +101,7 @@ public class LiveKitWebhookSteps {
 
     @Then("{string} should have received a {string} event for room {string}")
     public void theMockServerShouldHaveReceivedAnEventForRoom(String serviceName, String eventType, String roomName) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");
@@ -127,7 +128,7 @@ public class LiveKitWebhookSteps {
 
     @Then("{string} should have received a {string} event for participant {string} in room {string}")
     public void theMockServerShouldHaveReceivedAnEventForParticipant(String serviceName, String eventType, String participantIdentity, String roomName) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");
@@ -154,7 +155,7 @@ public class LiveKitWebhookSteps {
 
     @Then("{string} should have received a {string} event for track type {string} in room {string}")
     public void theMockServerShouldHaveReceivedAnEventForTrackType(String serviceName, String eventType, String trackType, String roomName) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");
@@ -181,7 +182,7 @@ public class LiveKitWebhookSteps {
     
     @When("{string} webhook events are cleared")
     public void theMockServerWebhookEventsAreCleared(String serviceName) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");
@@ -198,7 +199,7 @@ public class LiveKitWebhookSteps {
     
     @Then("{string} should have received exactly {int} webhook event(s)")
     public void theMockServerShouldHaveReceivedExactlyWebhookEvents(String serviceName, int expectedCount) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");
@@ -233,7 +234,7 @@ public class LiveKitWebhookSteps {
     
     @Then("{string} should not have received a {string} event for room {string}")
     public void theMockServerShouldNotHaveReceivedAnEventForRoom(String serviceName, String eventType, String roomName) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");
@@ -261,7 +262,7 @@ public class LiveKitWebhookSteps {
     
     @Then("{string} should not have received a {string} event for participant {string} in room {string}")
     public void theMockServerShouldNotHaveReceivedAnEventForParticipant(String serviceName, String eventType, String participantIdentity, String roomName) {
-        MockHttpServerContainer mockServer = containerManager.getContainer(serviceName, MockHttpServerContainer.class);
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         
         if (mockServer == null) {
             throw new RuntimeException("Mock server with service name " + serviceName + " not found");

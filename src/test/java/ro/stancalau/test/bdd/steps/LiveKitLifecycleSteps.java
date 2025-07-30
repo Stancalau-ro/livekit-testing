@@ -21,16 +21,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Slf4j
 public class LiveKitLifecycleSteps {
 
-    private ContainerStateManager containerManager;
     private String defaultConfigProfile = "basic";
     private String currentScenarioLogPath;
+    private String scenarioId;
     private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+
+    public LiveKitLifecycleSteps() {
+    }
 
     @Before
     public void setUpLiveKitLifecycleSteps(Scenario scenario) {
-        containerManager = ContainerStateManager.getInstance();
         
-        // Create scenario-specific log path
         String featureName = extractFeatureName(scenario.getUri().toString());
         String scenarioName = scenario.getName();
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
@@ -40,24 +41,18 @@ public class LiveKitLifecycleSteps {
         
         currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" + 
                                 sanitizedScenarioName + "/" + timestamp;
-        
-        log.info("Setting up scenario log path: {}", currentScenarioLogPath);
-        
-        // Set scenario recording path for WebDrivers
-        WebDriverStateManager.getInstance().setScenarioRecordingPath(currentScenarioLogPath);
+        scenarioId = sanitizedScenarioName + "_" + timestamp + "_" + Thread.currentThread().getId();
+        ManagerProvider.webDrivers().setScenarioRecordingPath(currentScenarioLogPath);
     }
 
     @After
     public void tearDownLiveKitLifecycleSteps() {
-        if (containerManager != null) {
-            containerManager.cleanup(LiveKitContainer.class);
-        }
+        ManagerProvider.containers().cleanup(LiveKitContainer.class);
     }
 
     @Given("the LiveKit config is set to {string}")
     public void theLiveKitConfigIsSetTo(String profileName) {
         this.defaultConfigProfile = profileName;
-        log.info("LiveKit config profile set to: {}", profileName);
     }
 
     @Given("a LiveKit server is running in a container with service name {string}")
@@ -73,24 +68,16 @@ public class LiveKitLifecycleSteps {
     }
 
     private void getOrCreateContainer(String serviceName, @Nullable String configPath) {
-        if (!containerManager.isContainerRunning(serviceName)) {
-            log.info("Starting LiveKit container with service name {} for BDD test", serviceName);
-            Network network = containerManager.getOrCreateNetwork();
+        Network network = ManagerProvider.containers().getOrCreateNetwork();
 
-            // Create container with scenario-specific log path
-            String serviceLogPath = currentScenarioLogPath + "/docker/" + serviceName;
-            LiveKitContainer liveKitContainer = LiveKitContainerFactory.createBddContainerWithScenarioLogs(
-                    serviceName, network, configPath, serviceLogPath);
+        String serviceLogPath = currentScenarioLogPath + "/docker/" + serviceName;
+        LiveKitContainer liveKitContainer = LiveKitContainerFactory.createBddContainerWithScenarioLogs(
+                serviceName, network, configPath, serviceLogPath);
 
-            liveKitContainer.start();
-            assertTrue(liveKitContainer.isRunning(), "LiveKit container with service name " + serviceName + " should be running");
+        liveKitContainer.start();
+        assertTrue(liveKitContainer.isRunning(), "LiveKit container with service name " + serviceName + " should be running");
 
-            log.info("LiveKit container started successfully at: {} with logs at: {}", 
-                    liveKitContainer.getHttpLink(), serviceLogPath);
-            containerManager.registerContainer(serviceName, liveKitContainer);
-        } else {
-            log.info("LiveKit container with service name {} is already running", serviceName);
-        }
+        ManagerProvider.containers().registerContainer(serviceName, liveKitContainer);
     }
 
     private String extractFeatureName(String uri) {

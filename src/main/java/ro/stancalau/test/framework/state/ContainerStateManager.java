@@ -11,18 +11,11 @@ import java.util.Map;
 @Slf4j
 public class ContainerStateManager {
     
-    private static ContainerStateManager instance;
     private Network network;
     private final Map<String, GenericContainer<?>> containers = new HashMap<>();
     
-    private ContainerStateManager() {
-    }
-    
-    public static ContainerStateManager getInstance() {
-        if (instance == null) {
-            instance = new ContainerStateManager();
-        }
-        return instance;
+    public ContainerStateManager() {
+        // Public constructor for dependency injection
     }
     
     public Network getOrCreateNetwork() {

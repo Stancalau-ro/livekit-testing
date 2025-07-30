@@ -64,6 +64,24 @@ task bddTest(type: Test) {
     classpath = sourceSets.test.runtimeClasspath
 
     include '**/RunCucumberTests.class'
+    
+    // Run in a single JVM to allow thread pool sharing for concurrent scenarios
+    maxParallelForks = 1
+
+    // Configure parallel execution - can be overridden via command line: -Dparallelism=2
+    def parallelism = System.getProperty('parallelism', '2')
+    
+    // Cucumber parallel execution
+    systemProperty 'cucumber.execution.parallel.enabled', 'true'
+    systemProperty 'cucumber.execution.parallel.config.strategy', 'fixed'
+    systemProperty 'cucumber.execution.parallel.config.fixed.parallelism', parallelism
+    systemProperty 'cucumber.execution.parallel.config.fixed.max-pool-size', parallelism
+    
+    // JUnit 5 parallel execution (for non-Cucumber tests if any)
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true' 
+    systemProperty 'junit.jupiter.execution.parallel.mode.default', 'concurrent'
+    systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'fixed'
+    systemProperty 'junit.jupiter.execution.parallel.config.fixed.parallelism', parallelism
 }
 
 build.dependsOn bddTest

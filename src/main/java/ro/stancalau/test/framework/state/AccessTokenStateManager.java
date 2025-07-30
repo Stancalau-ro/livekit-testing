@@ -13,21 +13,18 @@ import java.util.Map;
 @Slf4j
 public class AccessTokenStateManager {
     
-    private static AccessTokenStateManager instance;
     private final String apiKey;
     private final String apiSecret;
     private final Map<String, Map<String, AccessToken>> tokens = new HashMap<>();
     
-    private AccessTokenStateManager(String apiKey, String apiSecret) {
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
+    public AccessTokenStateManager() {
+        this.apiKey = LiveKitContainer.API_KEY;
+        this.apiSecret = LiveKitContainer.SECRET;
     }
     
-    public static AccessTokenStateManager getInstance() {
-        if (instance == null) {
-            instance = new AccessTokenStateManager(LiveKitContainer.API_KEY, LiveKitContainer.SECRET);
-        }
-        return instance;
+    public AccessTokenStateManager(String apiKey, String apiSecret) {
+        this.apiKey = apiKey;
+        this.apiSecret = apiSecret;
     }
 
     public AccessToken createTokenWithRoom(String identity, String roomName) {

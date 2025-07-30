@@ -21,15 +21,16 @@ import java.util.concurrent.TimeUnit;
 public class LiveKitMeet {
 
     private final WebDriver driver;
+    private final ContainerStateManager containerManager;
 
-    public LiveKitMeet(WebDriver driver, String liveKitUrl, String jwt, String roomName, String participantName) {
+    public LiveKitMeet(WebDriver driver, String liveKitUrl, String jwt, String roomName, String participantName, ContainerStateManager containerManager) {
         this.driver = driver;
+        this.containerManager = containerManager;
         start(liveKitUrl, jwt, roomName, participantName);
     }
 
     private void start(String liveKitUrl, String jwt, String roomName, String participantName) {
         try {
-            ContainerStateManager containerManager = ContainerStateManager.getInstance();
             WebServerContainer webServer = containerManager.getOrCreateWebServer("webserver");
             
             String baseUrl = webServer.getLiveKitMeetUrl("webserver");
