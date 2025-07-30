@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 @Slf4j
 public class LiveKitRoomSteps {
 
+    public static final int POLLING_INTERVAL_MS = 500;
     private RoomClientStateManager roomClientManager;
     private List<LivekitModels.Room> lastFetchedRooms;
 
@@ -92,9 +93,9 @@ public class LiveKitRoomSteps {
 
     public List<LivekitModels.ParticipantInfo> getParticipantInfo(String serviceName, String roomName) {
         log.info("Fetching participant info for room '{}' using service '{}'", roomName, serviceName);
-        
+
         RoomServiceClient client = getRoomServiceClient(serviceName);
-        
+
         try {
             List<LivekitModels.ParticipantInfo> result = client.listParticipants(roomName).execute().body();
             List<LivekitModels.ParticipantInfo> participants = isNull(result) ? Collections.emptyList() : result;
@@ -116,106 +117,136 @@ public class LiveKitRoomSteps {
 
     @Then("room {string} should have {int} active participants in service {string}")
     public void theRoomShouldHaveActiveParticipantsInService(String roomName, int expectedCount, String serviceName) {
+        int maxAttempts = 20; // Increase attempts for longer wait
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+
+            if (participants.size() == expectedCount) {
+                log.info("Verified room '{}' has {} active participants in service '{}' (attempt {})", 
+                    roomName, expectedCount, serviceName, attempt + 1);
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+        log.warn("Participant count check failed after {} attempts. Expected: {}, Found: {}", 
+            maxAttempts, expectedCount, participants.size());
         assertEquals(expectedCount, participants.size(), "Room '" + roomName + "' should have " + expectedCount + " active participants");
-        log.info("Verified room '{}' has {} active participants in service '{}'", roomName, expectedCount, serviceName);
     }
 
     @Then("participant {string} should be publishing video in room {string} using service {string}")
     public void participantShouldBePublishingVideoInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        // Wait for tracks to be published after connection - retry for up to 10 seconds
-        for (int attempt = 0; attempt < 20; attempt++) {
+        int max = 10;
+        for (int attempt = 0; attempt <= max; attempt++) {
             List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-            
+
             LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-                .filter(p -> participantIdentity.equals(p.getIdentity()))
-                .findFirst()
-                .orElse(null);
-            
+                    .filter(p -> participantIdentity.equals(p.getIdentity()))
+                    .findFirst()
+                    .orElse(null);
+
             assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
-            
+
             // Check for published video tracks
             long videoTrackCount = targetParticipant.getTracksList().stream()
-                .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
-                .count();
-                
+                    .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
+                    .count();
+
             if (videoTrackCount >= 1) {
-                log.info("Verified participant '{}' is publishing video in room '{}' using service '{}' (attempt {})", 
+                log.info("Verified participant '{}' is publishing video in room '{}' using service '{}' (attempt {})",
                         participantIdentity, roomName, serviceName, attempt + 1);
                 return;
             }
-            
-            // Wait 500ms between checks
+
             try {
-                Thread.sleep(500);
+                Thread.sleep(POLLING_INTERVAL_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 break;
             }
         }
-        
-        // Final attempt with detailed error message
+
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
         LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-            .filter(p -> participantIdentity.equals(p.getIdentity()))
-            .findFirst()
-            .orElse(null);
-        
-        long videoTrackCount = targetParticipant != null ? 
-            targetParticipant.getTracksList().stream()
-                .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
-                .count() : 0;
-        
-        log.warn("Video publishing check failed for participant '{}' after 10 seconds. Video tracks: {}, Total tracks: {}", 
-                participantIdentity, videoTrackCount, 
+                .filter(p -> participantIdentity.equals(p.getIdentity()))
+                .findFirst()
+                .orElse(null);
+
+        long videoTrackCount = targetParticipant != null ?
+                targetParticipant.getTracksList().stream()
+                        .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
+                        .count() : 0;
+
+        log.warn("Video publishing check failed for participant '{}' after 10 seconds. Video tracks: {}, Total tracks: {}",
+                participantIdentity, videoTrackCount,
                 targetParticipant != null ? targetParticipant.getTracksList().size() : 0);
-                
+
         assertEquals(1, videoTrackCount, "Participant '" + participantIdentity + "' should have 1 published video track after waiting");
     }
 
     @Then("participant {string} should not be publishing video in room {string} using service {string}")
     public void participantShouldNotBePublishingVideoInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        // Wait briefly to ensure connection is established
         try {
             Thread.sleep(2000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-        
+
         LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-            .filter(p -> participantIdentity.equals(p.getIdentity()))
-            .findFirst()
-            .orElse(null);
-        
+                .filter(p -> participantIdentity.equals(p.getIdentity()))
+                .findFirst()
+                .orElse(null);
+
         assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
-        
-        // Check that no video tracks are published
+
         long videoTrackCount = targetParticipant.getTracksList().stream()
-            .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
-            .count();
-        
-        log.info("Verified participant '{}' is NOT publishing video in room '{}' using service '{}' (video tracks: {})", 
+                .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
+                .count();
+
+        log.info("Verified participant '{}' is NOT publishing video in room '{}' using service '{}' (video tracks: {})",
                 participantIdentity, roomName, serviceName, videoTrackCount);
-                
+
         assertEquals(0, videoTrackCount, "Participant '" + participantIdentity + "' should have 0 published video tracks");
     }
 
     @Then("participant {string} should see {int} remote video tracks in room {string} using service {string}")
     public void participantShouldSeeRemoteVideoTracksInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-        
-        // Count video tracks from all participants except the specified one
+
         long remoteVideoTrackCount = participants.stream()
-            .filter(p -> !participantIdentity.equals(p.getIdentity()))
-            .flatMap(p -> p.getTracksList().stream())
-            .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
-            .count();
-            
+                .filter(p -> !participantIdentity.equals(p.getIdentity()))
+                .flatMap(p -> p.getTracksList().stream())
+                .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
+                .count();
+
         assertEquals(expectedCount, remoteVideoTrackCount, "Participant '" + participantIdentity + "' should see " + expectedCount + " remote video tracks");
-        log.info("Verified participant '{}' can see {} remote video tracks in room '{}' using service '{}'", 
+        log.info("Verified participant '{}' can see {} remote video tracks in room '{}' using service '{}'",
                 participantIdentity, expectedCount, roomName, serviceName);
     }
 
+    @When("room {string} is deleted using service {string}")
+    public void roomIsDeletedUsingService(String roomName, String serviceName) {
+        log.info("Deleting room '{}' using service '{}'", roomName, serviceName);
+
+        RoomServiceClient client = getRoomServiceClient(serviceName);
+
+        try {
+            client.deleteRoom(roomName).execute();
+            log.info("Successfully deleted room '{}' using service '{}'", roomName, serviceName);
+        } catch (IOException e) {
+            log.error("Failed to delete room '{}' using service '{}': {}", roomName, serviceName, e.getMessage(), e);
+            throw new RuntimeException("Failed to delete room: " + roomName, e);
+        }
+    }
 }

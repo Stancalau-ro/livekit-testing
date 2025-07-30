@@ -92,15 +92,25 @@ public class ContainerStateManager {
     public void cleanup(Class<? extends GenericContainer> clazz) {
         log.info("Cleaning up all containers of type: {}", clazz.getName());
 
+        // First pass: stop and collect services to remove
+        Map<String, GenericContainer<?>> toRemove = new HashMap<>();
         for (Map.Entry<String, GenericContainer<?>> entry : containers.entrySet()) {
             String serviceName = entry.getKey();
             GenericContainer<?> container = entry.getValue();
-            if (container.isRunning() && clazz.isInstance(container)) {
-                log.info("Stopping container for service: {}", serviceName);
-                container.stop();
+            if (clazz.isInstance(container)) {
+                if (container.isRunning()) {
+                    log.info("Stopping container for service: {}", serviceName);
+                    container.stop();
+                }
+                toRemove.put(serviceName, container);
             }
         }
-        containers.clear();
+        
+        // Second pass: remove only the stopped containers of the specified type
+        for (String serviceName : toRemove.keySet()) {
+            containers.remove(serviceName);
+            log.info("Removed container from registry: {}", serviceName);
+        }
     }
     
     /**
