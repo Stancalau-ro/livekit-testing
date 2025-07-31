@@ -288,6 +288,70 @@ public class LiveKitWebhookSteps {
             throw new RuntimeException("Failed to retrieve webhook events from mock server", e);
         }
     }
+
+    @Then("{string} should have received a {string} event for participant {string} in room {string} with attributes {string}")
+    public void theMockServerShouldHaveReceivedAnEventForParticipantWithAttributes(String serviceName, String eventType, String participantIdentity, String roomName, String expectedAttributes) {
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
+        
+        if (mockServer == null) {
+            throw new RuntimeException("Mock server with service name " + serviceName + " not found");
+        }
+        
+        try {
+            MockServerClient mockServerClient = mockServer.getMockServerClient();
+            Optional<WebhookEvent> foundEvent = webhookEventPoller.waitForEventByTypeParticipantAndRoom(mockServerClient, eventType, participantIdentity, roomName);
+            
+            if (foundEvent.isEmpty()) {
+                List<WebhookEvent> allEvents = webhookService.getWebhookEvents(mockServerClient);
+                fail("Expected mock server to have received '" + eventType + "' event for participant '" + participantIdentity + 
+                    "' in room '" + roomName + "' but received events: " + allEvents.stream().map(e -> e.getEvent() + 
+                    (e.getParticipant() != null ? " (participant: " + e.getParticipant().getIdentity() + ")" : "") +
+                    (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : "")).toList());
+            }
+            
+            WebhookEvent event = foundEvent.get();
+            if (event.getParticipant() == null || event.getParticipant().getAttributes() == null) {
+                fail("Webhook event for participant '" + participantIdentity + "' does not contain attributes");
+            }
+            
+            java.util.Map<String, String> actualAttributes = event.getParticipant().getAttributes();
+            java.util.Map<String, String> expectedAttributesMap = parseAttributes(expectedAttributes);
+            
+            for (java.util.Map.Entry<String, String> expectedEntry : expectedAttributesMap.entrySet()) {
+                String key = expectedEntry.getKey();
+                String expectedValue = expectedEntry.getValue();
+                String actualValue = actualAttributes.get(key);
+                
+                assertEquals(expectedValue, actualValue, 
+                    String.format("Expected attribute '%s' to have value '%s' but was '%s'. All attributes: %s", 
+                        key, expectedValue, actualValue, actualAttributes));
+            }
+            
+            log.info("Found {} event for participant {} in room {} with correct attributes: {}", 
+                eventType, participantIdentity, roomName, actualAttributes);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve webhook events from mock server", e);
+        }
+    }
+    
+    private java.util.Map<String, String> parseAttributes(String attributesString) {
+        java.util.Map<String, String> attributes = new java.util.HashMap<>();
+        if (attributesString == null || attributesString.trim().isEmpty()) {
+            return attributes;
+        }
+        
+        String[] pairs = attributesString.split(",");
+        for (String pair : pairs) {
+            String[] keyValue = pair.split("=", 2);
+            if (keyValue.length == 2) {
+                String key = keyValue[0].trim();
+                String value = keyValue[1].trim().replaceAll("\\\\,", ",");
+                attributes.put(key, value);
+            }
+        }
+        return attributes;
+    }
     
     private String extractFeatureName(String uri) {
         try {

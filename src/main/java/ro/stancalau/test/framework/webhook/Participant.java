@@ -25,4 +25,7 @@ public class Participant {
     
     @JsonProperty("metadata")
     private String metadata;
+    
+    @JsonProperty("attributes")
+    private java.util.Map<String, String> attributes;
 }

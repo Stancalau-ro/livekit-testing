@@ -58,3 +58,17 @@ Feature: LiveKit Webhook Integration
     # Total events: room_started, participant_joined, track_published (video), track_published (audio), 
     #               track_unpublished (video), track_unpublished (audio), participant_left, room_finished
     And "mockserver1" should have received exactly 8 webhook events
+
+  Scenario: LiveKit sends webhook events with participant attributes
+    When room "AttributesTestRoom" is created using service "livekit1"
+    Then "mockserver1" should have received a "room_started" event for room "AttributesTestRoom"
+    
+    Given an access token is created with identity "AttributeUser" and room "AttributesTestRoom" with grants "canPublish:true,canSubscribe:true" and attributes "role=admin,department=engineering,project=livekit-testing"
+    When "AttributeUser" opens a "Chrome" browser with LiveKit Meet page
+    And "AttributeUser" connects to room "AttributesTestRoom" using the access token
+    And connection is established successfully for "AttributeUser"
+    Then "mockserver1" should have received a "participant_joined" event for participant "AttributeUser" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
+    
+    When room "AttributesTestRoom" is deleted using service "livekit1"
+    Then "mockserver1" should have received a "room_finished" event for room "AttributesTestRoom"
+    And "mockserver1" should have received a "participant_left" event for participant "AttributeUser" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
