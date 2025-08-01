@@ -51,4 +51,29 @@ public class Track {
     
     @JsonProperty("version")
     private Version version;
+    
+    public String getEffectiveType() {
+        if (type != null) {
+            return type;
+        }
+        
+        if (mimeType != null && mimeType.startsWith("audio/")) {
+            return "AUDIO";
+        }
+        
+        if (source != null) {
+            switch (source) {
+                case "MICROPHONE":
+                    return "AUDIO";
+                case "CAMERA":
+                case "SCREEN_SHARE":
+                case "SCREEN_SHARE_AUDIO":
+                    return source.contains("AUDIO") ? "AUDIO" : "VIDEO";
+                default:
+                    break;
+            }
+        }
+        
+        return type;
+    }
 }

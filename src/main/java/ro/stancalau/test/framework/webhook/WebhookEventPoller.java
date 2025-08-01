@@ -107,7 +107,7 @@ public class WebhookEventPoller {
         return waitForEvent(mockServerClient, event -> 
             eventType.equals(event.getEvent()) && 
             event.getTrack() != null && 
-            trackType.equals(event.getTrack().getType()) &&
+            trackType.equals(event.getTrack().getEffectiveType()) &&
             event.getRoom() != null && 
             roomName.equals(event.getRoom().getName())
         );

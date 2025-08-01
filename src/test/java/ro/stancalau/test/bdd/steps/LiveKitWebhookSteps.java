@@ -169,7 +169,7 @@ public class LiveKitWebhookSteps {
                 List<WebhookEvent> allEvents = webhookService.getWebhookEvents(mockServerClient);
                 fail("Expected mock server to have received '" + eventType + "' event for track type '" + trackType + 
                     "' in room '" + roomName + "' but received events: " + allEvents.stream().map(e -> e.getEvent() + 
-                    (e.getTrack() != null ? " (track type: " + e.getTrack().getType() + ")" : "") +
+                    (e.getTrack() != null ? " (track type: " + e.getTrack().getEffectiveType() + ")" : "") +
                     (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : "")).toList());
             }
             

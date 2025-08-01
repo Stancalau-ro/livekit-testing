@@ -163,6 +163,32 @@ public class LiveKitBrowserWebrtcSteps {
         assertTrue(disconnected, participantName + " should be disconnected from the room");
     }
 
+    @Then("{string} should see disconnection in the browser")
+    public void participantShouldSeeDisconnectionInTheBrowser(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            boolean disconnected = meetInstance.disconnected();
+            if (disconnected) {
+                return;
+            }
+            
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        boolean disconnected = meetInstance.disconnected();
+        assertTrue(disconnected, participantName + " should see disconnection in the browser after being removed by the server");
+    }
+
     @Then("{string} should see the join form again")
     public void participantShouldSeeTheJoinFormAgain(String participantName) {
         LiveKitMeet meetInstance = meetInstances.get(participantName);

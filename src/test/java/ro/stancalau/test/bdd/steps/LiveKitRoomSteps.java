@@ -224,4 +224,47 @@ public class LiveKitRoomSteps {
             throw new RuntimeException("Failed to delete room: " + roomName, e);
         }
     }
+
+    @When("participant {string} is removed from room {string} using service {string}")
+    public void participantIsRemovedFromRoomUsingService(String participantIdentity, String roomName, String serviceName) {
+        RoomServiceClient client = getRoomServiceClient(serviceName);
+
+        try {
+            client.removeParticipant(roomName, participantIdentity).execute();
+            log.info("Successfully removed participant '{}' from room '{}' using service '{}'", participantIdentity, roomName, serviceName);
+        } catch (IOException e) {
+            log.error("Failed to remove participant '{}' from room '{}' using service '{}': {}", participantIdentity, roomName, serviceName, e.getMessage(), e);
+            throw new RuntimeException("Failed to remove participant: " + participantIdentity, e);
+        }
+    }
+
+    @Then("participant {string} should not exist in room {string} using service {string}")
+    public void participantShouldNotExistInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
+        int maxAttempts = 10;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+            
+            boolean participantExists = participants.stream()
+                    .anyMatch(p -> participantIdentity.equals(p.getIdentity()));
+            
+            if (!participantExists) {
+                return;
+            }
+            
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+        boolean participantExists = participants.stream()
+                .anyMatch(p -> participantIdentity.equals(p.getIdentity()));
+        
+        assertEquals(false, participantExists, "Participant '" + participantIdentity + "' should not exist in room '" + roomName + "'");
+    }
 }
