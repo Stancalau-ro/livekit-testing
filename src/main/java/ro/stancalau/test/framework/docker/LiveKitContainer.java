@@ -48,6 +48,12 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
 
         LiveKitContainer container = new LiveKitContainer(liveKitImage, network)
                 .withExposedPorts(HTTP_PORT)
+                .withCreateContainerCmdModifier(cmd -> {
+                    // Expose WebRTC UDP port range for egress service connectivity
+                    for (int port = 50000; port <= 50010; port++) {
+                        cmd.withExposedPorts(com.github.dockerjava.api.model.ExposedPort.udp(port));
+                    }
+                })
                 .withFileSystemBind(logDirRoot.getAbsolutePath(),
                         "/var/log", BindMode.READ_WRITE);
 
@@ -62,6 +68,12 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
             }
         }
 
+        // Mount output directory for recordings
+        File outputDir = new File("out");
+        outputDir.mkdirs();
+        container = container.withFileSystemBind(outputDir.getAbsolutePath(),
+                "/out", BindMode.READ_WRITE);
+
         container = container.withEnv("TZ", ZoneId.systemDefault().toString())
                 .withExtraHost("host.docker.internal", "host-gateway")
                 .withNetwork(network)
@@ -70,22 +82,6 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         container.alias = alias;
 
         return container;
-    }
-
-    public static LiveKitContainer createContainer(String alias, Network network, String configFilePath) {
-        return createContainer(alias, network, "v1.8.4", configFilePath);
-    }
-
-    public static LiveKitContainer createContainer(String alias, Network network) {
-        return createContainer(alias, network, "v1.8.4", null);
-    }
-
-    public static LiveKitContainer createContainer(Network network) {
-        return createContainer(DEFAULT_SERVER_ALIAS, network, "v1.8.4", null);
-    }
-
-    public static LiveKitContainer createContainer(Network network, String configFilePath) {
-        return createContainer(DEFAULT_SERVER_ALIAS, network, "v1.8.4", configFilePath);
     }
 
     public static LiveKitContainer createContainer(Network network, String configFilePath, String livekitVersion) {

@@ -1,0 +1,15 @@
+# LiveKit Egress Configuration
+api_key: devkey
+api_secret: secret
+ws_url: ws://livekit1:7880
+
+# Redis configuration (will be updated dynamically)
+redis:
+  address: redis:6379
+
+# Logging configuration
+log_level: debug
+insecure: true
+
+# Template configuration
+template_base: /workspace/templates

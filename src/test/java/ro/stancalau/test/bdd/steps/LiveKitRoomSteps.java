@@ -1,13 +1,11 @@
 package ro.stancalau.test.bdd.steps;
 
 import io.cucumber.java.After;
-import io.cucumber.java.Before;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.livekit.server.RoomServiceClient;
 import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
-import ro.stancalau.test.framework.state.RoomClientStateManager;
 
 import java.io.IOException;
 import java.util.Collections;
