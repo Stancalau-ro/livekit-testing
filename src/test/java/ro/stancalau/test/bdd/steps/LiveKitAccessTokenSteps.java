@@ -19,7 +19,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 public class LiveKitAccessTokenSteps {
 
-
     @When("an access token is created with identity {string} and room {string}")
     public void anAccessTokenIsCreatedWithIdentityAndRoom(String identity, String roomName) {
         AccessToken token = ManagerProvider.tokens().createTokenWithRoom(identity, roomName);

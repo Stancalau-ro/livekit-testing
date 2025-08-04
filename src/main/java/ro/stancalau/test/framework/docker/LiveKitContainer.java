@@ -42,9 +42,7 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
 
-        String liveKitImage = "local/livekit:" + livekitVersion;
-
-        DockerImageUtils.ensureDockerImageExists(liveKitImage, "Docker/livekit");
+        String liveKitImage = "livekit/livekit-server:" + livekitVersion;
 
         LiveKitContainer container = new LiveKitContainer(liveKitImage, network)
                 .withExposedPorts(HTTP_PORT)
@@ -53,19 +51,24 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
                     for (int port = 50000; port <= 50010; port++) {
                         cmd.withExposedPorts(com.github.dockerjava.api.model.ExposedPort.udp(port));
                     }
-                })
-                .withFileSystemBind(logDirRoot.getAbsolutePath(),
-                        "/var/log", BindMode.READ_WRITE);
+                });
+
+        // Add log capturing using unified approach
+        container = ContainerLogUtils.withLogCapture(container, logDirRoot, "livekit.log");
 
         if (configFilePath != null && !configFilePath.isEmpty()) {
             File configFile = new File(configFilePath);
             if (configFile.exists()) {
                 container = container.withFileSystemBind(configFile.getAbsolutePath(),
-                        "/config.yaml", BindMode.READ_ONLY);
+                        "/config.yaml", BindMode.READ_ONLY)
+                        .withCommand("--config", "/config.yaml");
                 log.info("Binding config file {} to container", configFilePath);
             } else {
                 log.warn("Config file not found: {}", configFilePath);
             }
+        } else {
+            // Use development mode when no config is provided
+            container = container.withCommand("--dev");
         }
 
         // Mount output directory for recordings

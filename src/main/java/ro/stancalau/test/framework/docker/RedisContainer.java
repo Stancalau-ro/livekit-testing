@@ -22,12 +22,7 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
         this.network = network;
     }
     
-    public static RedisContainer createContainer(String alias, Network network) {
-        return createContainer(alias, network, null);
-    }
-    
     public static RedisContainer createContainer(String alias, Network network, String logDestinationPath) {
-        // Create log directory 
         String logDirPath = logDestinationPath != null 
             ? logDestinationPath
             : "out/bdd/scenarios/current/docker/" + alias;
@@ -39,20 +34,10 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
                 .withExposedPorts(REDIS_PORT)
                 .withNetwork(network)
                 .withNetworkAliases(alias)
-                .withFileSystemBind(logDirRoot.getAbsolutePath(), "/var/log/redis", org.testcontainers.containers.BindMode.READ_WRITE)
-                .withLogConsumer(outputFrame -> {
-                    try {
-                        java.io.File logFile = new java.io.File(logDirRoot, "redis.log");
-                        java.nio.file.Files.write(logFile.toPath(), 
-                            (outputFrame.getUtf8String()).getBytes(), 
-                            java.nio.file.StandardOpenOption.CREATE, 
-                            java.nio.file.StandardOpenOption.APPEND);
-                    } catch (Exception e) {
-                        log.warn("Failed to write Redis log: {}", e.getMessage());
-                    }
-                })
                 .waitingFor(Wait.forLogMessage(".*Ready to accept connections.*", 1)
                         .withStartupTimeout(Duration.ofSeconds(30)));
+
+        container = ContainerLogUtils.withLogCapture(container, logDirRoot, "redis.log");
         
         container.alias = alias;
         

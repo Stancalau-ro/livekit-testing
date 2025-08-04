@@ -66,20 +66,11 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
         
         EgressContainer container = new EgressContainer(egressImage, network, apiKey, apiSecret, livekitWsUrl)
                 .withExposedPorts(GRPC_PORT)
-                .withFileSystemBind(logDirRoot.getAbsolutePath(), "/var/log", BindMode.READ_WRITE)
                 .withFileSystemBind(recordingsDir.getAbsolutePath(), "/out/recordings", BindMode.READ_WRITE)
-                .withLogConsumer(outputFrame -> {
-                    try {
-                        File logFile = new File(logDirRoot, "egress.log");
-                        java.nio.file.Files.write(logFile.toPath(), 
-                            (outputFrame.getUtf8String()).getBytes(), 
-                            java.nio.file.StandardOpenOption.CREATE, 
-                            java.nio.file.StandardOpenOption.APPEND);
-                    } catch (Exception e) {
-                        log.warn("Failed to write egress log: {}", e.getMessage());
-                    }
-                })
                 .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withCapAdd(Capability.SYS_ADMIN));
+
+        // Add log capturing using unified approach
+        container = ContainerLogUtils.withLogCapture(container, logDirRoot, "egress.log");
         
         // Create dynamic config with Redis URL
         if (redisUrl != null) {

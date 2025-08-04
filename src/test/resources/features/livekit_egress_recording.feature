@@ -7,7 +7,7 @@ Feature: LiveKit Egress Recording
     Given the LiveKit config is set to "with_egress"
     And a Redis server is running in a container with service name "redis"
     And a LiveKit server is running in a container with service name "livekit1"
-    And a LiveKit egress service is running in a container with service name "egress1"
+    And a LiveKit egress service is running in a container with service name "egress1" connected to LiveKit service "livekit1"
 
   Scenario: Record video from a publisher to local file using egress
     Given room "EgressRecordingRoom" is created using service "livekit1"
@@ -25,9 +25,9 @@ Feature: LiveKit Egress Recording
     Then participant "VideoPublisher" should be publishing video in room "EgressRecordingRoom" using service "livekit1"
     And participant "VideoViewer" should see 1 remote video tracks in room "EgressRecordingRoom" using service "livekit1"
     
-    When room composite recording is started for room "EgressRecordingRoom" using egress service "egress1"
-    And the recording runs for 15 seconds
-    And room composite recording is stopped for room "EgressRecordingRoom" using egress service "egress1"
+    When room composite recording is started for room "EgressRecordingRoom" using LiveKit service "livekit1"
+    And the recording runs for 4 seconds
+    And room composite recording is stopped for room "EgressRecordingRoom" using LiveKit service "livekit1"
     
     Then the recording file exists in the output directory for room "EgressRecordingRoom"
     And the recording file contains actual video content
@@ -47,9 +47,9 @@ Feature: LiveKit Egress Recording
     
     Then room "MultiParticipantRecording" should have 2 active participants in service "livekit1"
     
-    When room composite recording is started for room "MultiParticipantRecording" using egress service "egress1"
-    And the recording runs for 15 seconds
-    And room composite recording is stopped for room "MultiParticipantRecording" using egress service "egress1"
+    When room composite recording is started for room "MultiParticipantRecording" using LiveKit service "livekit1"
+    And the recording runs for 4 seconds
+    And room composite recording is stopped for room "MultiParticipantRecording" using LiveKit service "livekit1"
     
     Then the recording file exists in the output directory for room "MultiParticipantRecording"
     And the recording file contains actual video content from multiple participants

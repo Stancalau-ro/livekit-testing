@@ -82,7 +82,7 @@ public class LiveKitContainerFactory {
      */
     public static LiveKitContainer createIntegrationTestContainer(String alias, Network network) {
         String version = TestConfig.getLiveKitVersion();
-        String configPath = "src/test/resources/livekit/config/config.yaml";
+        String configPath = "src/test/resources/livekit/config/" + version + "/basic/config.yaml";
         
         // Create integration test specific log path with timestamp
         String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));

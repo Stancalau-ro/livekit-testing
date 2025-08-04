@@ -147,9 +147,8 @@ rtc:
 # API key / secret pairs.
 # Keys are used for JWT authentication, server APIs would require a keypair in order to generate access tokens
 # and make calls to the server
-#keys:
-    #key1: oRbrWETgKyhscLwC9XK9CH511xKS8o9c
-    #key2: ObtoufeWtouuBNJlDW3NItrTqbMtPPso
+keys:
+    devkey: secret
 # Logging config
 logging:
 #   # log level, valid values: debug, info, warn, error
