@@ -3,6 +3,7 @@ package ro.stancalau.test.framework.state;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import ro.stancalau.test.framework.docker.MinIOContainer;
 import ro.stancalau.test.framework.docker.WebServerContainer;
 
 import java.util.HashMap;
@@ -124,6 +125,46 @@ public class ContainerStateManager {
         }
         
         return webServer;
+    }
+    
+    /**
+     * Get or create a MinIO container for S3-compatible object storage
+     * @param serviceName The service name for the MinIO server
+     * @return The MinIO container
+     */
+    public MinIOContainer getOrCreateMinIO(String serviceName) {
+        MinIOContainer minio = getContainer(serviceName, MinIOContainer.class);
+        
+        if (minio == null) {
+            log.info("Creating new MinIOContainer for service: {}", serviceName);
+            minio = MinIOContainer.createContainer(serviceName, getOrCreateNetwork());
+            minio.start();
+            
+            registerContainer(serviceName, minio);
+        }
+        
+        return minio;
+    }
+    
+    /**
+     * Get or create a MinIO container with custom credentials
+     * @param serviceName The service name for the MinIO server
+     * @param accessKey The access key for MinIO
+     * @param secretKey The secret key for MinIO
+     * @return The MinIO container
+     */
+    public MinIOContainer getOrCreateMinIO(String serviceName, String accessKey, String secretKey) {
+        MinIOContainer minio = getContainer(serviceName, MinIOContainer.class);
+        
+        if (minio == null) {
+            log.info("Creating new MinIOContainer for service: {} with custom credentials", serviceName);
+            minio = MinIOContainer.createContainer(serviceName, getOrCreateNetwork(), accessKey, secretKey);
+            minio.start();
+            
+            registerContainer(serviceName, minio);
+        }
+        
+        return minio;
     }
 
 }
