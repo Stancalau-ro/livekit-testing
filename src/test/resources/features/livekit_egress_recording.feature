@@ -26,7 +26,7 @@ Feature: LiveKit Egress Recording
     And participant "VideoViewer" should see 1 remote video tracks in room "EgressRecordingRoom" using service "livekit1"
     
     When room composite recording is started for room "EgressRecordingRoom" using LiveKit service "livekit1"
-    And the recording runs for 4 seconds
+    And the recording runs for 6 seconds
     And room composite recording is stopped for room "EgressRecordingRoom" using LiveKit service "livekit1"
     
     Then the recording file exists in the output directory for room "EgressRecordingRoom"
@@ -48,7 +48,7 @@ Feature: LiveKit Egress Recording
     Then room "MultiParticipantRecording" should have 2 active participants in service "livekit1"
     
     When room composite recording is started for room "MultiParticipantRecording" using LiveKit service "livekit1"
-    And the recording runs for 4 seconds
+    And the recording runs for 6 seconds
     And room composite recording is stopped for room "MultiParticipantRecording" using LiveKit service "livekit1"
     
     Then the recording file exists in the output directory for room "MultiParticipantRecording"

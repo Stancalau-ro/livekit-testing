@@ -194,9 +194,14 @@ public class LiveKitEgressSteps {
                 (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
             );
             
-            if (files != null && files.length > 0 && files[0].length() > 0) {
-                recordingFile = files[0];
-                break;
+            if (files != null && files.length > 0) {
+                File file = files[0];
+                if (file.length() > 0) {
+                    recordingFile = file;
+                    break;
+                } else {
+                    log.debug("Recording file exists but is empty: {} (attempt {}/{})", file.getName(), attempt + 1, maxAttempts);
+                }
             }
             
             if (attempt < maxAttempts - 1) {
@@ -204,6 +209,16 @@ public class LiveKitEgressSteps {
                 TimeUnit.MILLISECONDS.sleep(500);
             }
             attempt++;
+        }
+        
+        File[] allFiles = recordingsDir.listFiles((dir, name) -> 
+            name.contains("recording-" + roomName) && 
+            (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
+        );
+        
+        if (allFiles != null && allFiles.length > 0 && allFiles[0].length() == 0) {
+            fail("Recording file exists but is empty (0 bytes). This may indicate the egress was aborted. " +
+                 "File: " + allFiles[0].getName() + ". Check egress logs for errors.");
         }
         
         assertNotNull(recordingFile, "No recording files found for room " + roomName + 
@@ -229,9 +244,9 @@ public class LiveKitEgressSteps {
         
         File recordingFile = files[0];
 
-        assertTrue(recordingFile.length() > 50000, 
+        assertTrue(recordingFile.length() > 70000, 
             "Recording file too small (" + recordingFile.length() + " bytes), " +
-            "likely does not contain actual video content. Expected > 50KB for real video.");
+            "likely does not contain actual video content. Expected > 70KB for real video.");
         
         log.info("Verified recording contains actual video content: {} ({} bytes)", 
             recordingFile.getName(), recordingFile.length());
@@ -270,9 +285,9 @@ public class LiveKitEgressSteps {
         
         assertNotNull(recordingFile, "No recording files found after " + maxAttempts + " attempts");
 
-        assertTrue(recordingFile.length() > 50000, 
+        assertTrue(recordingFile.length() > 70000, 
             "Multi-participant recording file too small (" + recordingFile.length() + " bytes), " +
-            "expected > 50KB for composite video with multiple participants.");
+            "expected > 70KB for composite video with multiple participants.");
         
         log.info("Verified multi-participant recording: {} ({} bytes)", 
             recordingFile.getName(), recordingFile.length());
