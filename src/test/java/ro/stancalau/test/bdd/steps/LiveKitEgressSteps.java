@@ -13,6 +13,7 @@ import ro.stancalau.test.framework.docker.EgressContainer;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.docker.RedisContainer;
 import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.util.TestConfig;
 
 import java.io.File;
 import java.time.LocalDateTime;
@@ -78,7 +79,7 @@ public class LiveKitEgressSteps {
         EgressContainer egressContainer = EgressContainer.createContainer(
             serviceName, 
             containerManager.getOrCreateNetwork(), 
-            "v1.8.4",
+            TestConfig.getEgressVersion(),
             livekitWsUrl,
             LiveKitContainer.API_KEY,
             LiveKitContainer.SECRET,

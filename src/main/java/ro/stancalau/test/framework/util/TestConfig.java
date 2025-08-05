@@ -15,6 +15,10 @@ public class TestConfig {
     private static final String LIVEKIT_VERSION_PROPERTY = "livekit.version";
     private static final String LIVEKIT_VERSION_ENV = "LIVEKIT_VERSION";
     
+    private static final String DEFAULT_EGRESS_VERSION = "v1.8.4";
+    private static final String EGRESS_VERSION_PROPERTY = "egress.version";
+    private static final String EGRESS_VERSION_ENV = "EGRESS_VERSION";
+    
     private static final String RECORDING_MODE_PROPERTY = "recording.mode";
     private static final String RECORDING_MODE_ENV = "RECORDING_MODE";
     private static final String DEFAULT_RECORDING_MODE = "all";
@@ -25,11 +29,12 @@ public class TestConfig {
     
     /**
      * Gets the LiveKit version to use for tests.
-     * Priority: System Property > Environment Variable > Default
+     * Priority: System Property > Environment Variable > Gradle Property > Default
      * 
      * Usage:
      * - System Property: -Dlivekit.version=v1.8.5
      * - Environment Variable: LIVEKIT_VERSION=v1.8.5
+     * - Gradle Property: -Plivekit_docker_version=v1.8.5
      * - Default: v1.8.4
      */
     public static String getLiveKitVersion() {
@@ -43,6 +48,11 @@ public class TestConfig {
             return version.trim();
         }
         
+        version = System.getProperty("livekit_docker_version");
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+        
         return DEFAULT_LIVEKIT_VERSION;
     }
     
@@ -51,6 +61,42 @@ public class TestConfig {
      */
     public static String getDefaultLiveKitVersion() {
         return DEFAULT_LIVEKIT_VERSION;
+    }
+    
+    /**
+     * Gets the egress version to use for tests.
+     * Priority: System Property > Environment Variable > Gradle Property > Default
+     * 
+     * Usage:
+     * - System Property: -Degress.version=v1.8.5
+     * - Environment Variable: EGRESS_VERSION=v1.8.5
+     * - Gradle Property: -Pegress_docker_version=v1.8.5
+     * - Default: v1.8.4
+     */
+    public static String getEgressVersion() {
+        String version = System.getProperty(EGRESS_VERSION_PROPERTY);
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+        
+        version = System.getenv(EGRESS_VERSION_ENV);
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+        
+        version = System.getProperty("egress_docker_version");
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+        
+        return DEFAULT_EGRESS_VERSION;
+    }
+    
+    /**
+     * Gets the default egress version
+     */
+    public static String getDefaultEgressVersion() {
+        return DEFAULT_EGRESS_VERSION;
     }
     
     /**

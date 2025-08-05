@@ -28,6 +28,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Override LiveKit version for tests
 ./gradlew test -Plivekit_docker_version=v1.8.5
 
+# Override Egress version for tests
+./gradlew test -Pegress_docker_version=v1.8.5
+
 # Control VNC recording for browser tests
 ./gradlew test -Drecording.mode=skip     # No recordings
 ./gradlew test -Drecording.mode=all      # Record all tests (default)

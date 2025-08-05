@@ -102,8 +102,9 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
     }
     
     public static EgressContainer createContainer(String alias, Network network, String livekitWsUrl, String redisUrl) {
-        String defaultConfigPath = "src/test/resources/livekit/config/v1.8.4/with_egress/egress.yaml";
-        return createContainer(alias, network, "v1.8.4", livekitWsUrl, 
+        String egressVersion = ro.stancalau.test.framework.util.TestConfig.getEgressVersion();
+        String defaultConfigPath = "src/test/resources/livekit/config/" + egressVersion + "/with_egress/egress.yaml";
+        return createContainer(alias, network, egressVersion, livekitWsUrl, 
                 LiveKitContainer.API_KEY, LiveKitContainer.SECRET, defaultConfigPath, null, redisUrl);
     }
     
