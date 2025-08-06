@@ -450,4 +450,15 @@ public class LiveKitMeet {
             log.warn("Camera button not found");
         }
     }
+    
+    public void refreshAndReconnect() {
+        log.info("LiveKitMeet refreshing page to retry connection");
+        try {
+            driver.navigate().refresh();
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Refresh sleep interrupted");
+        }
+    }
 }

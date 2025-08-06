@@ -57,11 +57,15 @@ public class LiveKitMinIORecordingSteps {
 
     @After
     public void tearDownMinIORecordingSteps() {
-        for (MinioS3Client client : s3Clients.values()) {
-            try {
-                client.close();
-            } catch (Exception e) {
-                log.error("Failed to close S3 client", e);
+        if (currentScenarioLogPath != null) {
+            String s3ExportPath = currentScenarioLogPath + "/docker/minio/s3";
+            for (MinioS3Client client : s3Clients.values()) {
+                try {
+                    client.exportBucketContents(s3ExportPath);
+                    client.close();
+                } catch (Exception e) {
+                    log.error("Failed to export/close S3 client", e);
+                }
             }
         }
         s3Clients.clear();

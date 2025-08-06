@@ -94,7 +94,7 @@ public class LiveKitRoomSteps {
 
     @Then("room {string} should have {int} active participants in service {string}")
     public void theRoomShouldHaveActiveParticipantsInService(String roomName, int expectedCount, String serviceName) {
-        int maxAttempts = 20; // Increase attempts for longer wait
+        int maxAttempts = 20;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
 
@@ -131,7 +131,6 @@ public class LiveKitRoomSteps {
 
             assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
 
-            // Check for published video tracks
             long videoTrackCount = targetParticipant.getTracksList().stream()
                     .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
                     .count();

@@ -86,24 +86,74 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         
-        try {
-            boolean connected = meetInstance.waitForConnection();
-            if (!connected) {
+        int maxRetries = 3;
+        int retryDelayMs = 1000;
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                boolean connected = meetInstance.waitForConnection();
+                if (connected) {
+                    if (attempt > 1) {
+                        log.info("Connection succeeded for {} on attempt {}", participantName, attempt);
+                    }
+                    return;
+                }
+                
                 String errorDetails = meetInstance.getPageErrorDetails();
-                String failureMessage = participantName + " should successfully connect to the meeting";
+                boolean isRetryableError = isRetryableServerError(errorDetails);
+                
+                if (isRetryableError && attempt < maxRetries) {
+                    log.warn("Retryable server error for {}, attempt {}/{}: {}. Retrying in {}ms", 
+                            participantName, attempt, maxRetries, errorDetails, retryDelayMs);
+                    Thread.sleep(retryDelayMs);
+                    meetInstance.refreshAndReconnect();
+                    continue;
+                }
+                
+                String failureMessage = participantName + " should successfully connect to the meeting (attempt " + attempt + "/" + maxRetries + ")";
+                if (errorDetails != null && !errorDetails.trim().isEmpty()) {
+                    failureMessage += ". Browser error: " + errorDetails;
+                }
+                fail(failureMessage);
+                
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("Connection attempt interrupted for " + participantName);
+            } catch (Exception e) {
+                String errorDetails = meetInstance.getPageErrorDetails();
+                boolean isRetryableError = isRetryableServerError(errorDetails);
+                
+                if (isRetryableError && attempt < maxRetries) {
+                    log.warn("Retryable exception for {}, attempt {}/{}: {}. Retrying in {}ms", 
+                            participantName, attempt, maxRetries, e.getMessage(), retryDelayMs);
+                    try {
+                        Thread.sleep(retryDelayMs);
+                        meetInstance.refreshAndReconnect();
+                        continue;
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        fail("Connection retry interrupted for " + participantName);
+                    }
+                }
+                
+                String failureMessage = "Connection failed for " + participantName + " with exception: " + e.getMessage();
                 if (errorDetails != null && !errorDetails.trim().isEmpty()) {
                     failureMessage += ". Browser error: " + errorDetails;
                 }
                 fail(failureMessage);
             }
-            } catch (Exception e) {
-            String errorDetails = meetInstance.getPageErrorDetails();
-            String failureMessage = "Connection failed for " + participantName + " with exception: " + e.getMessage();
-            if (errorDetails != null && !errorDetails.trim().isEmpty()) {
-                failureMessage += ". Browser error: " + errorDetails;
-            }
-            fail(failureMessage);
         }
+    }
+    
+    private boolean isRetryableServerError(String errorDetails) {
+        if (errorDetails == null) {
+            return false;
+        }
+        String errorLower = errorDetails.toLowerCase();
+        return errorLower.contains("could not find any available nodes") ||
+               errorLower.contains("server error") ||
+               errorLower.contains("500") ||
+               errorLower.contains("internal server error");
     }
 
     @Then("the connection should be successful for {string}")

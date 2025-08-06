@@ -9,6 +9,7 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -137,6 +138,24 @@ public class MinioS3Client {
     public void close() {
         if (s3Client != null) {
             s3Client.close();
+        }
+    }
+    
+    public void exportBucketContents(String exportDirectory) {
+        try {
+            List<String> objects = listObjects("");
+            File exportDir = new File(exportDirectory, bucketName);
+            exportDir.mkdirs();
+            
+            for (String key : objects) {
+                String localPath = new File(exportDir, key).getAbsolutePath();
+                downloadObject(key, localPath);
+                log.info("Exported {} from bucket {} to {}", key, bucketName, localPath);
+            }
+            
+            log.info("Exported {} objects from bucket {} to {}", objects.size(), bucketName, exportDir.getAbsolutePath());
+        } catch (Exception e) {
+            log.error("Failed to export bucket contents for bucket {}: {}", bucketName, e.getMessage());
         }
     }
 }

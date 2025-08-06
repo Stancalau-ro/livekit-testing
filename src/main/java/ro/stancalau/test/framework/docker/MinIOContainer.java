@@ -61,6 +61,8 @@ public class MinIOContainer extends GenericContainer<MinIOContainer> {
             .forPort(API_PORT)
             .withStartupTimeout(Duration.ofSeconds(60)));
         
+        ContainerLogUtils.withLogCapture(this, logDirRoot, "minio.log");
+        
         log.info("Created MinIOContainer with alias: {}, access key: {}", alias, accessKey);
     }
     
@@ -75,11 +77,7 @@ public class MinIOContainer extends GenericContainer<MinIOContainer> {
     public static MinIOContainer createContainer(String alias, Network network) {
         return createContainer(alias, network, DEFAULT_ACCESS_KEY, DEFAULT_SECRET_KEY);
     }
-    
-    public static MinIOContainer createContainer(String alias, Network network, @Nullable String logDestinationPath) {
-        return createContainer(alias, network, DEFAULT_ACCESS_KEY, DEFAULT_SECRET_KEY, logDestinationPath);
-    }
-    
+
     public String getS3EndpointUrl() {
         return "http://" + getHost() + ":" + getMappedPort(API_PORT);
     }
@@ -87,17 +85,5 @@ public class MinIOContainer extends GenericContainer<MinIOContainer> {
     public String getNetworkS3EndpointUrl() {
         return "http://" + alias + ":" + API_PORT;
     }
-    
-    public String getConsoleUrl() {
-        return "http://" + getHost() + ":" + getMappedPort(CONSOLE_PORT);
-    }
-    
-    public String getNetworkConsoleUrl() {
-        return "http://" + alias + ":" + CONSOLE_PORT;
-    }
 
-    public String getCreateBucketCommand(String bucketName) {
-        return String.format("mc alias set myminio %s %s %s && mc mb myminio/%s",
-            getNetworkS3EndpointUrl(), accessKey, secretKey, bucketName);
-    }
 }
