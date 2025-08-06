@@ -7,13 +7,15 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import com.github.dockerjava.api.model.Capability;
+import ro.stancalau.test.framework.config.S3Config;
+import ro.stancalau.test.framework.config.TestConfig;
+
 import java.util.Arrays;
 
 import javax.annotation.Nullable;
 import java.io.File;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @Slf4j
 public class EgressContainer extends GenericContainer<EgressContainer> {
@@ -25,16 +27,10 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
     private final Network network;
     
     private String alias;
-    private final String apiKey;
-    private final String apiSecret;
-    private final String wsUrl;
-    
+
     private EgressContainer(String imageName, Network network, String apiKey, String apiSecret, String wsUrl) {
         super(imageName);
         this.network = network;
-        this.apiKey = apiKey;
-        this.apiSecret = apiSecret;
-        this.wsUrl = wsUrl;
     }
     
     public static EgressContainer createContainer(String alias, Network network, String egressVersion, 
@@ -71,7 +67,7 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
                 .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
                     .withCapAdd(Capability.SYS_ADMIN)
                     // Disable AppArmor for WebRTC
-                    .withSecurityOpts(Arrays.asList("apparmor:unconfined")));
+                    .withSecurityOpts(List.of("apparmor:unconfined")));
 
         // Add log capturing using unified approach
         container = ContainerLogUtils.withLogCapture(container, logDirRoot, "egress.log");
@@ -106,10 +102,50 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
     }
     
     public static EgressContainer createContainer(String alias, Network network, String livekitWsUrl, String redisUrl) {
-        String egressVersion = ro.stancalau.test.framework.util.TestConfig.getEgressVersion();
+        String egressVersion = TestConfig.getEgressVersion();
         String defaultConfigPath = "src/test/resources/livekit/config/" + egressVersion + "/with_egress/egress.yaml";
         return createContainer(alias, network, egressVersion, livekitWsUrl, 
                 LiveKitContainer.API_KEY, LiveKitContainer.SECRET, defaultConfigPath, null, redisUrl);
+    }
+    
+    public static EgressContainer createContainerWithS3(String alias, Network network, String egressVersion,
+                                                        String livekitWsUrl, String apiKey, String apiSecret,
+                                                        @Nullable String logDestinationPath,
+                                                        @Nullable String redisUrl, S3Config s3Config) {
+        
+        String logDirPath = (logDestinationPath != null) 
+            ? logDestinationPath 
+            : "out/bdd/scenarios/current/docker/" + alias;
+        
+        File logDirRoot = new File(logDirPath);
+        logDirRoot.mkdirs();
+
+        String egressImage = "livekit/egress:" + egressVersion;
+        
+        EgressContainer container = new EgressContainer(egressImage, network, apiKey, apiSecret, livekitWsUrl)
+                .withExposedPorts(GRPC_PORT)
+                .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+                    .withCapAdd(Capability.SYS_ADMIN)
+                    .withSecurityOpts(List.of("apparmor:unconfined")));
+
+        container = ContainerLogUtils.withLogCapture(container, logDirRoot, "egress.log");
+        
+        if (redisUrl != null) {
+            String configBody = createEgressConfigBodyWithS3(apiKey, apiSecret, livekitWsUrl, redisUrl, alias, s3Config);
+            container = container.withEnv("EGRESS_CONFIG_BODY", configBody);
+            log.info("Created dynamic egress config with Redis URL and S3 config: {}", redisUrl);
+        }
+        
+        container = container
+                .withExtraHost("host.docker.internal", "host-gateway")
+                .withNetwork(network)
+                .withNetworkAliases(alias)
+                .waitingFor(Wait.forListeningPort()
+                        .withStartupTimeout(Duration.ofSeconds(60)));
+        
+        container.alias = alias;
+        
+        return container;
     }
     
     public static EgressContainer createContainer(String alias, Network network, String livekitWsUrl) {
@@ -125,7 +161,7 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
     }
     
     public String getAlias() {
-        return alias != null ? alias : getNetworkAliases().get(0);
+        return alias != null ? alias : getNetworkAliases().getFirst();
     }
     
     private static String createEgressConfigBody(String apiKey, String apiSecret, String wsUrl, String redisUrl, String alias) {
@@ -161,8 +197,51 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
                 - "--disable-dev-shm-usage"
                 - "--no-sandbox"
                 - "--allow-running-insecure-content"
+                - "--unsafely-treat-insecure-origin-as-secure=ws://%s:7880"
+                - "--unsafely-treat-insecure-origin-as-secure=http://%s:7880"
+""", apiKey, apiSecret, wsUrl, redisUrl, alias, alias);
+    }
+    
+    private static String createEgressConfigBodyWithS3(String apiKey, String apiSecret, String wsUrl, 
+                                                       String redisUrl, String alias, S3Config s3Config) {
+        return String.format("""
+            api_key: %s
+            api_secret: %s
+            ws_url: %s
+            redis:
+              address: %s
+            log_level: debug
+            insecure: true
+            disable_https: true
+            template_base: "http://127.0.0.1:7980"
+            template_port: 7980
+            template_address: "127.0.0.1"
+            health_port: 9999
+            prometheus_port: 9998
+            ice:
+              stun_servers: []
+              tcp_fallback: true
+              timeout: 10s
+            chrome:
+              extra_flags:
+                - "--use-fake-ui-for-media-stream"
+                - "--autoplay-policy=no-user-gesture-required"
+                - "--disable-web-security"
+                - "--disable-features=WebRtcHideLocalIpsWithMdns"
+                - "--disable-dev-shm-usage"
+                - "--no-sandbox"
+                - "--allow-running-insecure-content"
                 - "--unsafely-treat-insecure-origin-as-secure=ws://livekit1:7880"
                 - "--unsafely-treat-insecure-origin-as-secure=http://livekit1:7880"
-            """, apiKey, apiSecret, wsUrl, redisUrl, alias);
+            s3:
+              access_key: %s
+              secret_key: %s
+              bucket: %s
+              endpoint: %s
+              region: %s
+              force_path_style: true
+            """, apiKey, apiSecret, wsUrl, redisUrl, 
+            s3Config.accessKey, s3Config.secretKey, s3Config.bucket, 
+            s3Config.endpoint, s3Config.region);
     }
 }

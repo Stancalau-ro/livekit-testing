@@ -54,6 +54,6 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
     }
     
     public String getAlias() {
-        return alias != null ? alias : getNetworkAliases().get(0);
+        return alias != null ? alias : getNetworkAliases().getFirst();
     }
 }

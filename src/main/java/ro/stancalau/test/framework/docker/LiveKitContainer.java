@@ -106,6 +106,6 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         if (Objects.nonNull(alias)) {
             return alias;
         }
-        return getNetworkAliases().get(0);
+        return getNetworkAliases().getFirst();
     }
 }

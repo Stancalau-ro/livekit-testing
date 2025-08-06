@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
 import org.mockserver.model.HttpRequest;
-import ro.stancalau.test.framework.constants.LiveKitConstants;
 
 import java.util.Arrays;
 import java.util.List;
@@ -13,9 +12,11 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class WebhookService {
-    
+
+    private static final String INIT_TEST_ROOM_NAME = "initTest";
+
     private final ObjectMapper objectMapper;
-    
+
     public WebhookService() {
         this.objectMapper = new ObjectMapper();
     }
@@ -30,7 +31,7 @@ public class WebhookService {
                 .map(this::parseWebhookEvent)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .collect(Collectors.toList());
+                .toList();
             
             long initTestCount = allEvents.stream().filter(this::isInitTestEvent).count();
             if (initTestCount > 0) {
@@ -48,7 +49,7 @@ public class WebhookService {
     }
     
     private boolean isInitTestEvent(WebhookEvent event) {
-        return event.getRoom() != null && LiveKitConstants.INIT_TEST_ROOM_NAME.equals(event.getRoom().getName());
+        return event.getRoom() != null && INIT_TEST_ROOM_NAME.equals(event.getRoom().getName());
     }
     
     public Optional<WebhookEvent> findEventByType(List<WebhookEvent> events, String eventType) {

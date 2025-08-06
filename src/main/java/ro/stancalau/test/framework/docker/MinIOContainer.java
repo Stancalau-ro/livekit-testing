@@ -12,6 +12,7 @@ import java.io.File;
 import java.time.Duration;
 import java.time.ZoneId;
 
+@Getter
 @Slf4j
 public class MinIOContainer extends GenericContainer<MinIOContainer> {
     
@@ -22,10 +23,8 @@ public class MinIOContainer extends GenericContainer<MinIOContainer> {
     public static final String DEFAULT_ACCESS_KEY = "minioadmin";
     public static final String DEFAULT_SECRET_KEY = "minioadmin";
     
-    @Getter
     private final Network network;
     
-    @Getter
     private final String alias;
     
     private final String accessKey;
@@ -96,15 +95,7 @@ public class MinIOContainer extends GenericContainer<MinIOContainer> {
     public String getNetworkConsoleUrl() {
         return "http://" + alias + ":" + CONSOLE_PORT;
     }
-    
-    public String getAccessKey() {
-        return accessKey;
-    }
-    
-    public String getSecretKey() {
-        return secretKey;
-    }
-    
+
     public String getCreateBucketCommand(String bucketName) {
         return String.format("mc alias set myminio %s %s %s && mc mb myminio/%s",
             getNetworkS3EndpointUrl(), accessKey, secretKey, bucketName);

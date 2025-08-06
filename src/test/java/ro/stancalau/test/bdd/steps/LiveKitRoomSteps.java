@@ -12,8 +12,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static java.util.Objects.isNull;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class LiveKitRoomSteps {
@@ -37,10 +36,7 @@ public class LiveKitRoomSteps {
         RoomServiceClient client = getRoomServiceClient(serviceName);
 
         try {
-            LivekitModels.Room room = client.createRoom(roomName).execute().body();
-            if (room != null) {
-            }
-            return room;
+            return client.createRoom(roomName).execute().body();
         } catch (Exception e) {
             log.error("Failed to create room '{}' using service '{}': {}", roomName, serviceName, e.getMessage(), e);
             throw new RuntimeException("Failed to create room: " + roomName, e);
@@ -52,8 +48,7 @@ public class LiveKitRoomSteps {
         RoomServiceClient client = getRoomServiceClient(serviceName);
 
         try {
-            List<LivekitModels.Room> rooms = client.listRooms().execute().body();
-            return rooms;
+            return client.listRooms().execute().body();
         } catch (Exception e) {
             log.error("Failed to fetch rooms using service '{}': {}", serviceName, e.getMessage(), e);
             throw new RuntimeException("Failed to fetch rooms", e);
@@ -83,8 +78,7 @@ public class LiveKitRoomSteps {
 
         try {
             List<LivekitModels.ParticipantInfo> result = client.listParticipants(roomName).execute().body();
-            List<LivekitModels.ParticipantInfo> participants = isNull(result) ? Collections.emptyList() : result;
-            return participants;
+            return isNull(result) ? Collections.emptyList() : result;
         } catch (IOException e) {
             log.error("Failed to fetch participant info for room '{}' using service '{}': {}", roomName, serviceName, e.getMessage(), e);
             throw new RuntimeException("Failed to fetch participant info for room: " + roomName, e);
@@ -95,7 +89,7 @@ public class LiveKitRoomSteps {
     public void theRoomShouldExistInService(String roomName, String serviceName) {
         List<LivekitModels.Room> rooms = getRooms(serviceName);
         boolean roomExists = rooms.stream().anyMatch(room -> roomName.equals(room.getName()));
-        assertEquals(true, roomExists, "Room '" + roomName + "' should exist in service '" + serviceName + "'");
+        assertTrue(roomExists, "Room '" + roomName + "' should exist in service '" + serviceName + "'");
     }
 
     @Then("room {string} should have {int} active participants in service {string}")
@@ -262,7 +256,7 @@ public class LiveKitRoomSteps {
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
         boolean participantExists = participants.stream()
                 .anyMatch(p -> participantIdentity.equals(p.getIdentity()));
-        
-        assertEquals(false, participantExists, "Participant '" + participantIdentity + "' should not exist in room '" + roomName + "'");
+
+        assertFalse(participantExists, "Participant '" + participantIdentity + "' should not exist in room '" + roomName + "'");
     }
 }

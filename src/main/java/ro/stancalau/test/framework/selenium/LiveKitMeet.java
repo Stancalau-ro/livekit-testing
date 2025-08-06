@@ -264,7 +264,7 @@ public class LiveKitMeet {
             List<WebElement> errorElements = driver.findElements(By.className("error"));
             for (WebElement errorElement : errorElements) {
                 if (errorElement.isDisplayed() && !errorElement.getText().trim().isEmpty()) {
-                    if (errorDetails.length() > 0) errorDetails.append(" | ");
+                    if (!errorDetails.isEmpty()) errorDetails.append(" | ");
                     errorDetails.append("Error element: ").append(errorElement.getText().trim());
                 }
             }
@@ -274,7 +274,7 @@ public class LiveKitMeet {
                 if (statusDiv.isDisplayed() && statusDiv.getAttribute("class").contains("error")) {
                     String errorText = statusDiv.getText().trim();
                     if (!errorText.isEmpty()) {
-                        if (errorDetails.length() > 0) errorDetails.append(" | ");
+                        if (!errorDetails.isEmpty()) errorDetails.append(" | ");
                         errorDetails.append("Status error: ").append(errorText);
                     }
                 }
@@ -286,7 +286,7 @@ public class LiveKitMeet {
                     "return window.lastError || ''"
                 );
                 if (consoleErrors != null && !consoleErrors.trim().isEmpty()) {
-                    if (errorDetails.length() > 0) errorDetails.append(" | ");
+                    if (!errorDetails.isEmpty()) errorDetails.append(" | ");
                     errorDetails.append("JavaScript error: ").append(consoleErrors);
                 }
             } catch (Exception ignored) {
@@ -297,7 +297,7 @@ public class LiveKitMeet {
             try {
                 String currentUrl = driver.getCurrentUrl();
                 if (currentUrl != null && !currentUrl.contains("about:blank")) {
-                    if (errorDetails.length() > 0) errorDetails.append(" | ");
+                    if (!errorDetails.isEmpty()) errorDetails.append(" | ");
                     errorDetails.append("Page URL: ").append(currentUrl);
                 }
             } catch (Exception ignored) {
@@ -308,14 +308,14 @@ public class LiveKitMeet {
             try {
                 String pageTitle = driver.getTitle();
                 if (pageTitle != null && !pageTitle.trim().isEmpty()) {
-                    if (errorDetails.length() > 0) errorDetails.append(" | ");
+                    if (!errorDetails.isEmpty()) errorDetails.append(" | ");
                     errorDetails.append("Page title: ").append(pageTitle);
                 }
             } catch (Exception ignored) {
                 // Title might not be available
             }
             
-            return errorDetails.length() > 0 ? errorDetails.toString() : null;
+            return !errorDetails.isEmpty() ? errorDetails.toString() : null;
             
         } catch (Exception e) {
             return "Error gathering page details: " + e.getMessage();

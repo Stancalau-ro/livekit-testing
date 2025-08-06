@@ -39,7 +39,7 @@ public class ContainerStateManager {
     @SuppressWarnings("unchecked")
     public <T extends GenericContainer<T>> T getContainer(String serviceName, Class<T> containerType) {
         GenericContainer<?> container = containers.get(serviceName);
-        if (container != null && containerType.isInstance(container)) {
+        if (containerType.isInstance(container)) {
             return (T) container;
         }
         return null;

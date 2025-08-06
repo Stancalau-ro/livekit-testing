@@ -205,17 +205,12 @@ public class LiveKitAccessTokenSteps {
     }
 
     private boolean isGrantValueFalsy(Object value) {
-        if (value == null) {
-            return true;
-        }
-        if (value instanceof Boolean) {
-            return !((Boolean) value);
-        }
-        if (value instanceof String) {
-            String str = (String) value;
-            return str.isEmpty() || "false".equalsIgnoreCase(str);
-        }
-        return false;
+        return switch (value) {
+            case null -> true;
+            case Boolean b -> !b;
+            case String str -> str.isEmpty() || "false".equalsIgnoreCase(str);
+            default -> false;
+        };
     }
 
     private Map<String, Object> getTokenAttributes(DecodedJWT decodedJWT) {
@@ -269,7 +264,7 @@ public class LiveKitAccessTokenSteps {
             if (videoGrants != null) {
                 List<List<String>> grants = dataTable.asLists(String.class);
                 for (int i = 1; i < grants.size(); i++) {
-                    String grantName = grants.get(i).get(0);
+                    String grantName = grants.get(i).getFirst();
                     
                     assertFalse(videoGrants.containsKey(grantName) || 
                                (videoGrants.containsKey(grantName) && isGrantValueFalsy(videoGrants.get(grantName))),
@@ -318,7 +313,7 @@ public class LiveKitAccessTokenSteps {
         
         List<List<String>> attributeNames = dataTable.asLists(String.class);
         for (int i = 1; i < attributeNames.size(); i++) {
-            String attributeName = attributeNames.get(i).get(0);
+            String attributeName = attributeNames.get(i).getFirst();
             
             assertFalse(attributes.containsKey(attributeName), 
                        "Token should not contain attribute " + attributeName);

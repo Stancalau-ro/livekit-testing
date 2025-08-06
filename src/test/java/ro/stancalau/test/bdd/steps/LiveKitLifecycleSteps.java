@@ -8,19 +8,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.Network;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.factory.LiveKitContainerFactory;
+import ro.stancalau.test.framework.config.TestConfig;
+import ro.stancalau.test.framework.util.DateUtils;
+import ro.stancalau.test.framework.util.FileUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
-import ro.stancalau.test.framework.util.TestConfig;
 
 import javax.annotation.Nullable;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 public class LiveKitLifecycleSteps {
-
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
     private String defaultConfigProfile = "basic";
     private String currentScenarioLogPath;
@@ -30,16 +28,16 @@ public class LiveKitLifecycleSteps {
 
     @Before
     public void setUpLiveKitLifecycleSteps(Scenario scenario) {
-        
+
         String featureName = ScenarioNamingUtils.extractFeatureName(scenario.getUri().toString());
         String scenarioName = scenario.getName();
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-        
-        String sanitizedFeatureName = sanitizeFileName(featureName);
-        String sanitizedScenarioName = sanitizeFileName(scenarioName);
-        
-        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" + 
-                                sanitizedScenarioName + "/" + timestamp;
+        String timestamp = DateUtils.generateScenarioTimestamp();
+
+        String sanitizedFeatureName = FileUtils.sanitizeFileNameStrict(featureName);
+        String sanitizedScenarioName = FileUtils.sanitizeFileNameStrict(scenarioName);
+
+        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" +
+                sanitizedScenarioName + "/" + timestamp;
         ManagerProvider.webDrivers().setScenarioRecordingPath(currentScenarioLogPath);
     }
 
@@ -76,12 +74,5 @@ public class LiveKitLifecycleSteps {
         assertTrue(liveKitContainer.isRunning(), "LiveKit container with service name " + serviceName + " should be running");
 
         ManagerProvider.containers().registerContainer(serviceName, liveKitContainer);
-    }
-
-
-    private String sanitizeFileName(String fileName) {
-        return fileName.replaceAll("[^a-zA-Z0-9._-]", "_")
-                      .replaceAll("_+", "_")  // Replace multiple underscores with single
-                      .replaceAll("^_|_$", ""); // Remove leading/trailing underscores
     }
 }

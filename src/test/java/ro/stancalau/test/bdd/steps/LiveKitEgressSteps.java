@@ -15,12 +15,13 @@ import ro.stancalau.test.framework.docker.EgressContainer;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.docker.RedisContainer;
 import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.util.DateUtils;
+import ro.stancalau.test.framework.util.FileUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
-import ro.stancalau.test.framework.util.TestConfig;
+import ro.stancalau.test.framework.config.TestConfig;
+import ro.stancalau.test.bdd.util.EgressTestUtils;
 
 import java.io.File;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,21 +32,17 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 public class LiveKitEgressSteps {
 
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
-    private final Map<String, String> activeRecordings = new HashMap<>();
     private String currentScenarioLogPath;
-    private final Map<String, LivekitEgress.EgressInfo> completedRecordings = new HashMap<>();
-    private final Map<String, Map<String, String>> participantTrackIds = new HashMap<>();
 
     @Before
     public void setUpEgressSteps(Scenario scenario) {
         String featureName = ScenarioNamingUtils.extractFeatureName(scenario.getUri().toString());
         String scenarioName = scenario.getName();
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        String timestamp = DateUtils.generateScenarioTimestamp();
 
-        String sanitizedFeatureName = sanitizeFileName(featureName);
-        String sanitizedScenarioName = sanitizeFileName(scenarioName);
+        String sanitizedFeatureName = FileUtils.sanitizeFileName(featureName);
+        String sanitizedScenarioName = FileUtils.sanitizeFileName(scenarioName);
 
         currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" +
                 sanitizedScenarioName + "/" + timestamp;
@@ -112,7 +109,7 @@ public class LiveKitEgressSteps {
                 LiveKitContainer.SECRET
         );
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss"));
+        String timestamp = DateUtils.generateRecordingTimestamp();
         String fileName = "recording-" + roomName + "-" + timestamp + ".mp4";
 
         LivekitEgress.EncodedFileOutput fileOutput = LivekitEgress.EncodedFileOutput.newBuilder()
@@ -121,7 +118,7 @@ public class LiveKitEgressSteps {
                 .build();
 
         log.info("Starting room composite recording for room: {} using LiveKit server: {}", roomName, liveKitContainer.getWsUrl());
-        LivekitEgress.EgressInfo egressInfo = null;
+        LivekitEgress.EgressInfo egressInfo;
         try {
             egressInfo = egressClient.startRoomCompositeEgress(roomName, fileOutput, "grid").execute().body();
             log.info("Egress API response: {}", egressInfo);
@@ -132,8 +129,9 @@ public class LiveKitEgressSteps {
         }
 
         String egressId = egressInfo.getEgressId();
-        activeRecordings.put(roomName, egressId);
+        ManagerProvider.getEgressStateManager().storeActiveRecording(roomName, egressId);
 
+        EgressTestUtils.waitForEgressToBeActive(egressClient, egressId, roomName);
         log.info("Started room composite recording for room {} with egress ID: {}", roomName, egressId);
     }
 
@@ -155,7 +153,7 @@ public class LiveKitEgressSteps {
                 LiveKitContainer.SECRET
         );
 
-        Map<String, String> trackIds = participantTrackIds.get(participantIdentity);
+        Map<String, String> trackIds = ManagerProvider.getEgressStateManager().getTrackIds(participantIdentity);
         assertNotNull(trackIds, "No track IDs found for participant " + participantIdentity);
         String audioTrackId = trackIds.get("audio");
         String videoTrackId = trackIds.get("video");
@@ -163,7 +161,7 @@ public class LiveKitEgressSteps {
         assertNotNull(audioTrackId, "No audio track ID found for participant " + participantIdentity);
         assertNotNull(videoTrackId, "No video track ID found for participant " + participantIdentity);
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss"));
+        String timestamp = DateUtils.generateRecordingTimestamp();
         String fileName = "track-composite-" + participantIdentity + "-" + timestamp + ".mp4";
 
         LivekitEgress.EncodedFileOutput fileOutput = LivekitEgress.EncodedFileOutput.newBuilder()
@@ -174,7 +172,7 @@ public class LiveKitEgressSteps {
         log.info("Starting track composite recording for participant: {} (audio: {}, video: {}) in room: {} using LiveKit server: {}",
                 participantIdentity, audioTrackId, videoTrackId, roomName, liveKitContainer.getWsUrl());
 
-        LivekitEgress.EgressInfo egressInfo = null;
+        LivekitEgress.EgressInfo egressInfo;
         try {
             egressInfo = egressClient.startTrackCompositeEgress(roomName, fileOutput, audioTrackId, videoTrackId).execute().body();
             log.info("Track composite egress API response: {}", egressInfo);
@@ -185,14 +183,15 @@ public class LiveKitEgressSteps {
         }
 
         String egressId = egressInfo.getEgressId();
-        activeRecordings.put(participantIdentity + "_track", egressId);
+        ManagerProvider.getEgressStateManager().storeActiveRecording(participantIdentity + "_track", egressId);
 
+        EgressTestUtils.waitForEgressToBeActive(egressClient, egressId, roomName);
         log.info("Started track composite recording for participant {} with egress ID: {}", participantIdentity, egressId);
     }
 
     @When("track composite recording is stopped for participant {string} using LiveKit service {string}")
     public void stopTrackCompositeRecording(String participantIdentity, String livekitServiceName) throws Exception {
-        String egressId = activeRecordings.get(participantIdentity + "_track");
+        String egressId = ManagerProvider.getEgressStateManager().getActiveRecording(participantIdentity + "_track");
         assertNotNull(egressId, "No active track composite recording found for participant " + participantIdentity);
 
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
@@ -205,7 +204,7 @@ public class LiveKitEgressSteps {
         );
 
         log.info("Stopping track composite egress recording with ID: {}", egressId);
-        LivekitEgress.EgressInfo egressInfo = null;
+        LivekitEgress.EgressInfo egressInfo;
         try {
             egressInfo = egressClient.stopEgress(egressId).execute().body();
             log.info("Stop track composite egress API response: {}", egressInfo);
@@ -221,8 +220,7 @@ public class LiveKitEgressSteps {
             throw e;
         }
 
-        completedRecordings.put(participantIdentity + "_track", egressInfo);
-        activeRecordings.remove(participantIdentity + "_track");
+        ManagerProvider.getEgressStateManager().removeActiveRecording(participantIdentity + "_track");
 
         log.info("Stopped track composite recording for participant {} with final status: {}",
                 participantIdentity, egressInfo.getStatus());
@@ -230,7 +228,7 @@ public class LiveKitEgressSteps {
 
     @When("room composite recording is stopped for room {string} using LiveKit service {string}")
     public void stopRoomCompositeRecording(String roomName, String livekitServiceName) throws Exception {
-        String egressId = activeRecordings.get(roomName);
+        String egressId = ManagerProvider.getEgressStateManager().getActiveRecording(roomName);
         assertNotNull(egressId, "No active recording found for room " + roomName);
 
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
@@ -259,8 +257,7 @@ public class LiveKitEgressSteps {
             throw e;
         }
 
-        completedRecordings.put(roomName, egressInfo);
-        activeRecordings.remove(roomName);
+        ManagerProvider.getEgressStateManager().removeActiveRecording(roomName);
 
         log.info("Stopped room composite recording for room {} with final status: {}",
                 roomName, egressInfo.getStatus());
@@ -291,7 +288,7 @@ public class LiveKitEgressSteps {
             log.info("Captured track ID for participant {}: {} track = {}", participantIdentity, trackType, trackId);
         }
 
-        participantTrackIds.put(participantIdentity, trackIds);
+        ManagerProvider.getEgressStateManager().storeTrackIds(participantIdentity, trackIds);
         assertTrue(trackIds.containsKey("audio"), "Audio track not found for participant " + participantIdentity);
         assertTrue(trackIds.containsKey("video"), "Video track not found for participant " + participantIdentity);
     }
@@ -457,13 +454,5 @@ public class LiveKitEgressSteps {
 
     private String getCurrentScenarioLogPath() {
         return currentScenarioLogPath != null ? currentScenarioLogPath : "out/bdd/scenarios/current";
-    }
-
-
-    private String sanitizeFileName(String fileName) {
-        return fileName.replaceAll("[^a-zA-Z0-9\\-_\\s]", "")
-                .replaceAll("\\s+", "_")
-                .replaceAll("_+", "_")
-                .replaceAll("^_|_$", "");
     }
 }

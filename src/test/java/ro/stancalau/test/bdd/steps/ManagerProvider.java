@@ -2,6 +2,7 @@ package ro.stancalau.test.bdd.steps;
 
 import ro.stancalau.test.framework.state.AccessTokenStateManager;
 import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.state.EgressStateManager;
 import ro.stancalau.test.framework.state.ManagerFactory;
 import ro.stancalau.test.framework.state.RoomClientStateManager;
 import ro.stancalau.test.framework.state.WebDriverStateManager;
@@ -43,7 +44,7 @@ public class ManagerProvider {
         if (managers == null) {
             throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
         }
-        return managers.getContainerManager();
+        return managers.containerManager();
     }
     
     /**
@@ -54,7 +55,7 @@ public class ManagerProvider {
         if (managers == null) {
             throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
         }
-        return managers.getWebDriverManager();
+        return managers.webDriverManager();
     }
     
     /**
@@ -65,7 +66,7 @@ public class ManagerProvider {
         if (managers == null) {
             throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
         }
-        return managers.getRoomClientManager();
+        return managers.roomClientManager();
     }
     
     /**
@@ -76,7 +77,18 @@ public class ManagerProvider {
         if (managers == null) {
             throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
         }
-        return managers.getAccessTokenManager();
+        return managers.accessTokenManager();
+    }
+    
+    /**
+     * Get the egress state manager for the current scenario
+     */
+    public static EgressStateManager getEgressStateManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.egressStateManager();
     }
     
     // Convenient shorter aliases for common operations
@@ -94,5 +106,9 @@ public class ManagerProvider {
     
     public static AccessTokenStateManager tokens() {
         return getAccessTokenManager();
+    }
+    
+    public static EgressStateManager egress() {
+        return getEgressStateManager();
     }
 }

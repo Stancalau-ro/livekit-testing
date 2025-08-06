@@ -10,11 +10,11 @@ import org.junit.platform.suite.api.Suite;
 
 /**
  * General Cucumber test runner for all BDD tests.
- * 
+ * <p>
  * Usage in IntelliJ:
  * 1. Right-click on this class and select "Run 'RunCucumberTests'"
  * 2. Or create a JUnit run configuration targeting this class
- * 
+ * <p>
  * This runs all feature files in the features directory.
  */
 @Suite

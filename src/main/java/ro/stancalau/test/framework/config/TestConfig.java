@@ -1,4 +1,4 @@
-package ro.stancalau.test.framework.util;
+package ro.stancalau.test.framework.config;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ public class TestConfig {
     /**
      * Gets the LiveKit version to use for tests.
      * Priority: System Property > Environment Variable > Gradle Property > Default
-     * 
+     * <p>
      * Usage:
      * - System Property: -Dlivekit.version=v1.8.5
      * - Environment Variable: LIVEKIT_VERSION=v1.8.5
@@ -66,7 +66,7 @@ public class TestConfig {
     /**
      * Gets the egress version to use for tests.
      * Priority: System Property > Environment Variable > Gradle Property > Default
-     * 
+     * <p>
      * Usage:
      * - System Property: -Degress.version=v1.8.5
      * - Environment Variable: EGRESS_VERSION=v1.8.5
@@ -102,12 +102,12 @@ public class TestConfig {
     /**
      * Gets the VNC recording mode for browser tests.
      * Priority: System Property > Environment Variable > Default
-     * 
+     * <p>
      * Valid values:
      * - "skip": No recordings
      * - "all": Record all tests (passed and failed)
      * - "failed": Record only failed tests
-     * 
+     * <p>
      * Usage:
      * - System Property: -Drecording.mode=failed
      * - Environment Variable: RECORDING_MODE=skip

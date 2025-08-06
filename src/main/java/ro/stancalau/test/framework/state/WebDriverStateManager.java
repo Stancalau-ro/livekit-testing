@@ -7,7 +7,7 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.containers.VncRecordingContainer;
 import org.testcontainers.lifecycle.TestDescription;
 import ro.stancalau.test.framework.selenium.SeleniumConfig;
-import ro.stancalau.test.framework.util.TestConfig;
+import ro.stancalau.test.framework.config.TestConfig;
 
 import java.io.File;
 import java.util.HashMap;
@@ -97,28 +97,19 @@ public class WebDriverStateManager {
         Network network = containerStateManager.getOrCreateNetwork();
         String insecureUrl = "http://host.docker.internal:*,http://webserver";
         
-        BrowserWebDriverContainer<?> browserContainer;
-        
-        switch (browser.toLowerCase()) {
-            case "firefox":
-                browserContainer = new BrowserWebDriverContainer<>()
-                        .withCapabilities(SeleniumConfig.getFirefoxOptions())
-                        .withNetwork(network)
-                        .withEnv("MOZ_FAKE_MEDIA_STREAMS", "1");
-                break;
-            case "edge":
-                browserContainer = new BrowserWebDriverContainer<>()
-                        .withCapabilities(SeleniumConfig.getEdgeOptions(insecureUrl))
-                        .withNetwork(network);
-                break;
-            case "chrome":
-            default:
-                browserContainer = new BrowserWebDriverContainer<>()
-                        .withCapabilities(SeleniumConfig.getChromeOptions(insecureUrl))
-                        .withNetwork(network);
-                break;
-        }
-        
+        BrowserWebDriverContainer<?> browserContainer = switch (browser.toLowerCase()) {
+            case "firefox" -> new BrowserWebDriverContainer<>()
+                    .withCapabilities(SeleniumConfig.getFirefoxOptions())
+                    .withNetwork(network)
+                    .withEnv("MOZ_FAKE_MEDIA_STREAMS", "1");
+            case "edge" -> new BrowserWebDriverContainer<>()
+                    .withCapabilities(SeleniumConfig.getEdgeOptions(insecureUrl))
+                    .withNetwork(network);
+            default -> new BrowserWebDriverContainer<>()
+                    .withCapabilities(SeleniumConfig.getChromeOptions(insecureUrl))
+                    .withNetwork(network);
+        };
+
         String recordingMode = TestConfig.getRecordingMode();
         if (TestConfig.isRecordingEnabled()) {
             log.info("Creating browser container with VNC recording enabled (mode: {})", recordingMode);
@@ -449,7 +440,7 @@ public class WebDriverStateManager {
                 name.startsWith(expectedFilePrefix) && name.endsWith(".mp4")
             );
             
-            if (recordings != null && recordings.length > 0) {
+            if (recordings != null) {
                 for (File recording : recordings) {
                     if (recording.length() > 0) {
                         log.debug("Recording file found after {}ms: {} (size: {} bytes)", 

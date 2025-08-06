@@ -59,7 +59,7 @@ public class WebrtcPlayback {
                 Thread.sleep(100);
 
                 List<WebElement> elements = driver.findElements(By.xpath("//span[@data-notify-text]"));
-                String notificationText = elements.isEmpty()? "" : elements.get(0).getText();
+                String notificationText = elements.isEmpty()? "" : elements.getFirst().getText();
                 if (notificationText.contains("Warning")) {
                     alertError = notificationText;
                 } else {

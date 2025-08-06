@@ -58,7 +58,7 @@ public class RoomClientStateManager {
     @SneakyThrows
     private static void waitUntilLiveKitServerIsCompletelyInitialized(RoomServiceClient client) {
         for (int i = 0; i < 30; i++) {
-            LivekitModels.Room testRoom = null;
+            LivekitModels.Room testRoom;
             String initTestRoomName = "initTest";
             try {
                 testRoom = client.createRoom(initTestRoomName).execute().body();

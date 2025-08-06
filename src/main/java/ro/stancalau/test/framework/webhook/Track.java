@@ -74,6 +74,6 @@ public class Track {
             }
         }
         
-        return type;
+        return null;
     }
 }

@@ -10,13 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
 import org.testcontainers.containers.Network;
 import ro.stancalau.test.framework.docker.MockHttpServerContainer;
+import ro.stancalau.test.framework.util.DateUtils;
+import ro.stancalau.test.framework.util.FileUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 import ro.stancalau.test.framework.webhook.WebhookEvent;
 import ro.stancalau.test.framework.webhook.WebhookEventPoller;
 import ro.stancalau.test.framework.webhook.WebhookService;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,6 @@ public class LiveKitWebhookSteps {
     private final WebhookService webhookService;
     private final WebhookEventPoller webhookEventPoller;
     private String currentScenarioLogPath;
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
     public LiveKitWebhookSteps() {
         this.webhookService = new WebhookService();
@@ -42,10 +42,10 @@ public class LiveKitWebhookSteps {
                 
         String featureName = ScenarioNamingUtils.extractFeatureName(scenario.getUri().toString());
         String scenarioName = scenario.getName();
-        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        String timestamp = DateUtils.generateScenarioTimestamp();
         
-        String sanitizedFeatureName = sanitizeFileName(featureName);
-        String sanitizedScenarioName = sanitizeFileName(scenarioName);
+        String sanitizedFeatureName = FileUtils.sanitizeFileNameStrict(featureName);
+        String sanitizedScenarioName = FileUtils.sanitizeFileNameStrict(scenarioName);
         
         currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" + 
                                 sanitizedScenarioName + "/" + timestamp;
@@ -354,9 +354,4 @@ public class LiveKitWebhookSteps {
         return attributes;
     }
 
-    private String sanitizeFileName(String fileName) {
-        return fileName.replaceAll("[^a-zA-Z0-9._-]", "_")
-                      .replaceAll("_+", "_")
-                      .replaceAll("^_|_$", "");
-    }
 }

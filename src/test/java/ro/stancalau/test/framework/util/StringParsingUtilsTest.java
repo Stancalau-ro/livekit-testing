@@ -93,7 +93,7 @@ class StringParsingUtilsTest {
             List<String> result = StringParsingUtils.parseCommaSeparatedList(input);
             
             assertEquals(1, result.size());
-            assertEquals("singlevalue", result.get(0));
+            assertEquals("singlevalue", result.getFirst());
         }
 
         @Test
@@ -371,7 +371,7 @@ class StringParsingUtilsTest {
             List<String> result = StringParsingUtils.parseEscapedString(input, ",");
             
             assertEquals(1, result.size());
-            assertEquals("x", result.get(0));
+            assertEquals("x", result.getFirst());
         }
 
         @Test

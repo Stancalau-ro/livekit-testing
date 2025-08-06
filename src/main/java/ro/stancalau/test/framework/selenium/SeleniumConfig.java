@@ -133,7 +133,7 @@ public class SeleniumConfig {
     }
 
     static private String findFile(String filename) {
-        String paths[] = {"", "bin/", "target/classes/", "src/integration-test/resources/"};
+        String[] paths = {"", "bin/", "target/classes/", "src/integration-test/resources/"};
         for (String path : paths) {
             if (new File(path + filename).exists()) {
                 return path + filename;
