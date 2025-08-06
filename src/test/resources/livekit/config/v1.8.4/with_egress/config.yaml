@@ -18,9 +18,15 @@ port: 7880
 # WebRTC configuration  
 rtc:
   port_range_start: 50000
-  port_range_end: 50010
+  port_range_end: 50100
   tcp_port: 7881
   use_external_ip: false
+  # Enable ICE lite for faster connections
+  use_ice_lite: false
+  # Allow TCP fallback
+  allow_tcp_fallback: true
+  # Enable loopback candidates for container networking
+  enable_loopback_candidate: true
 
 # API key / secret pairs
 keys:

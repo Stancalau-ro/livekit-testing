@@ -3,7 +3,6 @@ package ro.stancalau.test.bdd.steps;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -11,14 +10,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.mockserver.client.MockServerClient;
 import org.testcontainers.containers.Network;
 import ro.stancalau.test.framework.docker.MockHttpServerContainer;
-import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 import ro.stancalau.test.framework.webhook.WebhookEvent;
 import ro.stancalau.test.framework.webhook.WebhookEventPoller;
 import ro.stancalau.test.framework.webhook.WebhookService;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,7 +40,7 @@ public class LiveKitWebhookSteps {
     @Before
     public void setUpWebhookSteps(Scenario scenario) {
                 
-        String featureName = extractFeatureName(scenario.getUri().toString());
+        String featureName = ScenarioNamingUtils.extractFeatureName(scenario.getUri().toString());
         String scenarioName = scenario.getName();
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
         
@@ -314,10 +315,10 @@ public class LiveKitWebhookSteps {
                 fail("Webhook event for participant '" + participantIdentity + "' does not contain attributes");
             }
             
-            java.util.Map<String, String> actualAttributes = event.getParticipant().getAttributes();
-            java.util.Map<String, String> expectedAttributesMap = parseAttributes(expectedAttributes);
+            Map<String, String> actualAttributes = event.getParticipant().getAttributes();
+            Map<String, String> expectedAttributesMap = parseAttributes(expectedAttributes);
             
-            for (java.util.Map.Entry<String, String> expectedEntry : expectedAttributesMap.entrySet()) {
+            for (Map.Entry<String, String> expectedEntry : expectedAttributesMap.entrySet()) {
                 String key = expectedEntry.getKey();
                 String expectedValue = expectedEntry.getValue();
                 String actualValue = actualAttributes.get(key);
@@ -335,8 +336,8 @@ public class LiveKitWebhookSteps {
         }
     }
     
-    private java.util.Map<String, String> parseAttributes(String attributesString) {
-        java.util.Map<String, String> attributes = new java.util.HashMap<>();
+    private Map<String, String> parseAttributes(String attributesString) {
+        Map<String, String> attributes = new HashMap<>();
         if (attributesString == null || attributesString.trim().isEmpty()) {
             return attributes;
         }
@@ -351,31 +352,6 @@ public class LiveKitWebhookSteps {
             }
         }
         return attributes;
-    }
-    
-    private String extractFeatureName(String uri) {
-        try {
-            String fileName = uri.substring(uri.lastIndexOf('/') + 1);
-            
-            if (fileName.endsWith(".feature")) {
-                fileName = fileName.substring(0, fileName.length() - 8);
-            }
-            
-            String[] words = fileName.replace('_', ' ').toLowerCase().split(" ");
-            StringBuilder result = new StringBuilder();
-            for (String word : words) {
-                if (!word.isEmpty()) {
-                    if (result.length() > 0) result.append(" ");
-                    result.append(word.substring(0, 1).toUpperCase())
-                          .append(word.substring(1));
-                }
-            }
-            return result.toString();
-            
-        } catch (Exception e) {
-            log.warn("Failed to extract feature name from URI: {}", uri, e);
-            return "Unknown Feature";
-        }
     }
 
     private String sanitizeFileName(String fileName) {

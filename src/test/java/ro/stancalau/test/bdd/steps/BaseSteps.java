@@ -18,12 +18,12 @@ import ro.stancalau.test.framework.state.WebDriverStateManager;
 @Slf4j
 public class BaseSteps {
     
-    @Before(order = 0) // Run before other @Before hooks
+    @Before(order = 0)
     public void setUpManagers(Scenario scenario) {
         ManagerProvider.initializeManagers();
     }
     
-    @After(order = 1000) // Run after other @After hooks
+    @After(order = 1000)
     public void cleanupManagers(Scenario scenario) {
         ManagerProvider.cleanupManagers();
     }

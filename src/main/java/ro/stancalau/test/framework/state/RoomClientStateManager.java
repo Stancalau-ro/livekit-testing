@@ -41,7 +41,7 @@ public class RoomClientStateManager {
             throw new IllegalStateException("LiveKit container for service '" + serviceName + "' is not running");
         }
 
-        String wsUrl = container.getlocalWs();
+        String wsUrl = container.getWsUrl();
         log.debug("Creating RoomServiceClient with URL: {} for service: {}", wsUrl, serviceName);
 
         RoomServiceClient client = RoomServiceClient.create(

@@ -32,6 +32,30 @@ Feature: LiveKit Egress Recording
     Then the recording file exists in the output directory for room "EgressRecordingRoom"
     And the recording file contains actual video content
 
+  Scenario: Record specific participant tracks using track composite egress
+    Given room "TrackCompositeRoom" is created using service "livekit1"
+    And an access token is created with identity "TrackedPublisher" and room "TrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
+    And an access token is created with identity "OtherPublisher" and room "TrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
+    
+    When "TrackedPublisher" opens a "Chrome" browser with LiveKit Meet page
+    And "TrackedPublisher" connects to room "TrackCompositeRoom" using the access token
+    And connection is established successfully for "TrackedPublisher"
+    
+    When "OtherPublisher" opens a "Chrome" browser with LiveKit Meet page
+    And "OtherPublisher" connects to room "TrackCompositeRoom" using the access token
+    And connection is established successfully for "OtherPublisher"
+    
+    Then participant "TrackedPublisher" should be publishing video in room "TrackCompositeRoom" using service "livekit1"
+    And participant "OtherPublisher" should be publishing video in room "TrackCompositeRoom" using service "livekit1"
+    
+    When track IDs are captured for participant "TrackedPublisher" in room "TrackCompositeRoom" using LiveKit service "livekit1"
+    And track composite recording is started for participant "TrackedPublisher" in room "TrackCompositeRoom" using LiveKit service "livekit1"
+    And the recording runs for 6 seconds
+    And track composite recording is stopped for participant "TrackedPublisher" using LiveKit service "livekit1"
+    
+    Then the track composite recording file exists for participant "TrackedPublisher"
+    And the recording file contains actual video content
+
   Scenario: Record multiple participants in the same room using egress
     Given room "MultiParticipantRecording" is created using service "livekit1"
     And an access token is created with identity "Publisher1" and room "MultiParticipantRecording" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
@@ -53,3 +77,30 @@ Feature: LiveKit Egress Recording
     
     Then the recording file exists in the output directory for room "MultiParticipantRecording"
     And the recording file contains actual video content from multiple participants
+
+  Scenario: Record individual tracks from multiple participants simultaneously
+    Given room "MultiTrackCompositeRoom" is created using service "livekit1"
+    And an access token is created with identity "Alice" and room "MultiTrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
+    And an access token is created with identity "Bob" and room "MultiTrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
+    
+    When "Alice" opens a "Chrome" browser with LiveKit Meet page
+    And "Alice" connects to room "MultiTrackCompositeRoom" using the access token
+    And connection is established successfully for "Alice"
+    
+    When "Bob" opens a "Chrome" browser with LiveKit Meet page
+    And "Bob" connects to room "MultiTrackCompositeRoom" using the access token
+    And connection is established successfully for "Bob"
+    
+    Then room "MultiTrackCompositeRoom" should have 2 active participants in service "livekit1"
+    
+    When track IDs are captured for participant "Alice" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
+    And track IDs are captured for participant "Bob" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
+    And track composite recording is started for participant "Alice" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
+    And track composite recording is started for participant "Bob" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
+    And the recording runs for 6 seconds
+    And track composite recording is stopped for participant "Alice" using LiveKit service "livekit1"
+    And track composite recording is stopped for participant "Bob" using LiveKit service "livekit1"
+    
+    Then the track composite recording file exists for participant "Alice"
+    And the track composite recording file exists for participant "Bob"
+    And the recording file contains actual video content

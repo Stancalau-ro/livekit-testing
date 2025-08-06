@@ -7,18 +7,22 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.livekit.server.EgressServiceClient;
+import io.livekit.server.RoomServiceClient;
 import livekit.LivekitEgress;
+import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
 import ro.stancalau.test.framework.docker.EgressContainer;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.docker.RedisContainer;
 import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 import ro.stancalau.test.framework.util.TestConfig;
 
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -32,39 +36,40 @@ public class LiveKitEgressSteps {
     private final Map<String, String> activeRecordings = new HashMap<>();
     private String currentScenarioLogPath;
     private final Map<String, LivekitEgress.EgressInfo> completedRecordings = new HashMap<>();
-    
+    private final Map<String, Map<String, String>> participantTrackIds = new HashMap<>();
+
     @Before
     public void setUpEgressSteps(Scenario scenario) {
-        String featureName = extractFeatureName(scenario.getUri().toString());
+        String featureName = ScenarioNamingUtils.extractFeatureName(scenario.getUri().toString());
         String scenarioName = scenario.getName();
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-        
+
         String sanitizedFeatureName = sanitizeFileName(featureName);
         String sanitizedScenarioName = sanitizeFileName(scenarioName);
-        
-        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" + 
-                                sanitizedScenarioName + "/" + timestamp;
+
+        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" +
+                sanitizedScenarioName + "/" + timestamp;
         log.debug("EgressSteps: Set scenario log path to: {}", currentScenarioLogPath);
     }
-    
+
     @Given("a Redis server is running in a container with service name {string}")
     public void aRedisServerIsRunningInContainer(String serviceName) {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
 
         String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
-        
+
         RedisContainer redisContainer = RedisContainer.createContainer(
-            serviceName, 
-            containerManager.getOrCreateNetwork(),
-            serviceLogPath
+                serviceName,
+                containerManager.getOrCreateNetwork(),
+                serviceLogPath
         );
-        
+
         redisContainer.start();
         assertTrue(redisContainer.isRunning(), "Redis container with service name " + serviceName + " should be running");
         containerManager.registerContainer(serviceName, redisContainer);
         log.info("Redis service {} started for egress communication", serviceName);
     }
-    
+
     @Given("a LiveKit egress service is running in a container with service name {string} connected to LiveKit service {string}")
     public void aLiveKitEgressServiceIsRunningInContainer(String serviceName, String livekitServiceName) {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
@@ -72,51 +77,50 @@ public class LiveKitEgressSteps {
         RedisContainer redisContainer = containerManager.getContainer("redis", RedisContainer.class);
 
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
-        String livekitWsUrl = liveKitContainer.getNetworkWs();
+        String livekitWsUrl = liveKitContainer.getNetworkUrl();
 
         String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
-        
+
         EgressContainer egressContainer = EgressContainer.createContainer(
-            serviceName, 
-            containerManager.getOrCreateNetwork(), 
-            TestConfig.getEgressVersion(),
-            livekitWsUrl,
-            LiveKitContainer.API_KEY,
-            LiveKitContainer.SECRET,
-            null,
-            serviceLogPath,
-            redisContainer.getNetworkRedisUrl()
+                serviceName,
+                containerManager.getOrCreateNetwork(),
+                TestConfig.getEgressVersion(),
+                livekitWsUrl,
+                LiveKitContainer.API_KEY,
+                LiveKitContainer.SECRET,
+                null,
+                serviceLogPath,
+                redisContainer.getNetworkRedisUrl()
         );
-        
+
         egressContainer.start();
         assertTrue(egressContainer.isRunning(), "Egress container with service name " + serviceName + " should be running");
-        
+
         containerManager.registerContainer(serviceName, egressContainer);
         log.info("Egress service {} started and registered", serviceName);
     }
-    
+
     @When("room composite recording is started for room {string} using LiveKit service {string}")
     public void startRoomCompositeRecording(String roomName, String livekitServiceName) throws Exception {
-        
+
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
-        
-        String wsUrl = liveKitContainer.getlocalWs();
+
         EgressServiceClient egressClient = EgressServiceClient.createClient(
-            wsUrl.replace("ws://", "http://"),
-            LiveKitContainer.API_KEY,
-            LiveKitContainer.SECRET
+                liveKitContainer.getHttpUrl(),
+                LiveKitContainer.API_KEY,
+                LiveKitContainer.SECRET
         );
 
-        String timestamp = java.time.LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss"));
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss"));
         String fileName = "recording-" + roomName + "-" + timestamp + ".mp4";
-        
+
         LivekitEgress.EncodedFileOutput fileOutput = LivekitEgress.EncodedFileOutput.newBuilder()
                 .setFileType(LivekitEgress.EncodedFileType.MP4)
                 .setFilepath("/out/recordings/" + fileName)
                 .build();
 
-        log.info("Starting room composite recording for room: {} using LiveKit server: {}", roomName, wsUrl);
+        log.info("Starting room composite recording for room: {} using LiveKit server: {}", roomName, liveKitContainer.getWsUrl());
         LivekitEgress.EgressInfo egressInfo = null;
         try {
             egressInfo = egressClient.startRoomCompositeEgress(roomName, fileOutput, "grid").execute().body();
@@ -126,75 +130,189 @@ public class LiveKitEgressSteps {
             log.error("Failed to start egress recording", e);
             throw e;
         }
-        
+
         String egressId = egressInfo.getEgressId();
         activeRecordings.put(roomName, egressId);
-        
+
         log.info("Started room composite recording for room {} with egress ID: {}", roomName, egressId);
     }
-    
+
     @When("the recording runs for {int} seconds")
     public void recordingRunsForDuration(int seconds) throws InterruptedException {
         log.info("Allowing recording to capture for {} seconds", seconds);
         TimeUnit.SECONDS.sleep(seconds);
     }
-    
+
+    @When("track composite recording is started for participant {string} in room {string} using LiveKit service {string}")
+    public void startTrackCompositeRecording(String participantIdentity, String roomName, String livekitServiceName) throws Exception {
+
+        ContainerStateManager containerManager = ManagerProvider.getContainerManager();
+        LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
+
+        EgressServiceClient egressClient = EgressServiceClient.createClient(
+                liveKitContainer.getHttpUrl(),
+                LiveKitContainer.API_KEY,
+                LiveKitContainer.SECRET
+        );
+
+        Map<String, String> trackIds = participantTrackIds.get(participantIdentity);
+        assertNotNull(trackIds, "No track IDs found for participant " + participantIdentity);
+        String audioTrackId = trackIds.get("audio");
+        String videoTrackId = trackIds.get("video");
+
+        assertNotNull(audioTrackId, "No audio track ID found for participant " + participantIdentity);
+        assertNotNull(videoTrackId, "No video track ID found for participant " + participantIdentity);
+
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HHmmss"));
+        String fileName = "track-composite-" + participantIdentity + "-" + timestamp + ".mp4";
+
+        LivekitEgress.EncodedFileOutput fileOutput = LivekitEgress.EncodedFileOutput.newBuilder()
+                .setFileType(LivekitEgress.EncodedFileType.MP4)
+                .setFilepath("/out/recordings/" + fileName)
+                .build();
+
+        log.info("Starting track composite recording for participant: {} (audio: {}, video: {}) in room: {} using LiveKit server: {}",
+                participantIdentity, audioTrackId, videoTrackId, roomName, liveKitContainer.getWsUrl());
+
+        LivekitEgress.EgressInfo egressInfo = null;
+        try {
+            egressInfo = egressClient.startTrackCompositeEgress(roomName, fileOutput, audioTrackId, videoTrackId).execute().body();
+            log.info("Track composite egress API response: {}", egressInfo);
+            assertNotNull(egressInfo, "Track composite egress recording should have started");
+        } catch (Exception e) {
+            log.error("Failed to start track composite egress recording", e);
+            throw e;
+        }
+
+        String egressId = egressInfo.getEgressId();
+        activeRecordings.put(participantIdentity + "_track", egressId);
+
+        log.info("Started track composite recording for participant {} with egress ID: {}", participantIdentity, egressId);
+    }
+
+    @When("track composite recording is stopped for participant {string} using LiveKit service {string}")
+    public void stopTrackCompositeRecording(String participantIdentity, String livekitServiceName) throws Exception {
+        String egressId = activeRecordings.get(participantIdentity + "_track");
+        assertNotNull(egressId, "No active track composite recording found for participant " + participantIdentity);
+
+        ContainerStateManager containerManager = ManagerProvider.getContainerManager();
+        LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
+
+        EgressServiceClient egressClient = EgressServiceClient.createClient(
+                liveKitContainer.getHttpUrl(),
+                LiveKitContainer.API_KEY,
+                LiveKitContainer.SECRET
+        );
+
+        log.info("Stopping track composite egress recording with ID: {}", egressId);
+        LivekitEgress.EgressInfo egressInfo = null;
+        try {
+            egressInfo = egressClient.stopEgress(egressId).execute().body();
+            log.info("Stop track composite egress API response: {}", egressInfo);
+            if (egressInfo == null) {
+                log.warn("Stop egress API returned null - recording may have already completed");
+                egressInfo = LivekitEgress.EgressInfo.newBuilder()
+                        .setEgressId(egressId)
+                        .setRoomName(participantIdentity)
+                        .build();
+            }
+        } catch (Exception e) {
+            log.error("Failed to stop track composite egress recording", e);
+            throw e;
+        }
+
+        completedRecordings.put(participantIdentity + "_track", egressInfo);
+        activeRecordings.remove(participantIdentity + "_track");
+
+        log.info("Stopped track composite recording for participant {} with final status: {}",
+                participantIdentity, egressInfo.getStatus());
+    }
+
     @When("room composite recording is stopped for room {string} using LiveKit service {string}")
     public void stopRoomCompositeRecording(String roomName, String livekitServiceName) throws Exception {
         String egressId = activeRecordings.get(roomName);
         assertNotNull(egressId, "No active recording found for room " + roomName);
-        
+
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
-        
-        String wsUrl = liveKitContainer.getlocalWs();
+
         EgressServiceClient egressClient = EgressServiceClient.createClient(
-            wsUrl.replace("ws://", "http://"),
-            LiveKitContainer.API_KEY,
-            LiveKitContainer.SECRET
+                liveKitContainer.getHttpUrl(),
+                LiveKitContainer.API_KEY,
+                LiveKitContainer.SECRET
         );
 
         log.info("Stopping egress recording with ID: {}", egressId);
-        LivekitEgress.EgressInfo egressInfo = null;
+        LivekitEgress.EgressInfo egressInfo;
         try {
             egressInfo = egressClient.stopEgress(egressId).execute().body();
             log.info("Stop egress API response: {}", egressInfo);
             if (egressInfo == null) {
                 log.warn("Stop egress API returned null - recording may have already completed");
                 egressInfo = LivekitEgress.EgressInfo.newBuilder()
-                    .setEgressId(egressId)
-                    .setRoomName(roomName)
-                    .build();
+                        .setEgressId(egressId)
+                        .setRoomName(roomName)
+                        .build();
             }
         } catch (Exception e) {
             log.error("Failed to stop egress recording", e);
             throw e;
         }
-        
+
         completedRecordings.put(roomName, egressInfo);
         activeRecordings.remove(roomName);
-        
-        log.info("Stopped room composite recording for room {} with final status: {}", 
-            roomName, egressInfo.getStatus());
+
+        log.info("Stopped room composite recording for room {} with final status: {}",
+                roomName, egressInfo.getStatus());
     }
-    
+
+    @Given("track IDs are captured for participant {string} in room {string} using LiveKit service {string}")
+    public void captureTrackIds(String participantIdentity, String roomName, String livekitServiceName) throws Exception {
+        RoomServiceClient roomClient = ManagerProvider.getRoomClientManager().getRoomServiceClient(livekitServiceName);
+
+        List<LivekitModels.ParticipantInfo> participants = roomClient
+                .listParticipants(roomName).execute().body();
+
+        assertNotNull(participants, "Participants list should not be null");
+
+        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+                .filter(p -> p.getIdentity().equals(participantIdentity))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(targetParticipant, "Participant " + participantIdentity + " not found in room " + roomName);
+
+        Map<String, String> trackIds = new HashMap<>();
+
+        for (LivekitModels.TrackInfo track : targetParticipant.getTracksList()) {
+            String trackType = track.getType().name().toLowerCase();
+            String trackId = track.getSid();
+            trackIds.put(trackType, trackId);
+            log.info("Captured track ID for participant {}: {} track = {}", participantIdentity, trackType, trackId);
+        }
+
+        participantTrackIds.put(participantIdentity, trackIds);
+        assertTrue(trackIds.containsKey("audio"), "Audio track not found for participant " + participantIdentity);
+        assertTrue(trackIds.containsKey("video"), "Video track not found for participant " + participantIdentity);
+    }
+
     @Then("the recording file exists in the output directory for room {string}")
     public void verifyRecordingFileExists(String roomName) throws InterruptedException {
         String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
         File recordingsDir = new File(recordingsPath);
-        assertTrue(recordingsDir.exists() && recordingsDir.isDirectory(), 
-            "Recordings directory does not exist: " + recordingsDir.getAbsolutePath());
+        assertTrue(recordingsDir.exists() && recordingsDir.isDirectory(),
+                "Recordings directory does not exist: " + recordingsDir.getAbsolutePath());
 
         File recordingFile = null;
         int maxAttempts = 10;
         int attempt = 0;
-        
+
         while (attempt < maxAttempts) {
-            File[] files = recordingsDir.listFiles((dir, name) -> 
-                name.contains("recording-" + roomName) && 
-                (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
+            File[] files = recordingsDir.listFiles((dir, name) ->
+                    name.contains("recording-" + roomName) &&
+                            (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
             );
-            
+
             if (files != null && files.length > 0) {
                 File file = files[0];
                 if (file.length() > 0) {
@@ -204,55 +322,98 @@ public class LiveKitEgressSteps {
                     log.debug("Recording file exists but is empty: {} (attempt {}/{})", file.getName(), attempt + 1, maxAttempts);
                 }
             }
-            
+
             if (attempt < maxAttempts - 1) {
                 log.debug("Recording file not ready yet, waiting... (attempt {}/{})", attempt + 1, maxAttempts);
                 TimeUnit.MILLISECONDS.sleep(500);
             }
             attempt++;
         }
-        
-        File[] allFiles = recordingsDir.listFiles((dir, name) -> 
-            name.contains("recording-" + roomName) && 
-            (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
+
+        File[] allFiles = recordingsDir.listFiles((dir, name) ->
+                name.contains("recording-" + roomName) &&
+                        (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
         );
-        
+
         if (allFiles != null && allFiles.length > 0 && allFiles[0].length() == 0) {
             fail("Recording file exists but is empty (0 bytes). This may indicate the egress was aborted. " +
-                 "File: " + allFiles[0].getName() + ". Check egress logs for errors.");
+                    "File: " + allFiles[0].getName() + ". Check egress logs for errors.");
         }
-        
-        assertNotNull(recordingFile, "No recording files found for room " + roomName + 
-            " after " + maxAttempts + " attempts. Files in directory: " + String.join(", ", recordingsDir.list()));
+
+        assertNotNull(recordingFile, "No recording files found for room " + roomName +
+                " after " + maxAttempts + " attempts. Files in directory: " + String.join(", ", recordingsDir.list()));
         assertTrue(recordingFile.exists(), "Recording file does not exist: " + recordingFile.getAbsolutePath());
         assertTrue(recordingFile.length() > 0, "Recording file is empty: " + recordingFile.getAbsolutePath());
-        
-        log.info("Recording file found: {} (size: {} bytes)", 
-            recordingFile.getName(), recordingFile.length());
+
+        log.info("Recording file found: {} (size: {} bytes)",
+                recordingFile.getName(), recordingFile.length());
     }
-    
+
+    @Then("the track composite recording file exists for participant {string}")
+    public void verifyTrackCompositeRecordingFileExists(String participantIdentity) throws InterruptedException {
+        String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
+        File recordingsDir = new File(recordingsPath);
+        assertTrue(recordingsDir.exists() && recordingsDir.isDirectory(),
+                "Recordings directory does not exist: " + recordingsDir.getAbsolutePath());
+
+        File recordingFile = null;
+        int maxAttempts = 10;
+        int attempt = 0;
+
+        while (attempt < maxAttempts) {
+            File[] files = recordingsDir.listFiles((dir, name) ->
+                    name.contains("track-composite-" + participantIdentity) &&
+                            (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
+            );
+
+            if (files != null && files.length > 0) {
+                File file = files[0];
+                if (file.length() > 0) {
+                    recordingFile = file;
+                    break;
+                } else {
+                    log.debug("Track composite recording file exists but is empty: {} (attempt {}/{})", file.getName(), attempt + 1, maxAttempts);
+                }
+            }
+
+            if (attempt < maxAttempts - 1) {
+                log.debug("Track composite recording file not ready yet, waiting... (attempt {}/{})", attempt + 1, maxAttempts);
+                TimeUnit.MILLISECONDS.sleep(500);
+            }
+            attempt++;
+        }
+
+        assertNotNull(recordingFile, "No track composite recording files found for participant " + participantIdentity +
+                " after " + maxAttempts + " attempts. Files in directory: " + String.join(", ", recordingsDir.list()));
+        assertTrue(recordingFile.exists(), "Track composite recording file does not exist: " + recordingFile.getAbsolutePath());
+        assertTrue(recordingFile.length() > 0, "Track composite recording file is empty: " + recordingFile.getAbsolutePath());
+
+        log.info("Track composite recording file found: {} (size: {} bytes)",
+                recordingFile.getName(), recordingFile.length());
+    }
+
     @And("the recording file contains actual video content")
     public void verifyRecordingContainsVideoContent() {
         String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
         File recordingsDir = new File(recordingsPath);
-        File[] files = recordingsDir.listFiles((dir, name) -> 
-            name.startsWith("recording-") && 
-            (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
+        File[] files = recordingsDir.listFiles((dir, name) ->
+                (name.startsWith("recording-") || name.startsWith("track-composite-")) &&
+                        (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
         );
-        
+
         assertNotNull(files, "No recording files found");
         assertTrue(files.length > 0, "No recording files found");
-        
+
         File recordingFile = files[0];
 
-        assertTrue(recordingFile.length() > 70000, 
-            "Recording file too small (" + recordingFile.length() + " bytes), " +
-            "likely does not contain actual video content. Expected > 70KB for real video.");
-        
-        log.info("Verified recording contains actual video content: {} ({} bytes)", 
-            recordingFile.getName(), recordingFile.length());
+        assertTrue(recordingFile.length() > 70000,
+                "Recording file too small (" + recordingFile.length() + " bytes), " +
+                        "likely does not contain actual video content. Expected > 70KB for real video.");
+
+        log.info("Verified recording contains actual video content: {} ({} bytes)",
+                recordingFile.getName(), recordingFile.length());
     }
-    
+
     @And("the recording file contains actual video content from multiple participants")
     public void verifyRecordingContainsMultipleParticipants() throws InterruptedException {
         String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
@@ -261,13 +422,13 @@ public class LiveKitEgressSteps {
         File recordingFile = null;
         int maxAttempts = 10;
         int attempt = 0;
-        
+
         while (attempt < maxAttempts) {
-            File[] files = recordingsDir.listFiles((dir, name) -> 
-                name.startsWith("recording-") && 
-                (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
+            File[] files = recordingsDir.listFiles((dir, name) ->
+                    name.startsWith("recording-") &&
+                            (name.endsWith(".mp4") || name.endsWith(".webm") || name.endsWith(".mkv"))
             );
-            
+
             if (files != null && files.length > 0) {
                 File file = files[0];
                 // Wait for file to be reasonably sized before checking
@@ -276,54 +437,33 @@ public class LiveKitEgressSteps {
                     break;
                 }
             }
-            
+
             if (attempt < maxAttempts - 1) {
                 log.debug("Recording file not ready yet (size check), waiting... (attempt {}/{})", attempt + 1, maxAttempts);
                 TimeUnit.MILLISECONDS.sleep(500);
             }
             attempt++;
         }
-        
+
         assertNotNull(recordingFile, "No recording files found after " + maxAttempts + " attempts");
 
-        assertTrue(recordingFile.length() > 70000, 
-            "Multi-participant recording file too small (" + recordingFile.length() + " bytes), " +
-            "expected > 70KB for composite video with multiple participants.");
-        
-        log.info("Verified multi-participant recording: {} ({} bytes)", 
-            recordingFile.getName(), recordingFile.length());
+        assertTrue(recordingFile.length() > 70000,
+                "Multi-participant recording file too small (" + recordingFile.length() + " bytes), " +
+                        "expected > 70KB for composite video with multiple participants.");
+
+        log.info("Verified multi-participant recording: {} ({} bytes)",
+                recordingFile.getName(), recordingFile.length());
     }
-    
+
     private String getCurrentScenarioLogPath() {
         return currentScenarioLogPath != null ? currentScenarioLogPath : "out/bdd/scenarios/current";
     }
-    
-    private String extractFeatureName(String uri) {
-        try {
-            String fileName = uri.substring(uri.lastIndexOf('/') + 1);
-            if (fileName.endsWith(".feature")) {
-                fileName = fileName.substring(0, fileName.length() - 8);
-            }
-            String[] words = fileName.replace('_', ' ').toLowerCase().split(" ");
-            StringBuilder result = new StringBuilder();
-            for (String word : words) {
-                if (!word.isEmpty()) {
-                    if (result.length() > 0) result.append(" ");
-                    result.append(word.substring(0, 1).toUpperCase())
-                          .append(word.substring(1));
-                }
-            }
-            return result.toString();
-        } catch (Exception e) {
-            log.warn("Failed to extract feature name from URI: {}", uri, e);
-            return "Unknown Feature";
-        }
-    }
-    
+
+
     private String sanitizeFileName(String fileName) {
         return fileName.replaceAll("[^a-zA-Z0-9\\-_\\s]", "")
-                      .replaceAll("\\s+", "_")
-                      .replaceAll("_+", "_")
-                      .replaceAll("^_|_$", "");
+                .replaceAll("\\s+", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "");
     }
 }

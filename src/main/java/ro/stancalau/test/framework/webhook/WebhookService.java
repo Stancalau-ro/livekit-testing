@@ -84,7 +84,7 @@ public class WebhookService {
     public void clearRecordedEvents(MockServerClient mockServerClient) {
         try {
             mockServerClient.clear(
-                org.mockserver.model.HttpRequest.request()
+                HttpRequest.request()
                     .withPath("/webhook")
                     .withMethod("POST")
             );

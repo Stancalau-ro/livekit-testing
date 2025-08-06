@@ -7,6 +7,8 @@ import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.util.TestConfig;
 
 import javax.annotation.Nullable;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 /**
  * Factory for creating LiveKit containers with configurable versions.
@@ -85,7 +87,7 @@ public class LiveKitContainerFactory {
         String configPath = "src/test/resources/livekit/config/" + version + "/basic/config.yaml";
         
         // Create integration test specific log path with timestamp
-        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         String integrationLogPath = "out/integration-tests/logs/" + alias + "/" + timestamp;
         
         log.info("Creating integration test LiveKit container '{}' with version '{}', config '{}', and log path '{}'", alias, version, configPath, integrationLogPath);
@@ -99,7 +101,7 @@ public class LiveKitContainerFactory {
         String version = TestConfig.getLiveKitVersion();
         
         // Create integration test specific log path with timestamp
-        String timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         String integrationLogPath = "out/integration-tests/logs/" + alias + "/" + timestamp;
         
         log.info("Creating integration test LiveKit container '{}' with version '{}' (no config) and log path '{}'", alias, version, integrationLogPath);

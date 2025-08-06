@@ -7,6 +7,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import com.github.dockerjava.api.model.Capability;
+import java.util.Arrays;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -67,7 +68,10 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
         EgressContainer container = new EgressContainer(egressImage, network, apiKey, apiSecret, livekitWsUrl)
                 .withExposedPorts(GRPC_PORT)
                 .withFileSystemBind(recordingsDir.getAbsolutePath(), "/out/recordings", BindMode.READ_WRITE)
-                .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig().withCapAdd(Capability.SYS_ADMIN));
+                .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+                    .withCapAdd(Capability.SYS_ADMIN)
+                    // Disable AppArmor for WebRTC
+                    .withSecurityOpts(Arrays.asList("apparmor:unconfined")));
 
         // Add log capturing using unified approach
         container = ContainerLogUtils.withLogCapture(container, logDirRoot, "egress.log");
@@ -134,9 +138,20 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
             log_level: debug
             insecure: true
             disable_https: true
-            template_base: "http://localhost:7980"
+            template_base: "http://127.0.0.1:7980"
             template_port: 7980
-            template_address: "0.0.0.0"
+            template_address: "127.0.0.1"
+            # WebRTC configuration for SDK connections
+            health_port: 9999
+            prometheus_port: 9998
+            # ICE configuration for container networking
+            ice:
+              # Use internal STUN servers to avoid external dependencies
+              stun_servers: []
+              # Allow connections to container network addresses
+              tcp_fallback: true
+              # Set connection timeout
+              timeout: 10s
             chrome:
               extra_flags:
                 - "--use-fake-ui-for-media-stream"

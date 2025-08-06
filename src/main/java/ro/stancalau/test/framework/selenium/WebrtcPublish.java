@@ -11,19 +11,19 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
-public class WebrtcPublishTest {
+public class WebrtcPublish {
 
     private final WebDriver driver;
 
     private String alertError;
 
-    public WebrtcPublishTest(String browser, String publisherUrl, String streamName) {
+    public WebrtcPublish(String browser, String publisherUrl, String streamName) {
         SeleniumConfig config = new SeleniumConfig(browser, null);
         driver = config.getDriver();
         start(publisherUrl, streamName);
     }
 
-    public WebrtcPublishTest(WebDriver driver, String publisherUrl, String streamId) {
+    public WebrtcPublish(WebDriver driver, String publisherUrl, String streamId) {
         this.driver = driver;
         start(publisherUrl, streamId);
     }

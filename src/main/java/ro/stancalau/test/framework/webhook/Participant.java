@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.Map;
+
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Participant {
@@ -27,5 +29,5 @@ public class Participant {
     private String metadata;
     
     @JsonProperty("attributes")
-    private java.util.Map<String, String> attributes;
+    private Map<String, String> attributes;
 }

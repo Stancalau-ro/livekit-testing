@@ -1,6 +1,7 @@
 package ro.stancalau.test.framework.docker;
 
 import lombok.Getter;
+import com.github.dockerjava.api.model.ExposedPort;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
@@ -48,12 +49,12 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
                 .withExposedPorts(HTTP_PORT)
                 .withCreateContainerCmdModifier(cmd -> {
                     // Expose WebRTC UDP port range for egress service connectivity
-                    for (int port = 50000; port <= 50010; port++) {
-                        cmd.withExposedPorts(com.github.dockerjava.api.model.ExposedPort.udp(port));
+                    // Expose a reasonable subset for container networking (100 ports should be sufficient)
+                    for (int port = 50000; port <= 50100; port++) {
+                        cmd.withExposedPorts(ExposedPort.udp(port));
                     }
                 });
 
-        // Add log capturing using unified approach
         container = ContainerLogUtils.withLogCapture(container, logDirRoot, "livekit.log");
 
         if (configFilePath != null && !configFilePath.isEmpty()) {
@@ -67,11 +68,9 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
                 log.warn("Config file not found: {}", configFilePath);
             }
         } else {
-            // Use development mode when no config is provided
             container = container.withCommand("--dev");
         }
 
-        // Mount output directory for recordings
         File outputDir = new File("out");
         outputDir.mkdirs();
         container = container.withFileSystemBind(outputDir.getAbsolutePath(),
@@ -91,15 +90,15 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
         return createContainer(DEFAULT_SERVER_ALIAS, network, livekitVersion, configFilePath);
     }
 
-    public String getHttpLink() {
+    public String getHttpUrl() {
         return "http://" + getContainerIpAddress() + ":" + getMappedPort(HTTP_PORT);
     }
 
-    public String getNetworkWs() {
+    public String getNetworkUrl() {
         return "ws://" + getAlias() + ":" + HTTP_PORT;
     }
 
-    public String getlocalWs() {
+    public String getWsUrl() {
         return "ws://" + getContainerIpAddress() + ":" + getMappedPort(HTTP_PORT);
     }
 

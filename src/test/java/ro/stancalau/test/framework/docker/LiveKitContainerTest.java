@@ -24,11 +24,11 @@ public class LiveKitContainerTest {
             
             assertTrue(container.isRunning(), "Container should be running");
             
-            String httpLink = container.getHttpLink();
+            String httpLink = container.getHttpUrl();
             assertNotNull(httpLink, "HTTP link should not be null");
             log.info("LiveKit HTTP endpoint: {}", httpLink);
             
-            String networkWs = container.getNetworkWs();
+            String networkWs = container.getNetworkUrl();
             assertNotNull(networkWs, "Network WebSocket URL should not be null");
             log.info("LiveKit Network WebSocket: {}", networkWs);
             

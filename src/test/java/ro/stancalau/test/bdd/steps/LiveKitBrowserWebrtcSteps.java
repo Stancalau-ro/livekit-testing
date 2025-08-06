@@ -1,7 +1,6 @@
 package ro.stancalau.test.bdd.steps;
 
 import io.cucumber.java.After;
-import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.When;
 import io.cucumber.java.en.Then;
@@ -10,10 +9,7 @@ import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
-import ro.stancalau.test.framework.state.AccessTokenStateManager;
-import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.state.RoomClientStateManager;
-import ro.stancalau.test.framework.state.WebDriverStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
 import ro.stancalau.test.framework.util.StringParsingUtils;
@@ -28,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 public class LiveKitBrowserWebrtcSteps {
     
     private final Map<String, LiveKitMeet> meetInstances = new HashMap<>();
-
 
     @After
     public void tearDownLiveKitWebrtcSteps(Scenario scenario) {
@@ -215,36 +210,29 @@ public class LiveKitBrowserWebrtcSteps {
             Thread.sleep(3000);
             
             JavascriptExecutor js = (JavascriptExecutor) driver;
-            
-            // Check if any subscription failures were captured
+
             Long subscriptionFailedCount = (Long) js.executeScript(
                 "return window.subscriptionFailedEvents ? window.subscriptionFailedEvents.length : 0;"
             );
-            
-            // Check if permission denied flag was set
+
             Boolean permissionDenied = (Boolean) js.executeScript(
                 "return window.subscriptionPermissionDenied || false;"
             );
-            
-            // Get the error message if available
+
             String errorMessage = (String) js.executeScript(
                 "return window.lastSubscriptionError || '';"
             );
-            
-            // Check the number of video elements that are actually playing video (fallback check)
+
             Long playingVideoElements = (Long) js.executeScript(
                 "try { return Array.from(document.querySelectorAll('video')).filter(v => " +
                 "v.videoWidth > 0 && v.videoHeight > 0 && !v.paused && !v.ended && v.readyState >= 2).length; } catch(e) { return 0; }"
             );
-            
-            // Check if client has any subscribed tracks (fallback check)
+
             Long subscribedTracks = (Long) js.executeScript(
                 "try { return window.liveKitClient && window.liveKitClient.room ? " +
                 "Array.from(window.liveKitClient.room.tracks.values()).filter(t => t.kind === 'video' && t.isSubscribed).length : 0; } catch(e) { return 0; }"
             );
-            
-            
-            // A participant without subscribe permission should either have subscription failures OR no playing/subscribed tracks
+
             boolean hasSubscriptionFailures = subscriptionFailedCount > 0 || permissionDenied;
             boolean hasNoVideoPlayback = playingVideoElements == 0 && subscribedTracks == 0;
             
@@ -263,8 +251,7 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitContainer container = ManagerProvider.containers().getContainer("livekit1", LiveKitContainer.class);
         assertNotNull(container, "LiveKit container should be running");
         assertTrue(container.isRunning(), "LiveKit container should be running");
-        
-        // Return network WebSocket URL accessible from other containers in the same network
-        return container.getNetworkWs();
+
+        return container.getNetworkUrl();
     }
 }

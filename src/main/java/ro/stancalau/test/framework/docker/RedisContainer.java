@@ -6,6 +6,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 
+import java.io.File;
 import java.time.Duration;
 
 @Slf4j
@@ -27,7 +28,7 @@ public class RedisContainer extends GenericContainer<RedisContainer> {
             ? logDestinationPath
             : "out/bdd/scenarios/current/docker/" + alias;
         
-        java.io.File logDirRoot = new java.io.File(logDirPath);
+        File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
         
         RedisContainer container = new RedisContainer("redis:7-alpine", network)

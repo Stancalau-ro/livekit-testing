@@ -11,7 +11,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 @Slf4j
-public class WebrtcPlaybackTest {
+public class WebrtcPlayback {
 
     public static final String START_PLAY_BUTTON_ID = "start_play_button";
     public static final String STOP_PLAY_BUTTON_ID = "stop_play_button";
@@ -23,14 +23,14 @@ public class WebrtcPlaybackTest {
 
     private String alertError;
 
-    public WebrtcPlaybackTest(String browser, String playerUrl, String streamName) {
+    public WebrtcPlayback(String browser, String playerUrl, String streamName) {
         SeleniumConfig config = new SeleniumConfig(browser, null);
         driver = config.getDriver();
         driver.get(playerUrl);
         start(streamName);
     }
 
-    public WebrtcPlaybackTest(WebDriver driver, String playerUrl, String streamId) {
+    public WebrtcPlayback(WebDriver driver, String playerUrl, String streamId) {
         this.driver = driver;
         driver.get(playerUrl);
         start(streamId);

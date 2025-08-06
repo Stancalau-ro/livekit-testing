@@ -326,5 +326,4 @@ public class LiveKitAccessTokenSteps {
             log.info("Verified attribute {} is not set for {} in room {}", attributeName, identity, roomName);
         }
     }
-
 }

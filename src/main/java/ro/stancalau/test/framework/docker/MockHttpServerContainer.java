@@ -10,6 +10,9 @@ import org.testcontainers.containers.wait.strategy.HttpWaitStrategy;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 
 import static org.mockserver.model.HttpRequest.request;
@@ -36,11 +39,11 @@ public class MockHttpServerContainer extends GenericContainer<MockHttpServerCont
         withLogConsumer(outputFrame -> {
             try {
                 String logFile = logPath + "/mockserver.log";
-                java.nio.file.Files.write(
-                    java.nio.file.Paths.get(logFile),
+                Files.write(
+                    Paths.get(logFile),
                     (outputFrame.getUtf8String()).getBytes(),
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.APPEND
                 );
             } catch (Exception e) {
                 log.error("Failed to write log", e);
