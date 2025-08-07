@@ -12,11 +12,11 @@ Feature: LiveKit Webhook Integration
     When room "WebhookTestRoom" is created using service "livekit1"
     Then "mockserver1" should have received a "room_started" event for room "WebhookTestRoom"
     
-    Given an access token is created with identity "TestUser" and room "WebhookTestRoom" with grants "canPublish:true,canSubscribe:true"
-    When "TestUser" opens a "Chrome" browser with LiveKit Meet page
-    And "TestUser" connects to room "WebhookTestRoom" using the access token
-    And connection is established successfully for "TestUser"
-    Then "mockserver1" should have received a "participant_joined" event for participant "TestUser" in room "WebhookTestRoom"
+    Given an access token is created with identity "George" and room "WebhookTestRoom" with grants "canPublish:true,canSubscribe:true"
+    When "George" opens a "Chrome" browser with LiveKit Meet page
+    And "George" connects to room "WebhookTestRoom" using the access token
+    And connection is established successfully for "George"
+    Then "mockserver1" should have received a "participant_joined" event for participant "George" in room "WebhookTestRoom"
     And "mockserver1" should have received a "track_published" event for track type "VIDEO" in room "WebhookTestRoom"
     
     When room "WebhookTestRoom" is deleted using service "livekit1"
@@ -28,11 +28,11 @@ Feature: LiveKit Webhook Integration
     Then "mockserver1" should have received a "room_started" event for room "RoomA"
     
     # Create participant in RoomA
-    Given an access token is created with identity "UserA" and room "RoomA" with grants "canPublish:true"
-    When "UserA" opens a "Chrome" browser with LiveKit Meet page
-    And "UserA" connects to room "RoomA" using the access token
-    And connection is established successfully for "UserA"
-    Then "mockserver1" should have received a "participant_joined" event for participant "UserA" in room "RoomA"
+    Given an access token is created with identity "Matthew" and room "RoomA" with grants "canPublish:true"
+    When "Matthew" opens a "Chrome" browser with LiveKit Meet page
+    And "Matthew" connects to room "RoomA" using the access token
+    And connection is established successfully for "Matthew"
+    Then "mockserver1" should have received a "participant_joined" event for participant "Matthew" in room "RoomA"
     
     # Clear events to isolate next room test
     When "mockserver1" webhook events are cleared
@@ -44,12 +44,12 @@ Feature: LiveKit Webhook Integration
     And "mockserver1" should not have received a "room_started" event for room "RoomA"
     
     # Create participant in RoomB
-    Given an access token is created with identity "UserB" and room "RoomB" with grants "canPublish:true,canSubscribe:true"
-    When "UserB" opens a "Chrome" browser with LiveKit Meet page
-    And "UserB" connects to room "RoomB" using the access token
-    And connection is established successfully for "UserB"
-    Then "mockserver1" should have received a "participant_joined" event for participant "UserB" in room "RoomB"
-    And "mockserver1" should not have received a "participant_joined" event for participant "UserA" in room "RoomA"
+    Given an access token is created with identity "Samantha" and room "RoomB" with grants "canPublish:true,canSubscribe:true"
+    When "Samantha" opens a "Chrome" browser with LiveKit Meet page
+    And "Samantha" connects to room "RoomB" using the access token
+    And connection is established successfully for "Samantha"
+    Then "mockserver1" should have received a "participant_joined" event for participant "Samantha" in room "RoomB"
+    And "mockserver1" should not have received a "participant_joined" event for participant "Matthew" in room "RoomA"
     
     # Verify we have exactly the expected events after clearing
     When room "RoomB" is deleted using service "livekit1"
@@ -63,12 +63,12 @@ Feature: LiveKit Webhook Integration
     When room "AttributesTestRoom" is created using service "livekit1"
     Then "mockserver1" should have received a "room_started" event for room "AttributesTestRoom"
     
-    Given an access token is created with identity "AttributeUser" and room "AttributesTestRoom" with grants "canPublish:true,canSubscribe:true" and attributes "role=admin,department=engineering,project=livekit-testing"
-    When "AttributeUser" opens a "Chrome" browser with LiveKit Meet page
-    And "AttributeUser" connects to room "AttributesTestRoom" using the access token
-    And connection is established successfully for "AttributeUser"
-    Then "mockserver1" should have received a "participant_joined" event for participant "AttributeUser" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
+    Given an access token is created with identity "Elizabeth" and room "AttributesTestRoom" with grants "canPublish:true,canSubscribe:true" and attributes "role=admin,department=engineering,project=livekit-testing"
+    When "Elizabeth" opens a "Chrome" browser with LiveKit Meet page
+    And "Elizabeth" connects to room "AttributesTestRoom" using the access token
+    And connection is established successfully for "Elizabeth"
+    Then "mockserver1" should have received a "participant_joined" event for participant "Elizabeth" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
     
     When room "AttributesTestRoom" is deleted using service "livekit1"
     Then "mockserver1" should have received a "room_finished" event for room "AttributesTestRoom"
-    And "mockserver1" should have received a "participant_left" event for participant "AttributeUser" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
+    And "mockserver1" should have received a "participant_left" event for participant "Elizabeth" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"

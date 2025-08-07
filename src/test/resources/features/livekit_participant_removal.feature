@@ -12,19 +12,19 @@ Feature: LiveKit Participant Removal
     When room "RemovalTestRoom" is created using service "livekit1"
     Then "mockserver1" should have received a "room_started" event for room "RemovalTestRoom"
     
-    Given an access token is created with identity "ParticipantToRemove" and room "RemovalTestRoom" with grants "canPublish:true,canSubscribe:true"
-    When "ParticipantToRemove" opens a "Chrome" browser with LiveKit Meet page
-    And "ParticipantToRemove" connects to room "RemovalTestRoom" using the access token
-    And connection is established successfully for "ParticipantToRemove"
-    Then "mockserver1" should have received a "participant_joined" event for participant "ParticipantToRemove" in room "RemovalTestRoom"
+    Given an access token is created with identity "Daniel" and room "RemovalTestRoom" with grants "canPublish:true,canSubscribe:true"
+    When "Daniel" opens a "Chrome" browser with LiveKit Meet page
+    And "Daniel" connects to room "RemovalTestRoom" using the access token
+    And connection is established successfully for "Daniel"
+    Then "mockserver1" should have received a "participant_joined" event for participant "Daniel" in room "RemovalTestRoom"
     And "mockserver1" should have received a "track_published" event for track type "VIDEO" in room "RemovalTestRoom"
     
-    When participant "ParticipantToRemove" is removed from room "RemovalTestRoom" using service "livekit1"
-    Then participant "ParticipantToRemove" should not exist in room "RemovalTestRoom" using service "livekit1"
-    And "ParticipantToRemove" should see disconnection in the browser
+    When participant "Daniel" is removed from room "RemovalTestRoom" using service "livekit1"
+    Then participant "Daniel" should not exist in room "RemovalTestRoom" using service "livekit1"
+    And "Daniel" should see disconnection in the browser
     And "mockserver1" should have received a "track_unpublished" event for track type "VIDEO" in room "RemovalTestRoom"
     And "mockserver1" should have received a "track_unpublished" event for track type "AUDIO" in room "RemovalTestRoom"
-    And "mockserver1" should have received a "participant_left" event for participant "ParticipantToRemove" in room "RemovalTestRoom"
+    And "mockserver1" should have received a "participant_left" event for participant "Daniel" in room "RemovalTestRoom"
 
   Scenario: Backend service removes specific participant from room with multiple participants
     When room "MultiParticipantRoom" is created using service "livekit1"
@@ -57,73 +57,73 @@ Feature: LiveKit Participant Removal
   Scenario: Verify webhook events order for backend-initiated disconnection
     When room "WebhookOrderRoom" is created using service "livekit1"
     
-    Given an access token is created with identity "TestUser" and room "WebhookOrderRoom" with grants "canPublish:true,canSubscribe:true"
-    When "TestUser" opens a "Chrome" browser with LiveKit Meet page
-    And "TestUser" connects to room "WebhookOrderRoom" using the access token
-    And connection is established successfully for "TestUser"
+    Given an access token is created with identity "Peter" and room "WebhookOrderRoom" with grants "canPublish:true,canSubscribe:true"
+    When "Peter" opens a "Chrome" browser with LiveKit Meet page
+    And "Peter" connects to room "WebhookOrderRoom" using the access token
+    And connection is established successfully for "Peter"
     
     When "mockserver1" webhook events are cleared
     
-    When participant "TestUser" is removed from room "WebhookOrderRoom" using service "livekit1"
-    Then "TestUser" should see disconnection in the browser
+    When participant "Peter" is removed from room "WebhookOrderRoom" using service "livekit1"
+    Then "Peter" should see disconnection in the browser
     And "mockserver1" should have received exactly 3 webhook events
     And "mockserver1" should have received a "track_unpublished" event for track type "VIDEO" in room "WebhookOrderRoom"
     And "mockserver1" should have received a "track_unpublished" event for track type "AUDIO" in room "WebhookOrderRoom"
-    And "mockserver1" should have received a "participant_left" event for participant "TestUser" in room "WebhookOrderRoom"
+    And "mockserver1" should have received a "participant_left" event for participant "Peter" in room "WebhookOrderRoom"
 
   Scenario: Removed participant can rejoin with valid token after backend removal
     When room "RejoinRoom" is created using service "livekit1"
     
-    Given an access token is created with identity "RejoinUser" and room "RejoinRoom" with grants "canPublish:true,canSubscribe:true"
-    When "RejoinUser" opens a "Chrome" browser with LiveKit Meet page
-    And "RejoinUser" connects to room "RejoinRoom" using the access token
-    And connection is established successfully for "RejoinUser"
+    Given an access token is created with identity "Marcus" and room "RejoinRoom" with grants "canPublish:true,canSubscribe:true"
+    When "Marcus" opens a "Chrome" browser with LiveKit Meet page
+    And "Marcus" connects to room "RejoinRoom" using the access token
+    And connection is established successfully for "Marcus"
     Then room "RejoinRoom" should have 1 active participants in service "livekit1"
     
-    When participant "RejoinUser" is removed from room "RejoinRoom" using service "livekit1"
-    Then "RejoinUser" should see disconnection in the browser
+    When participant "Marcus" is removed from room "RejoinRoom" using service "livekit1"
+    Then "Marcus" should see disconnection in the browser
     And room "RejoinRoom" should have 0 active participants in service "livekit1"
     
     When "mockserver1" webhook events are cleared
     
-    When "RejoinUser" connects to room "RejoinRoom" using the access token
-    And connection is established successfully for "RejoinUser"
+    When "Marcus" connects to room "RejoinRoom" using the access token
+    And connection is established successfully for "Marcus"
     Then room "RejoinRoom" should have 1 active participants in service "livekit1"
-    And "mockserver1" should have received a "participant_joined" event for participant "RejoinUser" in room "RejoinRoom"
+    And "mockserver1" should have received a "participant_joined" event for participant "Marcus" in room "RejoinRoom"
     And "mockserver1" should have received a "track_published" event for track type "VIDEO" in room "RejoinRoom"
 
   Scenario: Backend service removes participant with custom attributes
     When room "AttributesRemovalRoom" is created using service "livekit1"
     
-    Given an access token is created with identity "AttributedUser" and room "AttributesRemovalRoom" with grants "canPublish:true,canSubscribe:true" and attributes "role=presenter,department=sales,session=Q4-2024"
-    When "AttributedUser" opens a "Chrome" browser with LiveKit Meet page
-    And "AttributedUser" connects to room "AttributesRemovalRoom" using the access token
-    And connection is established successfully for "AttributedUser"
-    Then "mockserver1" should have received a "participant_joined" event for participant "AttributedUser" in room "AttributesRemovalRoom" with attributes "role=presenter,department=sales,session=Q4-2024"
+    Given an access token is created with identity "Christopher" and room "AttributesRemovalRoom" with grants "canPublish:true,canSubscribe:true" and attributes "role=presenter,department=sales,session=Q4-2024"
+    When "Christopher" opens a "Chrome" browser with LiveKit Meet page
+    And "Christopher" connects to room "AttributesRemovalRoom" using the access token
+    And connection is established successfully for "Christopher"
+    Then "mockserver1" should have received a "participant_joined" event for participant "Christopher" in room "AttributesRemovalRoom" with attributes "role=presenter,department=sales,session=Q4-2024"
     
-    When participant "AttributedUser" is removed from room "AttributesRemovalRoom" using service "livekit1"
-    Then "AttributedUser" should see disconnection in the browser
-    And "mockserver1" should have received a "participant_left" event for participant "AttributedUser" in room "AttributesRemovalRoom" with attributes "role=presenter,department=sales,session=Q4-2024"
+    When participant "Christopher" is removed from room "AttributesRemovalRoom" using service "livekit1"
+    Then "Christopher" should see disconnection in the browser
+    And "mockserver1" should have received a "participant_left" event for participant "Christopher" in room "AttributesRemovalRoom" with attributes "role=presenter,department=sales,session=Q4-2024"
 
   Scenario: Backend removal during active video publishing
     When room "ActivePublishingRoom" is created using service "livekit1"
     
-    Given an access token is created with identity "ActivePublisher" and room "ActivePublishingRoom" with grants "canPublish:true,canSubscribe:true"
-    Given an access token is created with identity "Subscriber" and room "ActivePublishingRoom" with grants "canPublish:false,canSubscribe:true"
+    Given an access token is created with identity "William" and room "ActivePublishingRoom" with grants "canPublish:true,canSubscribe:true"
+    Given an access token is created with identity "Patricia" and room "ActivePublishingRoom" with grants "canPublish:false,canSubscribe:true"
     
-    When "ActivePublisher" opens a "Chrome" browser with LiveKit Meet page
-    And "ActivePublisher" connects to room "ActivePublishingRoom" using the access token
-    And connection is established successfully for "ActivePublisher"
+    When "William" opens a "Chrome" browser with LiveKit Meet page
+    And "William" connects to room "ActivePublishingRoom" using the access token
+    And connection is established successfully for "William"
     
-    When "Subscriber" opens a "Firefox" browser with LiveKit Meet page
-    And "Subscriber" connects to room "ActivePublishingRoom" using the access token
-    And connection is established successfully for "Subscriber"
+    When "Patricia" opens a "Firefox" browser with LiveKit Meet page
+    And "Patricia" connects to room "ActivePublishingRoom" using the access token
+    And connection is established successfully for "Patricia"
     
-    Then participant "ActivePublisher" should be publishing video in room "ActivePublishingRoom" using service "livekit1"
-    And participant "Subscriber" should see 1 remote video tracks in room "ActivePublishingRoom" using service "livekit1"
+    Then participant "William" should be publishing video in room "ActivePublishingRoom" using service "livekit1"
+    And participant "Patricia" should see 1 remote video tracks in room "ActivePublishingRoom" using service "livekit1"
     
-    When participant "ActivePublisher" is removed from room "ActivePublishingRoom" using service "livekit1"
-    Then "ActivePublisher" should see disconnection in the browser
-    And participant "Subscriber" should see 0 remote video tracks in room "ActivePublishingRoom" using service "livekit1"
+    When participant "William" is removed from room "ActivePublishingRoom" using service "livekit1"
+    Then "William" should see disconnection in the browser
+    And participant "Patricia" should see 0 remote video tracks in room "ActivePublishingRoom" using service "livekit1"
     And "mockserver1" should have received a "track_unpublished" event for track type "VIDEO" in room "ActivePublishingRoom"
-    And "mockserver1" should have received a "participant_left" event for participant "ActivePublisher" in room "ActivePublishingRoom"
+    And "mockserver1" should have received a "participant_left" event for participant "William" in room "ActivePublishingRoom"

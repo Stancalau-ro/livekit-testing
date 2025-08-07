@@ -13,19 +13,19 @@ Feature: LiveKit MinIO Recording
 
   Scenario: Record video from a publisher to MinIO S3 bucket using egress
     Given room "S3RecordingRoom" is created using service "livekit1"
-    And an access token is created with identity "S3Publisher" and room "S3RecordingRoom" with grants "canPublish:true,canSubscribe:true,roomRecord:true" that expires in 5 minutes
-    And an access token is created with identity "S3Viewer" and room "S3RecordingRoom" with grants "canSubscribe:true" that expires in 5 minutes
+    And an access token is created with identity "Oliver" and room "S3RecordingRoom" with grants "canPublish:true,canSubscribe:true,roomRecord:true" that expires in 5 minutes
+    And an access token is created with identity "Sophia" and room "S3RecordingRoom" with grants "canSubscribe:true" that expires in 5 minutes
     
-    When "S3Publisher" opens a "Chrome" browser with LiveKit Meet page
-    And "S3Publisher" connects to room "S3RecordingRoom" using the access token
-    And connection is established successfully for "S3Publisher"
+    When "Oliver" opens a "Chrome" browser with LiveKit Meet page
+    And "Oliver" connects to room "S3RecordingRoom" using the access token
+    And connection is established successfully for "Oliver"
     
-    When "S3Viewer" opens a "Chrome" browser with LiveKit Meet page
-    And "S3Viewer" connects to room "S3RecordingRoom" using the access token
-    And connection is established successfully for "S3Viewer"
+    When "Sophia" opens a "Chrome" browser with LiveKit Meet page
+    And "Sophia" connects to room "S3RecordingRoom" using the access token
+    And connection is established successfully for "Sophia"
     
-    Then participant "S3Publisher" should be publishing video in room "S3RecordingRoom" using service "livekit1"
-    And participant "S3Viewer" should see 1 remote video tracks in room "S3RecordingRoom" using service "livekit1"
+    Then participant "Oliver" should be publishing video in room "S3RecordingRoom" using service "livekit1"
+    And participant "Sophia" should see 1 remote video tracks in room "S3RecordingRoom" using service "livekit1"
     
     When room composite recording is started for room "S3RecordingRoom" using LiveKit service "livekit1" with S3 output to bucket "recordings"
     And the recording runs for 6 seconds
@@ -37,28 +37,28 @@ Feature: LiveKit MinIO Recording
 
   Scenario: Record specific participant tracks to MinIO S3 using track composite egress
     Given room "S3TrackCompositeRoom" is created using service "livekit1"
-    And an access token is created with identity "S3TrackedPublisher" and room "S3TrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
-    And an access token is created with identity "S3OtherPublisher" and room "S3TrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
+    And an access token is created with identity "James" and room "S3TrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
+    And an access token is created with identity "Emma" and room "S3TrackCompositeRoom" with grants "canPublish:true,canSubscribe:true" that expires in 5 minutes
     
-    When "S3TrackedPublisher" opens a "Chrome" browser with LiveKit Meet page
-    And "S3TrackedPublisher" connects to room "S3TrackCompositeRoom" using the access token
-    And connection is established successfully for "S3TrackedPublisher"
+    When "James" opens a "Chrome" browser with LiveKit Meet page
+    And "James" connects to room "S3TrackCompositeRoom" using the access token
+    And connection is established successfully for "James"
     
-    When "S3OtherPublisher" opens a "Chrome" browser with LiveKit Meet page
-    And "S3OtherPublisher" connects to room "S3TrackCompositeRoom" using the access token
-    And connection is established successfully for "S3OtherPublisher"
+    When "Emma" opens a "Chrome" browser with LiveKit Meet page
+    And "Emma" connects to room "S3TrackCompositeRoom" using the access token
+    And connection is established successfully for "Emma"
     
-    Then participant "S3TrackedPublisher" should be publishing video in room "S3TrackCompositeRoom" using service "livekit1"
-    And participant "S3OtherPublisher" should be publishing video in room "S3TrackCompositeRoom" using service "livekit1"
+    Then participant "James" should be publishing video in room "S3TrackCompositeRoom" using service "livekit1"
+    And participant "Emma" should be publishing video in room "S3TrackCompositeRoom" using service "livekit1"
     
-    When track IDs are captured for participant "S3TrackedPublisher" in room "S3TrackCompositeRoom" using LiveKit service "livekit1"
-    And track composite recording is started for participant "S3TrackedPublisher" in room "S3TrackCompositeRoom" using LiveKit service "livekit1" with S3 output to bucket "recordings"
+    When track IDs are captured for participant "James" in room "S3TrackCompositeRoom" using LiveKit service "livekit1"
+    And track composite recording is started for participant "James" in room "S3TrackCompositeRoom" using LiveKit service "livekit1" with S3 output to bucket "recordings"
     And the recording runs for 6 seconds
-    And track composite recording is stopped for participant "S3TrackedPublisher" using LiveKit service "livekit1"
+    And track composite recording is stopped for participant "James" using LiveKit service "livekit1"
     
-    Then the track composite recording file exists in MinIO bucket "recordings" for participant "S3TrackedPublisher"
+    Then the track composite recording file exists in MinIO bucket "recordings" for participant "James"
     And the recording file in MinIO contains actual video content
-    And no track composite recording file exists in the local output directory for participant "S3TrackedPublisher"
+    And no track composite recording file exists in the local output directory for participant "James"
 
   Scenario: Record multiple participants to separate S3 prefixes
     Given room "S3MultiPrefixRoom" is created using service "livekit1"
