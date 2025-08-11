@@ -20,6 +20,9 @@ public class WebhookEvent {
     @JsonProperty("track")
     private Track track;
     
+    @JsonProperty("egressInfo")
+    private EgressInfo egressInfo;
+    
     @JsonProperty("id")
     private String id;
     

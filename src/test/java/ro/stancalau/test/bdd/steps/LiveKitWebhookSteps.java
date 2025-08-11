@@ -116,11 +116,66 @@ public class LiveKitWebhookSteps {
             if (foundEvent.isEmpty()) {
                 List<WebhookEvent> allEvents = webhookService.getWebhookEvents(mockServerClient);
                 fail("Expected mock server to have received '" + eventType + "' event for room '" + roomName + 
-                    "' but received events: " + allEvents.stream().map(e -> e.getEvent() + 
-                    (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : "")).toList());
+                    "' but received events: " + allEvents.stream().map(e -> {
+                        String roomInfo = "";
+                        if (e.getRoom() != null) {
+                            roomInfo = " (room: " + e.getRoom().getName() + ")";
+                        } else if (e.getEgressInfo() != null) {
+                            roomInfo = " (egress room: " + e.getEgressInfo().getRoomName() + ")";
+                        }
+                        return e.getEvent() + roomInfo;
+                    }).toList());
             }
             
             log.info("Found {} event for room {}", eventType, roomName);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve webhook events from mock server", e);
+        }
+    }
+    
+    @Then("{string} should have received an {string} event for room {string}")
+    public void theMockServerShouldHaveReceivedAnEgressEventForRoom(String serviceName, String eventType, String roomName) {
+        theMockServerShouldHaveReceivedAnEventForRoom(serviceName, eventType, roomName);
+    }
+    
+    @Then("{string} should have received {int} {string} events for room {string}")
+    public void theMockServerShouldHaveReceivedMultipleEventsForRoom(String serviceName, int expectedCount, String eventType, String roomName) {
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
+        
+        if (mockServer == null) {
+            throw new RuntimeException("Mock server with service name " + serviceName + " not found");
+        }
+        
+        try {
+            MockServerClient mockServerClient = mockServer.getMockServerClient();
+            List<WebhookEvent> webhookEvents = webhookService.getWebhookEvents(mockServerClient);
+            
+            long actualCount = webhookEvents.stream()
+                .filter(event -> eventType.equals(event.getEvent()))
+                .filter(event -> {
+                    // Check room-based events
+                    if (event.getRoom() != null && roomName.equals(event.getRoom().getName())) {
+                        return true;
+                    }
+                    // Check egress-based events
+                    if (event.getEgressInfo() != null && roomName.equals(event.getEgressInfo().getRoomName())) {
+                        return true;
+                    }
+                    return false;
+                })
+                .count();
+            
+            if (actualCount != expectedCount) {
+                List<String> allEventsDescription = webhookEvents.stream()
+                    .map(e -> e.getEvent() + (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : ""))
+                    .toList();
+                    
+                fail(String.format("Expected %d '%s' events for room '%s' but found %d. All events: %s",
+                    expectedCount, eventType, roomName, actualCount, allEventsDescription));
+            }
+            
+            log.info("Found {} {} events for room {}", expectedCount, eventType, roomName);
             
         } catch (Exception e) {
             throw new RuntimeException("Failed to retrieve webhook events from mock server", e);

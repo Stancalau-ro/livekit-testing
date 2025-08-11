@@ -17,7 +17,7 @@ public class WebhookEventPoller {
     private final Duration pollInterval;
     
     public WebhookEventPoller(WebhookService webhookService) {
-        this(webhookService, Duration.ofSeconds(10), Duration.ofMillis(200));
+        this(webhookService, Duration.ofSeconds(15), Duration.ofMillis(200));
     }
     
     public WebhookEventPoller(WebhookService webhookService, Duration timeout, Duration pollInterval) {
@@ -70,11 +70,23 @@ public class WebhookEventPoller {
     }
     
     public Optional<WebhookEvent> waitForEventByTypeAndRoom(MockServerClient mockServerClient, String eventType, String roomName) {
-        return waitForEvent(mockServerClient, event -> 
-            eventType.equals(event.getEvent()) && 
-            event.getRoom() != null && 
-            roomName.equals(event.getRoom().getName())
-        );
+        return waitForEvent(mockServerClient, event -> {
+            if (!eventType.equals(event.getEvent())) {
+                return false;
+            }
+            
+            // Check room-based events
+            if (event.getRoom() != null && roomName.equals(event.getRoom().getName())) {
+                return true;
+            }
+            
+            // Check egress-based events
+            if (event.getEgressInfo() != null && roomName.equals(event.getEgressInfo().getRoomName())) {
+                return true;
+            }
+            
+            return false;
+        });
     }
     
     public Optional<WebhookEvent> waitForEventByTypeAndParticipant(MockServerClient mockServerClient, String eventType, String participantIdentity) {

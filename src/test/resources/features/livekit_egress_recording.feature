@@ -4,7 +4,8 @@ Feature: LiveKit Egress Recording
   So that I can capture and archive actual video content
 
   Background:
-    Given the LiveKit config is set to "with_egress"
+    Given the LiveKit config is set to "with_egress_hook"
+    And a mock HTTP server is running in a container with service name "mockserver1"
     And a Redis server is running in a container with service name "redis"
     And a LiveKit server is running in a container with service name "livekit1"
     And a LiveKit egress service is running in a container with service name "egress1" connected to LiveKit service "livekit1"
@@ -26,10 +27,13 @@ Feature: LiveKit Egress Recording
     And participant "Rachel" should see 1 remote video tracks in room "EgressRecordingRoom" using service "livekit1"
     
     When room composite recording is started for room "EgressRecordingRoom" using LiveKit service "livekit1"
-    And the recording runs for 6 seconds
-    And room composite recording is stopped for room "EgressRecordingRoom" using LiveKit service "livekit1"
+    Then "mockserver1" should have received an "egress_started" event for room "EgressRecordingRoom"
     
-    Then the recording file exists in the output directory for room "EgressRecordingRoom"
+    When the recording runs for 6 seconds
+    And room composite recording is stopped for room "EgressRecordingRoom" using LiveKit service "livekit1"
+    Then "mockserver1" should have received an "egress_ended" event for room "EgressRecordingRoom"
+    
+    And the recording file exists in the output directory for room "EgressRecordingRoom"
     And the recording file contains actual video content
 
   Scenario: Record specific participant tracks using track composite egress
@@ -50,10 +54,13 @@ Feature: LiveKit Egress Recording
     
     When track IDs are captured for participant "Thomas" in room "TrackCompositeRoom" using LiveKit service "livekit1"
     And track composite recording is started for participant "Thomas" in room "TrackCompositeRoom" using LiveKit service "livekit1"
-    And the recording runs for 6 seconds
-    And track composite recording is stopped for participant "Thomas" using LiveKit service "livekit1"
+    Then "mockserver1" should have received an "egress_started" event for room "TrackCompositeRoom"
     
-    Then the track composite recording file exists for participant "Thomas"
+    When the recording runs for 6 seconds
+    And track composite recording is stopped for participant "Thomas" using LiveKit service "livekit1"
+    Then "mockserver1" should have received an "egress_ended" event for room "TrackCompositeRoom"
+    
+    And the track composite recording file exists for participant "Thomas"
     And the recording file contains actual video content
 
   Scenario: Record multiple participants in the same room using egress
@@ -72,10 +79,13 @@ Feature: LiveKit Egress Recording
     Then room "MultiParticipantRecording" should have 2 active participants in service "livekit1"
     
     When room composite recording is started for room "MultiParticipantRecording" using LiveKit service "livekit1"
-    And the recording runs for 6 seconds
-    And room composite recording is stopped for room "MultiParticipantRecording" using LiveKit service "livekit1"
+    Then "mockserver1" should have received an "egress_started" event for room "MultiParticipantRecording"
     
-    Then the recording file exists in the output directory for room "MultiParticipantRecording"
+    When the recording runs for 6 seconds
+    And room composite recording is stopped for room "MultiParticipantRecording" using LiveKit service "livekit1"
+    Then "mockserver1" should have received an "egress_ended" event for room "MultiParticipantRecording"
+    
+    And the recording file exists in the output directory for room "MultiParticipantRecording"
     And the recording file contains actual video content from multiple participants
 
   Scenario: Record individual tracks from multiple participants simultaneously
@@ -96,11 +106,17 @@ Feature: LiveKit Egress Recording
     When track IDs are captured for participant "Alice" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
     And track IDs are captured for participant "Bob" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
     And track composite recording is started for participant "Alice" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
-    And track composite recording is started for participant "Bob" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
-    And the recording runs for 6 seconds
+    Then "mockserver1" should have received an "egress_started" event for room "MultiTrackCompositeRoom"
+    
+    When track composite recording is started for participant "Bob" in room "MultiTrackCompositeRoom" using LiveKit service "livekit1"
+    Then "mockserver1" should have received 2 "egress_started" events for room "MultiTrackCompositeRoom"
+    
+    When the recording runs for 6 seconds
     And track composite recording is stopped for participant "Alice" using LiveKit service "livekit1"
     And track composite recording is stopped for participant "Bob" using LiveKit service "livekit1"
     
-    Then the track composite recording file exists for participant "Alice"
+    Then "mockserver1" should have received an "egress_ended" event for room "MultiTrackCompositeRoom"
+    
+    And the track composite recording file exists for participant "Alice"
     And the track composite recording file exists for participant "Bob"
     And the recording file contains actual video content
