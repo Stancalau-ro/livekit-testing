@@ -3,6 +3,7 @@ package ro.stancalau.test.bdd.steps;
 import ro.stancalau.test.framework.state.AccessTokenStateManager;
 import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.state.EgressStateManager;
+import ro.stancalau.test.framework.state.ImageSnapshotStateManager;
 import ro.stancalau.test.framework.state.ManagerFactory;
 import ro.stancalau.test.framework.state.RoomClientStateManager;
 import ro.stancalau.test.framework.state.WebDriverStateManager;
@@ -91,6 +92,17 @@ public class ManagerProvider {
         return managers.egressStateManager();
     }
     
+    /**
+     * Get the image snapshot state manager for the current scenario
+     */
+    public static ImageSnapshotStateManager getImageSnapshotStateManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.imageSnapshotStateManager();
+    }
+    
     // Convenient shorter aliases for common operations
     public static ContainerStateManager containers() {
         return getContainerManager();
@@ -110,5 +122,9 @@ public class ManagerProvider {
     
     public static EgressStateManager egress() {
         return getEgressStateManager();
+    }
+    
+    public static ImageSnapshotStateManager snapshots() {
+        return getImageSnapshotStateManager();
     }
 }

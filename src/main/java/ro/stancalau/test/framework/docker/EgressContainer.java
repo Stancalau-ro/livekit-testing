@@ -10,8 +10,6 @@ import com.github.dockerjava.api.model.Capability;
 import ro.stancalau.test.framework.config.S3Config;
 import ro.stancalau.test.framework.config.TestConfig;
 
-import java.util.Arrays;
-
 import javax.annotation.Nullable;
 import java.io.File;
 import java.time.Duration;
@@ -37,76 +35,40 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
                                                   String livekitWsUrl, String apiKey, String apiSecret,
                                                   @Nullable String configFilePath, @Nullable String logDestinationPath,
                                                   @Nullable String redisUrl) {
-        
-        String logDirPath = (logDestinationPath != null) 
-            ? logDestinationPath 
+
+        String logDirPath = (logDestinationPath != null)
+            ? logDestinationPath
             : "out/bdd/scenarios/current/docker/" + alias;
-        
+
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
 
-        String recordingsPath = logDestinationPath != null 
-            ? logDestinationPath.replace("/docker/" + alias, "/recordings")
-            : "out/bdd/scenarios/current/recordings";
-        File recordingsDir = new File(recordingsPath);
-        recordingsDir.mkdirs();
-
-        try {
-            recordingsDir.setWritable(true, false); // writable by all users
-            recordingsDir.setReadable(true, false); // readable by all users  
-            recordingsDir.setExecutable(true, false); // executable by all users
-        } catch (Exception e) {
-            log.warn("Failed to set permissions on recordings directory: {}", e.getMessage());
-        }
-
         String egressImage = "livekit/egress:" + egressVersion;
-        
-        EgressContainer container = new EgressContainer(egressImage, network, apiKey, apiSecret, livekitWsUrl)
-                .withExposedPorts(GRPC_PORT)
-                .withFileSystemBind(recordingsDir.getAbsolutePath(), "/out/recordings", BindMode.READ_WRITE)
-                .withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
-                    .withCapAdd(Capability.SYS_ADMIN)
-                    // Disable AppArmor for WebRTC
-                    .withSecurityOpts(List.of("apparmor:unconfined")));
 
-        // Add log capturing using unified approach
+        EgressContainer container = new EgressContainer(egressImage, network, apiKey, apiSecret, livekitWsUrl)
+                .withExposedPorts(GRPC_PORT);
+
+        container = configureOutputDirectories(container, alias, logDestinationPath);
+
+        container = configureContainerCapabilities(container);
+
         container = ContainerLogUtils.withLogCapture(container, logDirRoot, "egress.log");
-        
-        // Create dynamic config with Redis URL
-        if (redisUrl != null) {
-            String configBody = createEgressConfigBody(apiKey, apiSecret, livekitWsUrl, redisUrl, alias);
-            container = container.withEnv("EGRESS_CONFIG_BODY", configBody);
-            log.info("Created dynamic egress config with Redis URL: {}", redisUrl);
-        } else if (configFilePath != null && !configFilePath.isEmpty()) {
-            File configFile = new File(configFilePath);
-            if (configFile.exists()) {
-                container = container.withFileSystemBind(configFile.getAbsolutePath(),
-                        "/egress.yaml", BindMode.READ_ONLY)
-                        .withEnv("EGRESS_CONFIG_FILE", "/egress.yaml");
-                log.info("Binding egress config file {} to container", configFilePath);
-            } else {
-                log.warn("Egress config file not found: {}", configFilePath);
-            }
-        }
-        
-        container = container
-                .withExtraHost("host.docker.internal", "host-gateway")
-                .withNetwork(network)
-                .withNetworkAliases(alias)
-                .waitingFor(Wait.forListeningPort()
-                        .withStartupTimeout(Duration.ofSeconds(60)));
-        
+        container = configureEgressConfig(container, apiKey, apiSecret, livekitWsUrl, redisUrl, alias, configFilePath);
+
+        container = configureNetworkAndWaiting(container, network, alias);
+
         container.alias = alias;
-        
+
         return container;
     }
-    
+
     public static EgressContainer createContainer(String alias, Network network, String livekitWsUrl, String redisUrl) {
         String egressVersion = TestConfig.getEgressVersion();
         String defaultConfigPath = "src/test/resources/livekit/config/" + egressVersion + "/with_egress/egress.yaml";
         return createContainer(alias, network, egressVersion, livekitWsUrl, 
                 LiveKitContainer.API_KEY, LiveKitContainer.SECRET, defaultConfigPath, null, redisUrl);
     }
+    
     
     public static EgressContainer createContainerWithS3(String alias, Network network, String egressVersion,
                                                         String livekitWsUrl, String apiKey, String apiSecret,
@@ -164,6 +126,69 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
         return alias != null ? alias : getNetworkAliases().getFirst();
     }
     
+    private static EgressContainer configureOutputDirectories(EgressContainer container, String alias, String logDestinationPath) {
+        container = bindOutputDirectory(container, alias, logDestinationPath, "video-recordings", "/out/video-recordings");
+        container = bindOutputDirectory(container, alias, logDestinationPath, "snapshots", "/out/snapshots");
+        return container;
+    }
+    
+    private static EgressContainer bindOutputDirectory(EgressContainer container, String alias, String logDestinationPath, 
+                                                      String dirType, String containerPath) {
+        String hostPath = logDestinationPath != null 
+            ? logDestinationPath.replace("/docker/" + alias, "/" + dirType)
+            : "out/bdd/scenarios/current/" + dirType;
+        
+        File hostDir = new File(hostPath);
+        hostDir.mkdirs();
+
+        try {
+            hostDir.setWritable(true, false);
+            hostDir.setReadable(true, false);
+            hostDir.setExecutable(true, false);
+        } catch (Exception e) {
+            log.warn("Failed to set permissions on {} directory: {}", dirType, e.getMessage());
+        }
+
+        container = container.withFileSystemBind(hostDir.getAbsolutePath(), containerPath, BindMode.READ_WRITE);
+        log.debug("Bound {} directory: {}", dirType, hostDir.getAbsolutePath());
+        return container;
+    }
+    
+    private static EgressContainer configureContainerCapabilities(EgressContainer container) {
+        return container.withCreateContainerCmdModifier(cmd -> cmd.getHostConfig()
+            .withCapAdd(Capability.SYS_ADMIN)
+            .withSecurityOpts(List.of("apparmor:unconfined")));
+    }
+    
+    private static EgressContainer configureEgressConfig(EgressContainer container, String apiKey, String apiSecret, 
+                                                        String livekitWsUrl, String redisUrl, String alias, String configFilePath) {
+        if (redisUrl != null) {
+            String configBody = createEgressConfigBody(apiKey, apiSecret, livekitWsUrl, redisUrl, alias);
+            container = container.withEnv("EGRESS_CONFIG_BODY", configBody);
+            log.info("Created dynamic egress config with Redis URL: {}", redisUrl);
+        } else if (configFilePath != null && !configFilePath.isEmpty()) {
+            File configFile = new File(configFilePath);
+            if (configFile.exists()) {
+                container = container.withFileSystemBind(configFile.getAbsolutePath(),
+                        "/egress.yaml", BindMode.READ_ONLY)
+                        .withEnv("EGRESS_CONFIG_FILE", "/egress.yaml");
+                log.info("Binding egress config file {} to container", configFilePath);
+            } else {
+                log.warn("Egress config file not found: {}", configFilePath);
+            }
+        }
+        return container;
+    }
+    
+    private static EgressContainer configureNetworkAndWaiting(EgressContainer container, Network network, String alias) {
+        return container
+                .withExtraHost("host.docker.internal", "host-gateway")
+                .withNetwork(network)
+                .withNetworkAliases(alias)
+                .waitingFor(Wait.forListeningPort()
+                        .withStartupTimeout(Duration.ofSeconds(60)));
+    }
+
     private static String createEgressConfigBody(String apiKey, String apiSecret, String wsUrl, String redisUrl, String alias) {
         return String.format("""
             api_key: %s

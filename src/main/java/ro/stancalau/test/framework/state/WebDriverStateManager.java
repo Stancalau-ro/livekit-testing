@@ -33,7 +33,7 @@ public class WebDriverStateManager {
      * Set the scenario-specific recording path for all subsequent WebDriver creations
      */
     public void setScenarioRecordingPath(String scenarioPath) {
-        this.currentScenarioRecordingPath = scenarioPath + "/recordings";
+        this.currentScenarioRecordingPath = scenarioPath + "/vnc-recordings";
         log.info("Set scenario recording path to: {}", this.currentScenarioRecordingPath);
     }
     

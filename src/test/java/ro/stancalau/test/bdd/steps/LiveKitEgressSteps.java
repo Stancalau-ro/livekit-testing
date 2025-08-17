@@ -67,6 +67,36 @@ public class LiveKitEgressSteps {
         log.info("Redis service {} started for egress communication", serviceName);
     }
 
+    @Given("a LiveKit video recording egress service is running in a container with service name {string} connected to LiveKit service {string}")
+    public void aLiveKitVideoRecordingEgressServiceIsRunningInContainer(String serviceName, String livekitServiceName) {
+        ContainerStateManager containerManager = ManagerProvider.getContainerManager();
+
+        RedisContainer redisContainer = containerManager.getContainer("redis", RedisContainer.class);
+
+        LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
+        String livekitWsUrl = liveKitContainer.getNetworkUrl();
+
+        String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
+
+        EgressContainer egressContainer = EgressContainer.createContainer(
+                serviceName,
+                containerManager.getOrCreateNetwork(),
+                TestConfig.getEgressVersion(),
+                livekitWsUrl,
+                LiveKitContainer.API_KEY,
+                LiveKitContainer.SECRET,
+                null,
+                serviceLogPath,
+                redisContainer.getNetworkRedisUrl()
+        );
+
+        egressContainer.start();
+        assertTrue(egressContainer.isRunning(), "Video recording egress container with service name " + serviceName + " should be running");
+
+        containerManager.registerContainer(serviceName, egressContainer);
+        log.info("Video recording egress service {} started and registered", serviceName);
+    }
+
     @Given("a LiveKit egress service is running in a container with service name {string} connected to LiveKit service {string}")
     public void aLiveKitEgressServiceIsRunningInContainer(String serviceName, String livekitServiceName) {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
@@ -114,7 +144,7 @@ public class LiveKitEgressSteps {
 
         LivekitEgress.EncodedFileOutput fileOutput = LivekitEgress.EncodedFileOutput.newBuilder()
                 .setFileType(LivekitEgress.EncodedFileType.MP4)
-                .setFilepath("/out/recordings/" + fileName)
+                .setFilepath("/out/video-recordings/" + fileName)
                 .build();
 
         log.info("Starting room composite recording for room: {} using LiveKit server: {}", roomName, liveKitContainer.getWsUrl());
@@ -166,7 +196,7 @@ public class LiveKitEgressSteps {
 
         LivekitEgress.EncodedFileOutput fileOutput = LivekitEgress.EncodedFileOutput.newBuilder()
                 .setFileType(LivekitEgress.EncodedFileType.MP4)
-                .setFilepath("/out/recordings/" + fileName)
+                .setFilepath("/out/video-recordings/" + fileName)
                 .build();
 
         log.info("Starting track composite recording for participant: {} (audio: {}, video: {}) in room: {} using LiveKit server: {}",
@@ -295,7 +325,7 @@ public class LiveKitEgressSteps {
 
     @Then("the recording file exists in the output directory for room {string}")
     public void verifyRecordingFileExists(String roomName) throws InterruptedException {
-        String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
+        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
         File recordingsDir = new File(recordingsPath);
         assertTrue(recordingsDir.exists() && recordingsDir.isDirectory(),
                 "Recordings directory does not exist: " + recordingsDir.getAbsolutePath());
@@ -348,7 +378,7 @@ public class LiveKitEgressSteps {
 
     @Then("the track composite recording file exists for participant {string}")
     public void verifyTrackCompositeRecordingFileExists(String participantIdentity) throws InterruptedException {
-        String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
+        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
         File recordingsDir = new File(recordingsPath);
         assertTrue(recordingsDir.exists() && recordingsDir.isDirectory(),
                 "Recordings directory does not exist: " + recordingsDir.getAbsolutePath());
@@ -391,7 +421,7 @@ public class LiveKitEgressSteps {
 
     @And("the recording file contains actual video content")
     public void verifyRecordingContainsVideoContent() {
-        String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
+        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
         File recordingsDir = new File(recordingsPath);
         File[] files = recordingsDir.listFiles((dir, name) ->
                 (name.startsWith("recording-") || name.startsWith("track-composite-")) &&
@@ -413,7 +443,7 @@ public class LiveKitEgressSteps {
 
     @And("the recording file contains actual video content from multiple participants")
     public void verifyRecordingContainsMultipleParticipants() throws InterruptedException {
-        String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
+        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
         File recordingsDir = new File(recordingsPath);
 
         File recordingFile = null;

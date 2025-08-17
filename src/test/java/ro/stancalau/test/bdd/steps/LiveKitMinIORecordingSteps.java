@@ -58,7 +58,7 @@ public class LiveKitMinIORecordingSteps {
     @After
     public void tearDownMinIORecordingSteps() {
         if (currentScenarioLogPath != null) {
-            String s3ExportPath = currentScenarioLogPath + "/docker/minio/s3";
+            String s3ExportPath = currentScenarioLogPath + "/minio-exports";
             for (MinioS3Client client : s3Clients.values()) {
                 try {
                     client.exportBucketContents(s3ExportPath);
@@ -69,6 +69,11 @@ public class LiveKitMinIORecordingSteps {
             }
         }
         s3Clients.clear();
+    }
+
+    @Given("a MinIO server is running in a container with service name {string}")
+    public void aMinIOServerIsRunningInContainer(String serviceName) {
+        aMinIOServerIsRunningInContainer(serviceName, MinIOContainer.DEFAULT_ACCESS_KEY, MinIOContainer.DEFAULT_SECRET_KEY);
     }
 
     @Given("a MinIO server is running in a container with service name {string} with access key {string} and secret key {string}")

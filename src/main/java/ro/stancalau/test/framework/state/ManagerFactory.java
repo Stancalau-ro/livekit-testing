@@ -17,24 +17,23 @@ public class ManagerFactory {
      */
     public static ManagerSet createManagerSet() {
         log.debug("Creating new manager set for test scenario");
-        
-        // Create the container manager first (base dependency)
+
         ContainerStateManager containerManager = new ContainerStateManager();
-        
-        // Create managers that depend on container manager
+
         WebDriverStateManager webDriverManager = new WebDriverStateManager(containerManager);
         RoomClientStateManager roomClientManager = new RoomClientStateManager(containerManager);
-        
-        // Create independent managers
+
         AccessTokenStateManager accessTokenManager = new AccessTokenStateManager();
         EgressStateManager egressStateManager = new EgressStateManager();
+        ImageSnapshotStateManager imageSnapshotStateManager = new ImageSnapshotStateManager();
         
         return new ManagerSet(
             containerManager,
             webDriverManager, 
             roomClientManager,
             accessTokenManager,
-            egressStateManager
+            egressStateManager,
+            imageSnapshotStateManager
         );
     }
 
@@ -44,7 +43,7 @@ public class ManagerFactory {
          */
         public record ManagerSet(ContainerStateManager containerManager, WebDriverStateManager webDriverManager,
                                  RoomClientStateManager roomClientManager, AccessTokenStateManager accessTokenManager,
-                                 EgressStateManager egressStateManager) {
+                                 EgressStateManager egressStateManager, ImageSnapshotStateManager imageSnapshotStateManager) {
 
         /**
              * Cleanup all managers in proper order to release resources.
@@ -76,6 +75,12 @@ public class ManagerFactory {
                     egressStateManager.clearAll();
                 } catch (Exception e) {
                     log.warn("Error cleaning up EgressStateManager", e);
+                }
+
+                try {
+                    imageSnapshotStateManager.clearAll();
+                } catch (Exception e) {
+                    log.warn("Error cleaning up ImageSnapshotStateManager", e);
                 }
 
                 try {
