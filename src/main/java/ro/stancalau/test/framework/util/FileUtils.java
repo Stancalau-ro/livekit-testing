@@ -42,13 +42,6 @@ public final class FileUtils {
                 .replaceAll("^_|_$", "");               // Remove leading/trailing underscores
     }
 
-    /**
-     * Sanitizes a directory path by sanitizing each path segment individually.
-     * Path separators (/ and \) are preserved.
-     * 
-     * @param path the path to sanitize
-     * @return a sanitized path safe for use across different filesystems
-     */
     public static String sanitizePath(String path) {
         if (path == null) {
             return "";
@@ -56,11 +49,14 @@ public final class FileUtils {
         
         // Split on both forward and backward slashes, sanitize each segment, then rejoin
         String[] segments = path.split("[/\\\\]");
-        StringBuilder sanitizedPath = new StringBuilder();
+        if (segments.length == 0) {
+            return "";
+        }
         
+        StringBuilder sanitizedPath = new StringBuilder();
         for (int i = 0; i < segments.length; i++) {
             if (i > 0) {
-                sanitizedPath.append("/");  // Use forward slash as standard separator
+                sanitizedPath.append("/");  // Use forward slash for consistent output
             }
             sanitizedPath.append(sanitizeFileName(segments[i]));
         }

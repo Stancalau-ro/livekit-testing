@@ -12,6 +12,7 @@ import org.testcontainers.containers.Network;
 import ro.stancalau.test.framework.docker.MockHttpServerContainer;
 import ro.stancalau.test.framework.util.DateUtils;
 import ro.stancalau.test.framework.util.FileUtils;
+import ro.stancalau.test.framework.util.PathUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 import ro.stancalau.test.framework.webhook.WebhookEvent;
 import ro.stancalau.test.framework.webhook.WebhookEventPoller;
@@ -47,8 +48,7 @@ public class LiveKitWebhookSteps {
         String sanitizedFeatureName = FileUtils.sanitizeFileNameStrict(featureName);
         String sanitizedScenarioName = FileUtils.sanitizeFileNameStrict(scenarioName);
         
-        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" + 
-                                sanitizedScenarioName + "/" + timestamp;
+        currentScenarioLogPath = PathUtils.scenarioPath(sanitizedFeatureName, sanitizedScenarioName, timestamp);
     }
 
     @After

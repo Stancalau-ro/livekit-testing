@@ -9,6 +9,7 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import com.github.dockerjava.api.model.Capability;
 import ro.stancalau.test.framework.config.S3Config;
 import ro.stancalau.test.framework.config.TestConfig;
+import ro.stancalau.test.framework.util.PathUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -38,7 +39,7 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
 
         String logDirPath = (logDestinationPath != null)
             ? logDestinationPath
-            : "out/bdd/scenarios/current/docker/" + alias;
+            : PathUtils.containerLogPath(PathUtils.currentScenarioPath(), "docker", alias);
 
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
@@ -64,7 +65,7 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
 
     public static EgressContainer createContainer(String alias, Network network, String livekitWsUrl, String redisUrl) {
         String egressVersion = TestConfig.getEgressVersion();
-        String defaultConfigPath = "src/test/resources/livekit/config/" + egressVersion + "/with_egress/egress.yaml";
+        String defaultConfigPath = PathUtils.egressConfigPath(egressVersion, "with_egress", "egress.yaml");
         return createContainer(alias, network, egressVersion, livekitWsUrl, 
                 LiveKitContainer.API_KEY, LiveKitContainer.SECRET, defaultConfigPath, null, redisUrl);
     }
@@ -77,7 +78,7 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
         
         String logDirPath = (logDestinationPath != null) 
             ? logDestinationPath 
-            : "out/bdd/scenarios/current/docker/" + alias;
+            : PathUtils.containerLogPath(PathUtils.currentScenarioPath(), "docker", alias);
         
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();
@@ -135,8 +136,8 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
     private static EgressContainer bindOutputDirectory(EgressContainer container, String alias, String logDestinationPath, 
                                                       String dirType, String containerPath) {
         String hostPath = logDestinationPath != null 
-            ? logDestinationPath.replace("/docker/" + alias, "/" + dirType)
-            : "out/bdd/scenarios/current/" + dirType;
+            ? logDestinationPath.replace(PathUtils.join("docker", alias), dirType)
+            : PathUtils.join(PathUtils.currentScenarioPath(), dirType);
         
         File hostDir = new File(hostPath);
         hostDir.mkdirs();

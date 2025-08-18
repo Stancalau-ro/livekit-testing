@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import ro.stancalau.test.framework.util.PathUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
@@ -38,7 +39,7 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
     public static LiveKitContainer createContainer(String alias, Network network, String livekitVersion, @Nullable String configFilePath, @Nullable String logDestinationPath) {
         String logDirPath = (logDestinationPath != null) 
             ? logDestinationPath 
-            : "out/bdd/docker/livekit/" + alias;
+            : PathUtils.containerLogPath(PathUtils.join("out", "bdd"), "docker/livekit", alias);
         
         File logDirRoot = new File(logDirPath);
         logDirRoot.mkdirs();

@@ -8,6 +8,7 @@ import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.edge.EdgeOptions;
+import ro.stancalau.test.framework.util.PathUtils;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -133,10 +134,11 @@ public class SeleniumConfig {
     }
 
     static private String findFile(String filename) {
-        String[] paths = {"", "bin/", "target/classes/", "src/integration-test/resources/"};
+        String[] paths = {"", "bin", PathUtils.join("target", "classes"), PathUtils.join("src", "integration-test", "resources")};
         for (String path : paths) {
-            if (new File(path + filename).exists()) {
-                return path + filename;
+            File file = path.isEmpty() ? new File(filename) : new File(path, filename);
+            if (file.exists()) {
+                return file.getPath();
             }
         }
         return "";

@@ -18,6 +18,7 @@ import ro.stancalau.test.framework.util.DateUtils;
 import ro.stancalau.test.framework.util.FileUtils;
 import ro.stancalau.test.framework.util.ImageValidationUtils;
 import ro.stancalau.test.framework.util.MinioS3Client;
+import ro.stancalau.test.framework.util.PathUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 import ro.stancalau.test.bdd.util.EgressTestUtils;
 import ro.stancalau.test.framework.docker.EgressContainer;
@@ -47,9 +48,7 @@ public class LiveKitImageSnapshotSteps {
         String sanitizedFeatureName = FileUtils.sanitizeFileName(featureName);
         String sanitizedScenarioName = FileUtils.sanitizeFileName(scenarioName);
 
-        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" +
-                sanitizedScenarioName + "/" + timestamp;
-        log.debug("ImageSnapshotSteps: Set scenario log path to: {}", currentScenarioLogPath);
+        currentScenarioLogPath = PathUtils.scenarioPath(sanitizedFeatureName, sanitizedScenarioName, timestamp);
     }
 
     @When("an on-demand snapshot is captured to S3 for room {string} using LiveKit service {string} and MinIO service {string}")
@@ -116,7 +115,7 @@ public class LiveKitImageSnapshotSteps {
     }
 
     private String getCurrentScenarioLogPath() {
-        return currentScenarioLogPath != null ? currentScenarioLogPath : "out/bdd/scenarios/current";
+        return currentScenarioLogPath != null ? currentScenarioLogPath : PathUtils.currentScenarioPath();
     }
     
     private void captureRoomSnapshot(String roomName, String livekitServiceName, LivekitEgress.ImageOutput imageOutput, 
@@ -253,7 +252,7 @@ public class LiveKitImageSnapshotSteps {
                 "snapshots"
         );
 
-        File snapshotsDir = new File(getCurrentScenarioLogPath() + "/snapshots/");
+        File snapshotsDir = new File(getCurrentScenarioLogPath(), "snapshots");
         snapshotsDir.mkdirs();
         
         String expectedFilePrefix = expectedFileName.replace(".jpg", "_");
@@ -318,7 +317,7 @@ public class LiveKitImageSnapshotSteps {
         String timestamp = DateUtils.generateRecordingTimestamp();
         String fileName = "local-snapshot-room-" + roomName + "-" + timestamp;
 
-        LivekitEgress.ImageOutput imageOutput = createLocalImageOutput("/out/snapshots/" + fileName);
+        LivekitEgress.ImageOutput imageOutput = createLocalImageOutput(PathUtils.containerPath("/out/snapshots", fileName));
         captureRoomSnapshot(roomName, livekitServiceName, imageOutput, fileName, 
                            () -> cleanupLocalBlackFrames(fileName), roomName + "_local");
     }
@@ -328,7 +327,7 @@ public class LiveKitImageSnapshotSteps {
         String timestamp = DateUtils.generateRecordingTimestamp();
         String fileName = "local-snapshot-track-" + participantIdentity + "-" + timestamp;
 
-        LivekitEgress.ImageOutput imageOutput = createLocalImageOutput("/out/snapshots/" + fileName);
+        LivekitEgress.ImageOutput imageOutput = createLocalImageOutput(PathUtils.containerPath("/out/snapshots", fileName));
         captureParticipantTrackSnapshot(participantIdentity, roomName, livekitServiceName, imageOutput, fileName,
                                       () -> cleanupLocalBlackFrames(fileName), participantIdentity + "_track_local");
     }
@@ -338,7 +337,7 @@ public class LiveKitImageSnapshotSteps {
         String expectedFileName = ManagerProvider.getImageSnapshotStateManager().getCapturedSnapshot(roomName + "_local");
         assertNotNull(expectedFileName, "No local snapshot recorded for room " + roomName);
 
-        String snapshotsPath = getCurrentScenarioLogPath() + "/snapshots";
+        String snapshotsPath = PathUtils.join(getCurrentScenarioLogPath(), "snapshots");
         File snapshotsDir = new File(snapshotsPath);
         snapshotsDir.mkdirs();
         
@@ -385,7 +384,7 @@ public class LiveKitImageSnapshotSteps {
         String expectedFileName = ManagerProvider.getImageSnapshotStateManager().getCapturedSnapshot(participantIdentity + "_track_local");
         assertNotNull(expectedFileName, "No local track snapshot recorded for participant " + participantIdentity);
 
-        String snapshotsPath = getCurrentScenarioLogPath() + "/snapshots";
+        String snapshotsPath = PathUtils.join(getCurrentScenarioLogPath(), "snapshots");
         File snapshotsDir = new File(snapshotsPath);
         snapshotsDir.mkdirs();
         
@@ -557,7 +556,7 @@ public class LiveKitImageSnapshotSteps {
     }
     
     private void validateSnapshotImage(String prefix, String extensions, String type) throws Exception {
-        File snapshotsDir = new File(getCurrentScenarioLogPath() + "/snapshots/");
+        File snapshotsDir = new File(getCurrentScenarioLogPath(), "snapshots");
         assertTrue(snapshotsDir.exists() && snapshotsDir.isDirectory(), 
                 type + "s directory does not exist: " + snapshotsDir.getAbsolutePath());
 
@@ -600,7 +599,7 @@ public class LiveKitImageSnapshotSteps {
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
         
         String livekitWsUrl = liveKitContainer.getNetworkUrl();
-        String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
+        String serviceLogPath = PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", serviceName);
 
         EgressContainer egressContainer = factory.create(
                 serviceName,

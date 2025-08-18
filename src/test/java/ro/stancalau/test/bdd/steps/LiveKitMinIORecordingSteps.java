@@ -21,6 +21,7 @@ import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.util.DateUtils;
 import ro.stancalau.test.framework.util.FileUtils;
 import ro.stancalau.test.framework.util.MinioS3Client;
+import ro.stancalau.test.framework.util.PathUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 import ro.stancalau.test.bdd.util.EgressTestUtils;
 
@@ -50,9 +51,7 @@ public class LiveKitMinIORecordingSteps {
         String sanitizedFeatureName = FileUtils.sanitizeFileName(featureName);
         String sanitizedScenarioName = FileUtils.sanitizeFileName(scenarioName);
 
-        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" +
-                sanitizedScenarioName + "/" + timestamp;
-        log.debug("MinIORecordingSteps: Set scenario log path to: {}", currentScenarioLogPath);
+        currentScenarioLogPath = PathUtils.scenarioPath(sanitizedFeatureName, sanitizedScenarioName, timestamp);
     }
 
     @After
@@ -80,7 +79,7 @@ public class LiveKitMinIORecordingSteps {
     public void aMinIOServerIsRunningInContainer(String serviceName, String accessKey, String secretKey) {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
 
-        String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
+        String serviceLogPath = PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", serviceName);
 
         MinIOContainer minioContainer = MinIOContainer.createContainer(
                 serviceName,
@@ -116,7 +115,7 @@ public class LiveKitMinIORecordingSteps {
         MinIOContainer minioContainer = containerManager.getContainer(minioServiceName, MinIOContainer.class);
         
         String livekitWsUrl = liveKitContainer.getNetworkUrl();
-        String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
+        String serviceLogPath = PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", serviceName);
 
         S3Config s3Config = new S3Config(
             minioContainer.getNetworkS3EndpointUrl(),
@@ -421,7 +420,7 @@ public class LiveKitMinIORecordingSteps {
 
     @Then("no recording file exists in the local output directory for room {string}")
     public void verifyNoLocalRecordingFileExists(String roomName) {
-        String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
+        String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "recordings");
         File recordingsDir = new File(recordingsPath);
         
         if (!recordingsDir.exists() || !recordingsDir.isDirectory()) {
@@ -441,7 +440,7 @@ public class LiveKitMinIORecordingSteps {
 
     @Then("no track composite recording file exists in the local output directory for participant {string}")
     public void verifyNoLocalTrackCompositeRecordingFileExists(String participantIdentity) {
-        String recordingsPath = getCurrentScenarioLogPath() + "/recordings";
+        String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "recordings");
         File recordingsDir = new File(recordingsPath);
         
         if (!recordingsDir.exists() || !recordingsDir.isDirectory()) {
@@ -472,7 +471,7 @@ public class LiveKitMinIORecordingSteps {
     }
 
     private String getCurrentScenarioLogPath() {
-        return currentScenarioLogPath != null ? currentScenarioLogPath : "out/bdd/scenarios/current";
+        return currentScenarioLogPath != null ? currentScenarioLogPath : PathUtils.currentScenarioPath();
     }
 
 }

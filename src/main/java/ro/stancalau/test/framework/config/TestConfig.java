@@ -2,6 +2,7 @@ package ro.stancalau.test.framework.config;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import ro.stancalau.test.framework.util.PathUtils;
 
 import java.io.File;
 import java.util.Arrays;
@@ -175,7 +176,7 @@ public class TestConfig {
      */
     public static String resolveConfigPath(String profileName) {
         String currentVersion = getLiveKitVersion();
-        String versionedPath = CONFIG_BASE_PATH + "/" + currentVersion + "/" + profileName + "/config.yaml";
+        String versionedPath = PathUtils.livekitConfigPath(currentVersion, profileName, "config.yaml");
         
         File versionedConfig = new File(versionedPath);
         if (versionedConfig.exists()) {
@@ -218,7 +219,7 @@ public class TestConfig {
         Arrays.sort(versionDirs, (a, b) -> b.getName().compareTo(a.getName()));
         
         for (File versionDir : versionDirs) {
-            String candidatePath = versionDir.getPath() + "/" + profileName + "/config.yaml";
+            String candidatePath = PathUtils.livekitConfigPath(versionDir.getName(), profileName, "config.yaml");
             File candidateConfig = new File(candidatePath);
             
             if (candidateConfig.exists()) {

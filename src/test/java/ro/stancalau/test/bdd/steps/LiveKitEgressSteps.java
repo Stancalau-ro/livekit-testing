@@ -17,6 +17,7 @@ import ro.stancalau.test.framework.docker.RedisContainer;
 import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.util.DateUtils;
 import ro.stancalau.test.framework.util.FileUtils;
+import ro.stancalau.test.framework.util.PathUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 import ro.stancalau.test.framework.config.TestConfig;
 import ro.stancalau.test.bdd.util.EgressTestUtils;
@@ -44,16 +45,14 @@ public class LiveKitEgressSteps {
         String sanitizedFeatureName = FileUtils.sanitizeFileName(featureName);
         String sanitizedScenarioName = FileUtils.sanitizeFileName(scenarioName);
 
-        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" +
-                sanitizedScenarioName + "/" + timestamp;
-        log.debug("EgressSteps: Set scenario log path to: {}", currentScenarioLogPath);
+        currentScenarioLogPath = PathUtils.scenarioPath(sanitizedFeatureName, sanitizedScenarioName, timestamp);
     }
 
     @Given("a Redis server is running in a container with service name {string}")
     public void aRedisServerIsRunningInContainer(String serviceName) {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
 
-        String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
+        String serviceLogPath = PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", serviceName);
 
         RedisContainer redisContainer = RedisContainer.createContainer(
                 serviceName,
@@ -76,7 +75,7 @@ public class LiveKitEgressSteps {
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
         String livekitWsUrl = liveKitContainer.getNetworkUrl();
 
-        String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
+        String serviceLogPath = PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", serviceName);
 
         EgressContainer egressContainer = EgressContainer.createContainer(
                 serviceName,
@@ -106,7 +105,7 @@ public class LiveKitEgressSteps {
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
         String livekitWsUrl = liveKitContainer.getNetworkUrl();
 
-        String serviceLogPath = getCurrentScenarioLogPath() + "/docker/" + serviceName;
+        String serviceLogPath = PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", serviceName);
 
         EgressContainer egressContainer = EgressContainer.createContainer(
                 serviceName,
@@ -325,7 +324,7 @@ public class LiveKitEgressSteps {
 
     @Then("the recording file exists in the output directory for room {string}")
     public void verifyRecordingFileExists(String roomName) throws InterruptedException {
-        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
+        String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
         assertTrue(recordingsDir.exists() && recordingsDir.isDirectory(),
                 "Recordings directory does not exist: " + recordingsDir.getAbsolutePath());
@@ -378,7 +377,7 @@ public class LiveKitEgressSteps {
 
     @Then("the track composite recording file exists for participant {string}")
     public void verifyTrackCompositeRecordingFileExists(String participantIdentity) throws InterruptedException {
-        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
+        String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
         assertTrue(recordingsDir.exists() && recordingsDir.isDirectory(),
                 "Recordings directory does not exist: " + recordingsDir.getAbsolutePath());
@@ -421,7 +420,7 @@ public class LiveKitEgressSteps {
 
     @And("the recording file contains actual video content")
     public void verifyRecordingContainsVideoContent() {
-        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
+        String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
         File[] files = recordingsDir.listFiles((dir, name) ->
                 (name.startsWith("recording-") || name.startsWith("track-composite-")) &&
@@ -443,7 +442,7 @@ public class LiveKitEgressSteps {
 
     @And("the recording file contains actual video content from multiple participants")
     public void verifyRecordingContainsMultipleParticipants() throws InterruptedException {
-        String recordingsPath = getCurrentScenarioLogPath() + "/video-recordings";
+        String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
 
         File recordingFile = null;
@@ -483,6 +482,6 @@ public class LiveKitEgressSteps {
     }
 
     private String getCurrentScenarioLogPath() {
-        return currentScenarioLogPath != null ? currentScenarioLogPath : "out/bdd/scenarios/current";
+        return currentScenarioLogPath != null ? currentScenarioLogPath : PathUtils.currentScenarioPath();
     }
 }

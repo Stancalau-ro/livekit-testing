@@ -11,6 +11,7 @@ import ro.stancalau.test.framework.factory.LiveKitContainerFactory;
 import ro.stancalau.test.framework.config.TestConfig;
 import ro.stancalau.test.framework.util.DateUtils;
 import ro.stancalau.test.framework.util.FileUtils;
+import ro.stancalau.test.framework.util.PathUtils;
 import ro.stancalau.test.framework.util.ScenarioNamingUtils;
 
 import javax.annotation.Nullable;
@@ -36,8 +37,7 @@ public class LiveKitLifecycleSteps {
         String sanitizedFeatureName = FileUtils.sanitizeFileNameStrict(featureName);
         String sanitizedScenarioName = FileUtils.sanitizeFileNameStrict(scenarioName);
 
-        currentScenarioLogPath = "out/bdd/scenarios/" + sanitizedFeatureName + "/" +
-                sanitizedScenarioName + "/" + timestamp;
+        currentScenarioLogPath = PathUtils.scenarioPath(sanitizedFeatureName, sanitizedScenarioName, timestamp);
         ManagerProvider.webDrivers().setScenarioRecordingPath(currentScenarioLogPath);
     }
 
