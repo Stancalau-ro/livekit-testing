@@ -132,3 +132,4 @@ This is a **LiveKit testing framework** that provides Docker-based integration t
 - **State Management:**
   - All state management classes need to be injectable, never singletons
 - The project must run on both windows and linux so local paths must always be handled appropriately
+- Commit messages must be short and focus on the "why", without any refference to claude or emoticons

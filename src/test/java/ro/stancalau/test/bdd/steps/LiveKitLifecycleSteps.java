@@ -66,7 +66,7 @@ public class LiveKitLifecycleSteps {
     private void getOrCreateContainer(String serviceName, @Nullable String configPath) {
         Network network = ManagerProvider.containers().getOrCreateNetwork();
 
-        String serviceLogPath = currentScenarioLogPath + "/docker/" + serviceName;
+        String serviceLogPath = PathUtils.containerLogPath(currentScenarioLogPath, "docker", serviceName);
         LiveKitContainer liveKitContainer = LiveKitContainerFactory.createBddContainerWithScenarioLogs(
                 serviceName, network, configPath, serviceLogPath);
 

@@ -69,8 +69,7 @@ public class EgressContainer extends GenericContainer<EgressContainer> {
         return createContainer(alias, network, egressVersion, livekitWsUrl, 
                 LiveKitContainer.API_KEY, LiveKitContainer.SECRET, defaultConfigPath, null, redisUrl);
     }
-    
-    
+
     public static EgressContainer createContainerWithS3(String alias, Network network, String egressVersion,
                                                         String livekitWsUrl, String apiKey, String apiSecret,
                                                         @Nullable String logDestinationPath,
