@@ -1,15 +1,16 @@
 package ro.stancalau.test.framework.docker;
 
 import lombok.Getter;
-import com.github.dockerjava.api.model.ExposedPort;
 import lombok.extern.slf4j.Slf4j;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
 import ro.stancalau.test.framework.util.PathUtils;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.time.Duration;
 import java.time.ZoneId;
 import java.util.Objects;
 
@@ -48,13 +49,8 @@ public class LiveKitContainer extends GenericContainer<LiveKitContainer> {
 
         LiveKitContainer container = new LiveKitContainer(liveKitImage, network)
                 .withExposedPorts(HTTP_PORT)
-                .withCreateContainerCmdModifier(cmd -> {
-                    // Expose WebRTC UDP port range for egress service connectivity
-                    // Expose a reasonable subset for container networking (100 ports should be sufficient)
-                    for (int port = 50000; port <= 50100; port++) {
-                        cmd.withExposedPorts(ExposedPort.udp(port));
-                    }
-                });
+                .waitingFor(Wait.forLogMessage(".*starting LiveKit server.*", 1)
+                        .withStartupTimeout(Duration.ofSeconds(60)));
 
         container = ContainerLogUtils.withLogCapture(container, logDirRoot, "livekit.log");
 
