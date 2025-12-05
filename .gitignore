@@ -39,3 +39,8 @@ bin/
 .DS_Store
 /target/cucumber-reports/report.html
 .idea/
+
+# AI assitants
+.claude
+CLAUDE_INTEGRATION_GUIDE.md
+nul
