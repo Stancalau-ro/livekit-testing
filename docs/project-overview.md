@@ -78,5 +78,13 @@ This framework provides comprehensive testing infrastructure for LiveKit real-ti
 
 ## Documentation Index
 
-- [Getting Started](../README.md)
-- [Feature Files](../src/test/resources/features/)
+### Core Documentation
+- [Getting Started](../README.md) - Project setup and quick start guide
+- [Architecture Overview](architecture.md) - System architecture and component relationships
+- [Features Guide](features.md) - Comprehensive feature documentation and usage
+- [Data Flow Diagrams](data-flows.md) - Execution flows and sequence diagrams
+
+### Reference
+- [Feature Files](../src/test/resources/features/) - BDD test scenarios
+- [Roadmap](roadmap.md) - Project roadmap and planned features
+- [CLAUDE.md](../CLAUDE.md) - Development guidelines and commands
