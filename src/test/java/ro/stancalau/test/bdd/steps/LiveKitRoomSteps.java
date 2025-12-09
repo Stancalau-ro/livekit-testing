@@ -234,14 +234,14 @@ public class LiveKitRoomSteps {
         int maxAttempts = 10;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-            
+
             boolean participantExists = participants.stream()
                     .anyMatch(p -> participantIdentity.equals(p.getIdentity()));
-            
+
             if (!participantExists) {
                 return;
             }
-            
+
             if (attempt < maxAttempts - 1) {
                 try {
                     Thread.sleep(POLLING_INTERVAL_MS);
@@ -251,11 +251,113 @@ public class LiveKitRoomSteps {
                 }
             }
         }
-        
+
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
         boolean participantExists = participants.stream()
                 .anyMatch(p -> participantIdentity.equals(p.getIdentity()));
 
         assertFalse(participantExists, "Participant '" + participantIdentity + "' should not exist in room '" + roomName + "'");
+    }
+
+    @Then("participant {string} should be publishing screen share in room {string} using service {string}")
+    public void participantShouldBePublishingScreenShareInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+
+            LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+                    .filter(p -> participantIdentity.equals(p.getIdentity()))
+                    .findFirst()
+                    .orElse(null);
+
+            assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
+
+            long screenShareTrackCount = targetParticipant.getTracksList().stream()
+                    .filter(track -> track.getSource() == LivekitModels.TrackSource.SCREEN_SHARE)
+                    .count();
+
+            if (screenShareTrackCount >= 1) {
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+                .filter(p -> participantIdentity.equals(p.getIdentity()))
+                .findFirst()
+                .orElse(null);
+
+        long screenShareTrackCount = targetParticipant != null ?
+                targetParticipant.getTracksList().stream()
+                        .filter(track -> track.getSource() == LivekitModels.TrackSource.SCREEN_SHARE)
+                        .count() : 0;
+
+        log.warn("Screen share publishing check failed for participant '{}' after {} seconds. Screen share tracks: {}, Total tracks: {}",
+                participantIdentity, maxAttempts * POLLING_INTERVAL_MS / 1000, screenShareTrackCount,
+                targetParticipant != null ? targetParticipant.getTracksList().size() : 0);
+
+        assertEquals(1, screenShareTrackCount, "Participant '" + participantIdentity + "' should have 1 published screen share track");
+    }
+
+    @Then("participant {string} should not be publishing screen share in room {string} using service {string}")
+    public void participantShouldNotBePublishingScreenShareInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+
+        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+                .filter(p -> participantIdentity.equals(p.getIdentity()))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
+
+        long screenShareTrackCount = targetParticipant.getTracksList().stream()
+                .filter(track -> track.getSource() == LivekitModels.TrackSource.SCREEN_SHARE)
+                .count();
+
+        assertEquals(0, screenShareTrackCount, "Participant '" + participantIdentity + "' should have 0 published screen share tracks");
+    }
+
+    @Then("participant {string} should see {int} remote screen share tracks in room {string} using service {string}")
+    public void participantShouldSeeRemoteScreenShareTracksInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+
+        long remoteScreenShareTrackCount = participants.stream()
+                .filter(p -> !participantIdentity.equals(p.getIdentity()))
+                .flatMap(p -> p.getTracksList().stream())
+                .filter(track -> track.getSource() == LivekitModels.TrackSource.SCREEN_SHARE)
+                .count();
+
+        assertEquals(expectedCount, remoteScreenShareTrackCount, "Participant '" + participantIdentity + "' should see " + expectedCount + " remote screen share tracks");
+    }
+
+    @Then("participant {string} should have {int} published tracks in room {string} using service {string}")
+    public void participantShouldHavePublishedTracksInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+
+        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+                .filter(p -> participantIdentity.equals(p.getIdentity()))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
+
+        int trackCount = targetParticipant.getTracksList().size();
+
+        assertEquals(expectedCount, trackCount, "Participant '" + participantIdentity + "' should have " + expectedCount + " published tracks");
     }
 }

@@ -17,13 +17,14 @@ Feature: LiveKit Participant Removal
     And "Daniel" connects to room "RemovalTestRoom" using the access token
     And connection is established successfully for "Daniel"
     Then "mockserver1" should have received a "participant_joined" event for participant "Daniel" in room "RemovalTestRoom"
-    And "mockserver1" should have received a "track_published" event for track type "VIDEO" in room "RemovalTestRoom"
-    
+    And "mockserver1" should have received a "track_published" event for "VIDEO" track from "CAMERA" in room "RemovalTestRoom"
+    And "mockserver1" should have received a "track_published" event for "AUDIO" track from "MICROPHONE" in room "RemovalTestRoom"
+
     When participant "Daniel" is removed from room "RemovalTestRoom" using service "livekit1"
     Then participant "Daniel" should not exist in room "RemovalTestRoom" using service "livekit1"
     And "Daniel" should see disconnection in the browser
-    And "mockserver1" should have received a "track_unpublished" event for track type "VIDEO" in room "RemovalTestRoom"
-    And "mockserver1" should have received a "track_unpublished" event for track type "AUDIO" in room "RemovalTestRoom"
+    And "mockserver1" should have received a "track_unpublished" event for "VIDEO" track from "CAMERA" in room "RemovalTestRoom"
+    And "mockserver1" should have received a "track_unpublished" event for "AUDIO" track from "MICROPHONE" in room "RemovalTestRoom"
     And "mockserver1" should have received a "participant_left" event for participant "Daniel" in room "RemovalTestRoom"
 
   Scenario: Backend service removes specific participant from room with multiple participants
@@ -67,8 +68,8 @@ Feature: LiveKit Participant Removal
     When participant "Peter" is removed from room "WebhookOrderRoom" using service "livekit1"
     Then "Peter" should see disconnection in the browser
     And "mockserver1" should have received exactly 3 webhook events
-    And "mockserver1" should have received a "track_unpublished" event for track type "VIDEO" in room "WebhookOrderRoom"
-    And "mockserver1" should have received a "track_unpublished" event for track type "AUDIO" in room "WebhookOrderRoom"
+    And "mockserver1" should have received a "track_unpublished" event for "VIDEO" track from "CAMERA" in room "WebhookOrderRoom"
+    And "mockserver1" should have received a "track_unpublished" event for "AUDIO" track from "MICROPHONE" in room "WebhookOrderRoom"
     And "mockserver1" should have received a "participant_left" event for participant "Peter" in room "WebhookOrderRoom"
 
   Scenario: Removed participant can rejoin with valid token after backend removal
@@ -90,7 +91,8 @@ Feature: LiveKit Participant Removal
     And connection is established successfully for "Marcus"
     Then room "RejoinRoom" should have 1 active participants in service "livekit1"
     And "mockserver1" should have received a "participant_joined" event for participant "Marcus" in room "RejoinRoom"
-    And "mockserver1" should have received a "track_published" event for track type "VIDEO" in room "RejoinRoom"
+    And "mockserver1" should have received a "track_published" event for "VIDEO" track from "CAMERA" in room "RejoinRoom"
+    And "mockserver1" should have received a "track_published" event for "AUDIO" track from "MICROPHONE" in room "RejoinRoom"
 
   Scenario: Backend service removes participant with custom attributes
     When room "AttributesRemovalRoom" is created using service "livekit1"
@@ -125,5 +127,6 @@ Feature: LiveKit Participant Removal
     When participant "William" is removed from room "ActivePublishingRoom" using service "livekit1"
     Then "William" should see disconnection in the browser
     And participant "Patricia" should see 0 remote video tracks in room "ActivePublishingRoom" using service "livekit1"
-    And "mockserver1" should have received a "track_unpublished" event for track type "VIDEO" in room "ActivePublishingRoom"
+    And "mockserver1" should have received a "track_unpublished" event for "VIDEO" track from "CAMERA" in room "ActivePublishingRoom"
+    And "mockserver1" should have received a "track_unpublished" event for "AUDIO" track from "MICROPHONE" in room "ActivePublishingRoom"
     And "mockserver1" should have received a "participant_left" event for participant "William" in room "ActivePublishingRoom"

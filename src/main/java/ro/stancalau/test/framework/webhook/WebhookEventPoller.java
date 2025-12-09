@@ -116,12 +116,33 @@ public class WebhookEventPoller {
     }
     
     public Optional<WebhookEvent> waitForEventByTypeTrackTypeAndRoom(MockServerClient mockServerClient, String eventType, String trackType, String roomName) {
-        return waitForEvent(mockServerClient, event -> 
-            eventType.equals(event.getEvent()) && 
-            event.getTrack() != null && 
+        return waitForEvent(mockServerClient, event ->
+                eventType.equals(event.getEvent()) &&
+                        event.getTrack() != null &&
             trackType.equals(event.getTrack().getEffectiveType()) &&
-            event.getRoom() != null && 
+                        event.getRoom() != null &&
             roomName.equals(event.getRoom().getName())
+        );
+    }
+
+    public Optional<WebhookEvent> waitForEventByTypeTrackSourceAndRoom(MockServerClient mockServerClient, String eventType, String trackSource, String roomName) {
+        return waitForEvent(mockServerClient, event ->
+                eventType.equals(event.getEvent()) &&
+                        event.getTrack() != null &&
+                        trackSource.equals(event.getTrack().getSource()) &&
+                        event.getRoom() != null &&
+                        roomName.equals(event.getRoom().getName())
+        );
+    }
+
+    public Optional<WebhookEvent> waitForEventByTypeTrackTypeSourceAndRoom(MockServerClient mockServerClient, String eventType, String trackType, String trackSource, String roomName) {
+        return waitForEvent(mockServerClient, event ->
+                eventType.equals(event.getEvent()) &&
+                        event.getTrack() != null &&
+                        trackType.equals(event.getTrack().getEffectiveType()) &&
+                        trackSource.equals(event.getTrack().getSource()) &&
+                        event.getRoom() != null &&
+                        roomName.equals(event.getRoom().getName())
         );
     }
 }

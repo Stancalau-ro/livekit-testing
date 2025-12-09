@@ -4,15 +4,19 @@ class LiveKitMeetClient {
         this.room = null;
         this.localVideoTrack = null;
         this.localAudioTrack = null;
+        this.screenShareTrack = null;
         this.connected = false;
         this.videoEnabled = true;
         this.audioEnabled = true;
+        this.screenShareEnabled = false;
         this.participants = new Map();
-        
+
         // Initialize global variables for test automation
         window.subscriptionFailedEvents = [];
         window.subscriptionPermissionDenied = false;
         window.lastSubscriptionError = '';
+        window.screenSharePermissionDenied = false;
+        window.screenShareActive = false;
         
         this.initializeElements();
         this.setupEventListeners();
@@ -40,13 +44,15 @@ class LiveKitMeetClient {
         // Control buttons
         this.muteBtn = document.getElementById('muteBtn');
         this.cameraBtn = document.getElementById('cameraBtn');
+        this.screenShareBtn = document.getElementById('screenShareBtn');
         this.leaveBtn = document.getElementById('leaveBtn');
     }
-    
+
     setupEventListeners() {
         this.meetingForm.addEventListener('submit', (e) => this.handleJoinMeeting(e));
         this.muteBtn.addEventListener('click', () => this.toggleMute());
         this.cameraBtn.addEventListener('click', () => this.toggleCamera());
+        this.screenShareBtn.addEventListener('click', () => this.toggleScreenShare());
         this.leaveBtn.addEventListener('click', () => this.leaveMeeting());
     }
     
@@ -707,15 +713,81 @@ class LiveKitMeetClient {
     
     async toggleCamera() {
         if (!this.localVideoTrack) return;
-        
+
         this.videoEnabled = !this.videoEnabled;
         this.localVideoTrack.setEnabled(this.videoEnabled);
-        
+
         this.updateVideoDisplay();
         this.cameraBtn.textContent = this.videoEnabled ? 'Camera Off' : 'Camera On';
         this.cameraBtn.className = this.videoEnabled ? 'control-btn camera-btn' : 'control-btn camera-btn off';
     }
-    
+
+    async toggleScreenShare() {
+        if (this.screenShareEnabled) {
+            await this.stopScreenShare();
+        } else {
+            await this.startScreenShare();
+        }
+    }
+
+    async startScreenShare() {
+        try {
+            window.screenSharePermissionDenied = false;
+            window.lastScreenShareError = '';
+
+            const screenShareOptions = {
+                preferCurrentTab: true,
+                selfBrowserSurface: 'include',
+                surfaceSwitching: 'exclude',
+                video: {
+                    displaySurface: 'browser'
+                }
+            };
+
+            addTechnicalDetail(`🖥️ Starting screen share with options: ${JSON.stringify(screenShareOptions)}`);
+
+            await this.room.localParticipant.setScreenShareEnabled(true, screenShareOptions);
+
+            this.screenShareEnabled = true;
+            const screenSharePublication = this.room.localParticipant.getTrackPublication(LiveKit.Track.Source.ScreenShare);
+            this.screenShareTrack = screenSharePublication ? screenSharePublication.track : null;
+            window.screenShareActive = true;
+
+            this.screenShareBtn.textContent = 'Stop Sharing';
+            this.screenShareBtn.className = 'control-btn screen-share-btn active';
+
+            addTechnicalDetail('✅ Screen share started successfully');
+        } catch (error) {
+            console.error('Screen share failed:', error);
+            addTechnicalDetail(`❌ Screen share failed: ${error.message}`);
+
+            if (error.message && (error.message.includes('permission') || error.message.includes('denied') || error.message.includes('NotAllowedError') || error.message.includes('AbortError'))) {
+                window.screenSharePermissionDenied = true;
+            }
+            window.lastScreenShareError = error.message;
+            window.screenShareActive = false;
+            throw error;
+        }
+    }
+
+    async stopScreenShare() {
+        try {
+            await this.room.localParticipant.setScreenShareEnabled(false);
+
+            this.screenShareEnabled = false;
+            this.screenShareTrack = null;
+            window.screenShareActive = false;
+
+            this.screenShareBtn.textContent = 'Share Screen';
+            this.screenShareBtn.className = 'control-btn screen-share-btn';
+
+            addTechnicalDetail('✅ Screen share stopped successfully');
+        } catch (error) {
+            console.error('Stop screen share failed:', error);
+            addTechnicalDetail(`❌ Stop screen share failed: ${error.message}`);
+        }
+    }
+
     updateVideoDisplay() {
         if (this.videoEnabled) {
             this.localVideo.style.display = 'block';
@@ -750,7 +822,11 @@ class LiveKitMeetClient {
             this.localAudioTrack.stop();
             this.localAudioTrack = null;
         }
-        
+        if (this.screenShareTrack) {
+            this.screenShareTrack.stop();
+            this.screenShareTrack = null;
+        }
+
         // Clean up room
         this.room = null;
         
@@ -767,8 +843,12 @@ class LiveKitMeetClient {
         this.muteBtn.className = 'control-btn mute-btn';
         this.cameraBtn.textContent = 'Camera Off';
         this.cameraBtn.className = 'control-btn camera-btn';
+        this.screenShareBtn.textContent = 'Share Screen';
+        this.screenShareBtn.className = 'control-btn screen-share-btn';
         this.audioEnabled = true;
         this.videoEnabled = true;
+        this.screenShareEnabled = false;
+        window.screenShareActive = false;
     }
     
     showMeetingRoom(roomName) {
@@ -804,12 +884,16 @@ class LiveKitMeetClient {
     
     // Public API for test automation
     isConnected() {
-        const connectedState = (LiveKit.ConnectionState && LiveKit.ConnectionState.Connected) 
-            ? LiveKit.ConnectionState.Connected 
+        const connectedState = (LiveKit.ConnectionState && LiveKit.ConnectionState.Connected)
+            ? LiveKit.ConnectionState.Connected
             : 'connected';
         return this.connected && this.room?.state === connectedState;
     }
-    
+
+    isScreenSharing() {
+        return this.screenShareEnabled && window.screenShareActive;
+    }
+
     isInMeetingRoom() {
         return this.meetingRoom.style.display !== 'none';
     }

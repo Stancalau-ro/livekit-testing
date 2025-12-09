@@ -4,10 +4,10 @@ import lombok.Getter;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.firefox.FirefoxDriver;
-import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.edge.EdgeOptions;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 import ro.stancalau.test.framework.util.PathUtils;
 
 import java.io.File;
@@ -49,7 +49,9 @@ public class SeleniumConfig {
         // Fake media streams for testing
         options.addPreference("media.navigator.streams.fake", true);
         options.addPreference("media.navigator.permission.disabled", true);
-        
+        options.addPreference("media.getusermedia.screensharing.enabled", true);
+        options.addPreference("media.getusermedia.screensharing.allowed_domains", "localhost,webserver");
+
         // WebRTC specific settings
         options.addPreference("media.autoplay.default", 0);
         options.addPreference("media.autoplay.enabled", true);
@@ -92,6 +94,8 @@ public class SeleniumConfig {
         ChromeOptions options = new ChromeOptions();
         options.addArguments("use-fake-device-for-media-stream");
         options.addArguments("use-fake-ui-for-media-stream");
+        options.addArguments("--auto-select-desktop-capture-source=Entire screen");
+        options.addArguments("--enable-usermedia-screen-capturing");
         options.addArguments("--disable-field-trial-config");
         options.addArguments("--disable-features=WebRtcHideLocalIpsWithMdnsg");
         options.addArguments("--disable-dev-shm-usage");
@@ -109,6 +113,8 @@ public class SeleniumConfig {
         EdgeOptions options = new EdgeOptions();
         options.addArguments("use-fake-device-for-media-stream");
         options.addArguments("use-fake-ui-for-media-stream");
+        options.addArguments("--auto-select-desktop-capture-source=Entire screen");
+        options.addArguments("--enable-usermedia-screen-capturing");
         options.addArguments("--disable-field-trial-config");
         options.addArguments("--disable-features=WebRtcHideLocalIpsWithMdnsg");
         options.addArguments("--disable-dev-shm-usage");

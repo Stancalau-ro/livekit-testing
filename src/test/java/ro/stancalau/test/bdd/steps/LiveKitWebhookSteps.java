@@ -18,7 +18,6 @@ import ro.stancalau.test.framework.webhook.WebhookEvent;
 import ro.stancalau.test.framework.webhook.WebhookEventPoller;
 import ro.stancalau.test.framework.webhook.WebhookService;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -230,12 +229,66 @@ public class LiveKitWebhookSteps {
             }
             
             log.info("Found {} event for track type {} in room {}", eventType, trackType, roomName);
-            
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to retrieve webhook events from mock server", e);
         }
     }
-    
+
+    @Then("{string} should have received a {string} event for track source {string} in room {string}")
+    public void theMockServerShouldHaveReceivedAnEventForTrackSource(String serviceName, String eventType, String trackSource, String roomName) {
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
+
+        if (mockServer == null) {
+            throw new RuntimeException("Mock server with service name " + serviceName + " not found");
+        }
+
+        try {
+            MockServerClient mockServerClient = mockServer.getMockServerClient();
+            Optional<WebhookEvent> foundEvent = webhookEventPoller.waitForEventByTypeTrackSourceAndRoom(mockServerClient, eventType, trackSource, roomName);
+
+            if (foundEvent.isEmpty()) {
+                List<WebhookEvent> allEvents = webhookService.getWebhookEvents(mockServerClient);
+                fail("Expected mock server to have received '" + eventType + "' event for track source '" + trackSource +
+                        "' in room '" + roomName + "' but received events: " + allEvents.stream().map(e -> e.getEvent() +
+                        (e.getTrack() != null ? " (track source: " + e.getTrack().getSource() + ")" : "") +
+                        (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : "")).toList());
+            }
+
+            log.info("Found {} event for track source {} in room {}", eventType, trackSource, roomName);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve webhook events from mock server", e);
+        }
+    }
+
+    @Then("{string} should have received a {string} event for {string} track from {string} in room {string}")
+    public void theMockServerShouldHaveReceivedAnEventForTrackTypeAndSource(String serviceName, String eventType, String trackType, String trackSource, String roomName) {
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
+
+        if (mockServer == null) {
+            throw new RuntimeException("Mock server with service name " + serviceName + " not found");
+        }
+
+        try {
+            MockServerClient mockServerClient = mockServer.getMockServerClient();
+            Optional<WebhookEvent> foundEvent = webhookEventPoller.waitForEventByTypeTrackTypeSourceAndRoom(mockServerClient, eventType, trackType, trackSource, roomName);
+
+            if (foundEvent.isEmpty()) {
+                List<WebhookEvent> allEvents = webhookService.getWebhookEvents(mockServerClient);
+                fail("Expected mock server to have received '" + eventType + "' event for " + trackType + " track from " + trackSource +
+                        " in room '" + roomName + "' but received events: " + allEvents.stream().map(e -> e.getEvent() +
+                        (e.getTrack() != null ? " (type: " + e.getTrack().getEffectiveType() + ", source: " + e.getTrack().getSource() + ")" : "") +
+                        (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : "")).toList());
+            }
+
+            log.info("Found {} event for {} track from {} in room {}", eventType, trackType, trackSource, roomName);
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to retrieve webhook events from mock server", e);
+        }
+    }
+
     @When("{string} webhook events are cleared")
     public void theMockServerWebhookEventsAreCleared(String serviceName) {
         MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);

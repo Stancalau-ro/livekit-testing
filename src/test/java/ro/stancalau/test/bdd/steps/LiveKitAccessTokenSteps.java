@@ -10,6 +10,7 @@ import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -137,9 +138,10 @@ public class LiveKitAccessTokenSteps {
         assertNotNull(videoGrants, "Video grants should be present");
         
         String actualValue = getGrantValue(videoGrants, grantName);
-        assertEquals(expectedValue, actualValue, "Grant " + grantName + " should be set to " + expectedValue);
-        
-        log.info("Verified grant {} is set to {} for {} in room {}", grantName, expectedValue, identity, roomName);
+        String normalizedExpected = normalizeExpectedValue(expectedValue);
+        assertEquals(normalizedExpected, actualValue, "Grant " + grantName + " should be set to " + normalizedExpected);
+
+        log.info("Verified grant {} is set to {} for {} in room {}", grantName, normalizedExpected, identity, roomName);
     }
 
     @Then("the access token for {string} in room {string} should not have grant {string}")
@@ -201,7 +203,25 @@ public class LiveKitAccessTokenSteps {
         if (value == null) {
             return null;
         }
+        if (value instanceof List<?> list) {
+            return normalizeListValue(list.stream().map(Object::toString).toList());
+        }
         return value.toString();
+    }
+
+    private String normalizeListValue(List<String> items) {
+        return items.stream().sorted().toList().toString();
+    }
+
+    private String normalizeExpectedValue(String expected) {
+        if (expected != null && expected.startsWith("[") && expected.endsWith("]")) {
+            String inner = expected.substring(1, expected.length() - 1);
+            List<String> items = Arrays.stream(inner.split(","))
+                    .map(String::trim)
+                    .toList();
+            return normalizeListValue(items);
+        }
+        return expected;
     }
 
     private boolean isGrantValueFalsy(Object value) {
@@ -241,11 +261,11 @@ public class LiveKitAccessTokenSteps {
         List<Map<String, String>> grants = dataTable.asMaps(String.class, String.class);
         for (Map<String, String> grantRow : grants) {
             String grantName = grantRow.get("grant");
-            String expectedValue = grantRow.get("value");
-            
+            String expectedValue = normalizeExpectedValue(grantRow.get("value"));
+
             String actualValue = getGrantValue(videoGrants, grantName);
             assertEquals(expectedValue, actualValue, "Grant " + grantName + " should be set to " + expectedValue);
-            
+
             log.info("Verified grant {} is set to {} for {} in room {}", grantName, expectedValue, identity, roomName);
         }
     }

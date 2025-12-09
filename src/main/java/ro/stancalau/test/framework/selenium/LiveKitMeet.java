@@ -2,13 +2,11 @@ package ro.stancalau.test.framework.selenium;
 
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.*;
-import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.docker.WebServerContainer;
+import ro.stancalau.test.framework.state.ContainerStateManager;
 
-import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -450,7 +448,84 @@ public class LiveKitMeet {
             log.warn("Camera button not found");
         }
     }
-    
+
+    public void startScreenShare() {
+        try {
+            WebElement screenShareButton = driver.findElement(By.id("screenShareBtn"));
+            if (!isScreenSharing()) {
+                screenShareButton.click();
+                log.info("LiveKitMeet started screen sharing");
+
+                WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+                try {
+                    wait.until(driver -> {
+                        Boolean isSharing = (Boolean) ((JavascriptExecutor) driver).executeScript(
+                                "return window.liveKitClient && window.liveKitClient.isScreenSharing();"
+                        );
+                        Boolean permissionDenied = (Boolean) ((JavascriptExecutor) driver).executeScript(
+                                "return window.screenSharePermissionDenied || false;"
+                        );
+                        if (permissionDenied != null && permissionDenied) {
+                            String error = (String) ((JavascriptExecutor) driver).executeScript(
+                                    "return window.lastScreenShareError || 'Permission denied';"
+                            );
+                            throw new RuntimeException("Screen share permission denied: " + error);
+                        }
+                        return isSharing != null && isSharing;
+                    });
+                } catch (TimeoutException e) {
+                    String lastError = (String) ((JavascriptExecutor) driver).executeScript(
+                            "return window.lastScreenShareError || 'No error captured';"
+                    );
+                    Boolean permissionDenied = (Boolean) ((JavascriptExecutor) driver).executeScript(
+                            "return window.screenSharePermissionDenied || false;"
+                    );
+                    log.error("Screen share timeout. Last error: {}, Permission denied: {}", lastError, permissionDenied);
+                    throw e;
+                }
+            }
+        } catch (NoSuchElementException e) {
+            log.warn("Screen share button not found");
+        }
+    }
+
+    public void stopScreenShare() {
+        try {
+            WebElement screenShareButton = driver.findElement(By.id("screenShareBtn"));
+            if (isScreenSharing()) {
+                screenShareButton.click();
+                log.info("LiveKitMeet stopped screen sharing");
+
+                WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(5));
+                wait.until(driver -> !isScreenSharing());
+            }
+        } catch (NoSuchElementException e) {
+            log.warn("Screen share button not found");
+        }
+    }
+
+    public boolean isScreenSharing() {
+        try {
+            Boolean isSharing = (Boolean) ((JavascriptExecutor) driver).executeScript(
+                "return window.liveKitClient && window.liveKitClient.isScreenSharing() || false;"
+            );
+            return isSharing != null && isSharing;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean isScreenShareBlocked() {
+        try {
+            Boolean blocked = (Boolean) ((JavascriptExecutor) driver).executeScript(
+                "return window.screenSharePermissionDenied || false;"
+            );
+            return blocked != null && blocked;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public void refreshAndReconnect() {
         log.info("LiveKitMeet refreshing page to retry connection");
         try {
