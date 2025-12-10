@@ -4,7 +4,6 @@ import io.livekit.server.*;
 import lombok.extern.slf4j.Slf4j;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -93,12 +92,13 @@ public class AccessTokenStateManager {
     
     private List<VideoGrant> parseGrants(List<String> grantStrings, String roomName) {
         List<VideoGrant> grants = new ArrayList<>();
-        
+        List<String> publishSources = new ArrayList<>();
+
         for (String grantString : grantStrings) {
             String[] parts = grantString.trim().split(":");
             String grantType = parts[0].toLowerCase();
             String value = parts.length > 1 ? parts[1] : "true";
-            
+
             switch (grantType) {
                 case "roomjoin":
                     grants.add(new RoomJoin(Boolean.parseBoolean(value)));
@@ -139,12 +139,37 @@ public class AccessTokenStateManager {
                 case "agent":
                     grants.add(new Agent(Boolean.parseBoolean(value)));
                     break;
+                case "canpublishsources":
+                    try {
+                        String[] sources = value.split(",");
+                        for (String source : sources) {
+                            String sourceType = source.trim().toLowerCase();
+                            switch (sourceType) {
+                                case "camera":
+                                case "microphone":
+                                case "screen_share":
+                                case "screen_share_audio":
+                                    publishSources.add(sourceType);
+                                    break;
+                                default:
+                                    log.warn("Unknown track source type: {}", sourceType);
+                                    break;
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to parse canPublishSources grant with value: {}", value, e);
+                    }
+                    break;
                 default:
                     log.warn("Unknown grant type: {}", grantType);
                     break;
             }
         }
-        
+
+        if (!publishSources.isEmpty()) {
+            grants.add(new CanPublishSources(publishSources));
+        }
+
         return grants;
     }
 

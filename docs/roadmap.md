@@ -35,7 +35,7 @@ The framework currently tests:
 - All new scenarios pass across supported versions
 - Documentation exists for each tested feature
 
-#### Story 1.1.1: Test Screen Sharing Functionality
+#### Story 1.1.1: Test Screen Sharing Functionality [DONE]
 
 **As a** test developer
 **I want** to test screen sharing between participants
@@ -50,14 +50,16 @@ The framework currently tests:
 - When the screen share is active
 - Then they receive the screen share track
 
-- [ ] Add permission grant for screen sharing (canPublishSources)
-- [ ] Simulate screen share from browser
-- [ ] Verify screen share track appears in room
-- [ ] Test subscriber receives screen share track
-- [ ] Test screen share quality settings
-- [ ] Verify screen share stops correctly
+- [x] Add permission grant for screen sharing (canPublishSources)
+- [x] Simulate screen share from browser
+- [x] Verify screen share track appears in room
+- [x] Test subscriber receives screen share track
+- [x] Test screen share quality settings
+- [x] Verify screen share stops correctly
 
 **Size:** M
+
+**Implementation:** `src/test/resources/features/livekit_screen_sharing.feature`
 
 ---
 
@@ -1607,7 +1609,7 @@ Phase 5 (Innovation)
 
 ### Immediate (Next 1-2 Sprints)
 
-1. Story 1.1.1 - Test Screen Sharing Functionality
+1. ~~Story 1.1.1 - Test Screen Sharing Functionality~~ [DONE]
 2. Story 1.1.2 - Test Simulcast Video Publishing
 3. Story 1.1.4 - Test Data Channel Communication
 4. Story 1.1.7 - Test Track Mute and Unmute Operations

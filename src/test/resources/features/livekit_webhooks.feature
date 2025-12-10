@@ -17,7 +17,8 @@ Feature: LiveKit Webhook Integration
     And "George" connects to room "WebhookTestRoom" using the access token
     And connection is established successfully for "George"
     Then "mockserver1" should have received a "participant_joined" event for participant "George" in room "WebhookTestRoom"
-    And "mockserver1" should have received a "track_published" event for track type "VIDEO" in room "WebhookTestRoom"
+    And "mockserver1" should have received a "track_published" event for "VIDEO" track from "CAMERA" in room "WebhookTestRoom"
+    And "mockserver1" should have received a "track_published" event for "AUDIO" track from "MICROPHONE" in room "WebhookTestRoom"
     
     When room "WebhookTestRoom" is deleted using service "livekit1"
     Then "mockserver1" should have received a "room_finished" event for room "WebhookTestRoom"
@@ -72,3 +73,28 @@ Feature: LiveKit Webhook Integration
     When room "AttributesTestRoom" is deleted using service "livekit1"
     Then "mockserver1" should have received a "room_finished" event for room "AttributesTestRoom"
     And "mockserver1" should have received a "participant_left" event for participant "Elizabeth" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
+
+  Scenario: LiveKit sends webhook events when screen share is published and unpublished
+    When room "ScreenShareWebhookRoom" is created using service "livekit1"
+    Then "mockserver1" should have received a "room_started" event for room "ScreenShareWebhookRoom"
+
+    Given an access token is created with identity "Yolanda" and room "ScreenShareWebhookRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone\,screen_share"
+    When "Yolanda" opens a "Chrome" browser with LiveKit Meet page
+    And "Yolanda" connects to room "ScreenShareWebhookRoom" using the access token
+    And connection is established successfully for "Yolanda"
+    Then "mockserver1" should have received a "participant_joined" event for participant "Yolanda" in room "ScreenShareWebhookRoom"
+    And "mockserver1" should have received a "track_published" event for "VIDEO" track from "CAMERA" in room "ScreenShareWebhookRoom"
+    And "mockserver1" should have received a "track_published" event for "AUDIO" track from "MICROPHONE" in room "ScreenShareWebhookRoom"
+
+    When "mockserver1" webhook events are cleared
+    And "Yolanda" starts screen sharing
+
+    Then "mockserver1" should have received a "track_published" event for "VIDEO" track from "SCREEN_SHARE" in room "ScreenShareWebhookRoom"
+
+    When "mockserver1" webhook events are cleared
+    And "Yolanda" stops screen sharing
+
+    Then "mockserver1" should have received a "track_unpublished" event for "VIDEO" track from "SCREEN_SHARE" in room "ScreenShareWebhookRoom"
+
+    When room "ScreenShareWebhookRoom" is deleted using service "livekit1"
+    Then "mockserver1" should have received a "room_finished" event for room "ScreenShareWebhookRoom"

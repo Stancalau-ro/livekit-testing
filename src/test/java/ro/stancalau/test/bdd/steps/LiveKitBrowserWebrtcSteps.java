@@ -2,23 +2,22 @@ package ro.stancalau.test.bdd.steps;
 
 import io.cucumber.java.After;
 import io.cucumber.java.Scenario;
-import io.cucumber.java.en.When;
-import io.cucumber.java.en.Then;
 import io.cucumber.java.en.And;
+import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
-import ro.stancalau.test.framework.state.RoomClientStateManager;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
+import ro.stancalau.test.framework.state.RoomClientStateManager;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @Slf4j
 public class LiveKitBrowserWebrtcSteps {
@@ -153,7 +152,10 @@ public class LiveKitBrowserWebrtcSteps {
         return errorLower.contains("could not find any available nodes") ||
                errorLower.contains("server error") ||
                errorLower.contains("500") ||
-               errorLower.contains("internal server error");
+                errorLower.contains("internal server error") ||
+                errorLower.contains("websocket error") ||
+                errorLower.contains("signal connection") ||
+                errorLower.contains("could not establish");
     }
 
     @Then("the connection should be successful for {string}")
@@ -247,6 +249,55 @@ public class LiveKitBrowserWebrtcSteps {
         meetInstances.remove(participantName);
     }
     
+    @When("{string} starts screen sharing")
+    public void startsScreenSharing(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.startScreenShare();
+    }
+
+    @When("{string} stops screen sharing")
+    public void stopsScreenSharing(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.stopScreenShare();
+    }
+
+    @When("{string} attempts to start screen sharing")
+    public void attemptsToStartScreenSharing(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        try {
+            meetInstance.startScreenShare();
+        } catch (Exception e) {
+            log.info("Screen share attempt failed as expected: {}", e.getMessage());
+        }
+    }
+
+    @Then("participant {string} should have screen share blocked due to permissions")
+    public void participantShouldHaveScreenShareBlockedDueToPermissions(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, participantName + " should have an active LiveKit Meet instance");
+
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
+        assertNotNull(driver, "WebDriver should exist for " + participantName);
+
+        try {
+            Thread.sleep(2000);
+
+            boolean isBlocked = meetInstance.isScreenShareBlocked();
+            boolean isSharing = meetInstance.isScreenSharing();
+
+            assertTrue(isBlocked || !isSharing,
+                participantName + " should have screen share blocked (blocked: " + isBlocked + ", sharing: " + isSharing + ")");
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail("Test interrupted while checking screen share status");
+        }
+    }
+
     @Then("participant {string} should have video subscription blocked due to permissions")
     public void participantShouldHaveVideoSubscriptionBlockedDueToPermissions(String participantName) {
         LiveKitMeet meetInstance = meetInstances.get(participantName);

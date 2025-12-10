@@ -2,12 +2,15 @@ package ro.stancalau.test.framework.state;
 
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chromium.HasCdp;
+import org.openqa.selenium.remote.Augmenter;
+import org.openqa.selenium.remote.RemoteWebDriver;
 import org.testcontainers.containers.BrowserWebDriverContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.VncRecordingContainer;
 import org.testcontainers.lifecycle.TestDescription;
-import ro.stancalau.test.framework.selenium.SeleniumConfig;
 import ro.stancalau.test.framework.config.TestConfig;
+import ro.stancalau.test.framework.selenium.SeleniumConfig;
 
 import java.io.File;
 import java.util.HashMap;
@@ -86,8 +89,33 @@ public class WebDriverStateManager {
         webDrivers.put(key, driver);
         browserContainers.put(key, browserContainer);
         log.debug("Registered containerized WebDriver with key: {}", key);
-        
+
+        grantDisplayCapturePermission(driver);
+
         return driver;
+    }
+
+    private void grantDisplayCapturePermission(WebDriver driver) {
+        try {
+            if (driver instanceof RemoteWebDriver remoteDriver) {
+                WebDriver augmentedDriver = new Augmenter().augment(remoteDriver);
+                if (augmentedDriver instanceof HasCdp cdpDriver) {
+                    Map<String, Object> permission = new HashMap<>();
+                    Map<String, Object> permissionDescriptor = new HashMap<>();
+                    permissionDescriptor.put("name", "display-capture");
+
+                    permission.put("permission", permissionDescriptor);
+                    permission.put("setting", "granted");
+
+                    cdpDriver.executeCdpCommand("Browser.setPermission", permission);
+                    log.info("Granted display-capture permission via CDP");
+                } else {
+                    log.warn("WebDriver does not support CDP after augmentation");
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not grant display-capture permission via CDP: {}", e.getMessage());
+        }
     }
     
     /**
