@@ -9,7 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
 import static org.junit.jupiter.api.Assertions.*;
@@ -190,8 +193,8 @@ public class LiveKitRoomSteps {
         assertEquals(0, videoTrackCount, "Participant '" + participantIdentity + "' should have 0 published video tracks");
     }
 
-    @Then("participant {string} should see {int} remote video tracks in room {string} using service {string}")
-    public void participantShouldSeeRemoteVideoTracksInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
+    @Then("participant {string} should have {int} remote video tracks available in room {string} using service {string}")
+    public void participantShouldHaveRemoteVideoTracksAvailableInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
 
         long remoteVideoTrackCount = participants.stream()
@@ -332,8 +335,8 @@ public class LiveKitRoomSteps {
         assertEquals(0, screenShareTrackCount, "Participant '" + participantIdentity + "' should have 0 published screen share tracks");
     }
 
-    @Then("participant {string} should see {int} remote screen share tracks in room {string} using service {string}")
-    public void participantShouldSeeRemoteScreenShareTracksInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
+    @Then("participant {string} should have {int} remote screen share tracks available in room {string} using service {string}")
+    public void participantShouldHaveRemoteScreenShareTracksAvailableInRoomUsingService(String participantIdentity, int expectedCount, String roomName, String serviceName) {
         List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
 
         long remoteScreenShareTrackCount = participants.stream()
@@ -359,5 +362,262 @@ public class LiveKitRoomSteps {
         int trackCount = targetParticipant.getTracksList().size();
 
         assertEquals(expectedCount, trackCount, "Participant '" + participantIdentity + "' should have " + expectedCount + " published tracks");
+    }
+
+    private LivekitModels.TrackInfo getVideoTrackForParticipant(String serviceName, String roomName, String participantIdentity) {
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
+
+        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+                .filter(p -> participantIdentity.equals(p.getIdentity()))
+                .findFirst()
+                .orElse(null);
+
+        if (targetParticipant == null) {
+            return null;
+        }
+
+        return targetParticipant.getTracksList().stream()
+                .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
+                .filter(track -> track.getSource() == LivekitModels.TrackSource.CAMERA)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private List<LivekitModels.VideoLayer> getVideoLayersForParticipant(String serviceName, String roomName, String participantIdentity) {
+        LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(serviceName, roomName, participantIdentity);
+
+        if (videoTrack == null) {
+            return Collections.emptyList();
+        }
+
+        return videoTrack.getLayersList();
+    }
+
+    @Then("participant {string} should have simulcast enabled for video in room {string} using service {string}")
+    public void participantShouldHaveSimulcastEnabled(String identity, String room, String service) {
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
+
+            if (videoTrack != null && videoTrack.getSimulcast()) {
+                log.info("Simulcast verified as enabled for participant '{}' in room '{}'", identity, room);
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
+        assertNotNull(videoTrack, "Video track should exist for participant '" + identity + "'");
+        assertTrue(videoTrack.getSimulcast(), "Simulcast should be enabled for participant '" + identity + "'");
+    }
+
+    @Then("participant {string} should have simulcast disabled for video in room {string} using service {string}")
+    public void participantShouldHaveSimulcastDisabled(String identity, String room, String service) {
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
+
+            if (videoTrack != null && !videoTrack.getSimulcast()) {
+                log.info("Simulcast verified as disabled for participant '{}' in room '{}'", identity, room);
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
+        assertNotNull(videoTrack, "Video track should exist for participant '" + identity + "'");
+        assertFalse(videoTrack.getSimulcast(), "Simulcast should be disabled for participant '" + identity + "'");
+    }
+
+    @Then("participant {string} video track should have at least {int} layers in room {string} using service {string}")
+    public void videoTrackShouldHaveAtLeastLayers(String identity, int minLayers, String room, String service) {
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
+
+            if (layers.size() >= minLayers) {
+                log.info("Found {} layers for participant '{}' (minimum required: {})", layers.size(), identity, minLayers);
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
+        assertTrue(layers.size() >= minLayers,
+            "Participant '" + identity + "' should have at least " + minLayers + " video layers, found: " + layers.size());
+    }
+
+    @Then("participant {string} video track should have exactly {int} layer in room {string} using service {string}")
+    public void videoTrackShouldHaveExactlyLayers(String identity, int expectedLayers, String room, String service) {
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
+
+            if (layers.size() == expectedLayers) {
+                log.info("Found exactly {} layer(s) for participant '{}'", expectedLayers, identity);
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
+        assertEquals(expectedLayers, layers.size(),
+            "Participant '" + identity + "' should have exactly " + expectedLayers + " video layer(s)");
+    }
+
+    @Then("participant {string} video layers should have different resolutions in room {string} using service {string}")
+    public void videoLayersShouldHaveDifferentResolutions(String identity, String room, String service) {
+        List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
+        assertTrue(layers.size() >= 2, "Need at least 2 layers to compare resolutions, found: " + layers.size());
+
+        Set<String> resolutions = layers.stream()
+                .map(layer -> layer.getWidth() + "x" + layer.getHeight())
+                .collect(Collectors.toSet());
+
+        assertTrue(resolutions.size() > 1,
+            "Video layers should have different resolutions, found: " + resolutions);
+    }
+
+    @Then("participant {string} video layers should have different bitrates in room {string} using service {string}")
+    public void videoLayersShouldHaveDifferentBitrates(String identity, String room, String service) {
+        List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
+        assertTrue(layers.size() >= 2, "Need at least 2 layers to compare bitrates, found: " + layers.size());
+
+        Set<Integer> bitrates = layers.stream()
+                .map(LivekitModels.VideoLayer::getBitrate)
+                .collect(Collectors.toSet());
+
+        assertTrue(bitrates.size() > 1,
+            "Video layers should have different bitrates, found: " + bitrates);
+    }
+
+    @Then("participant {string} highest video layer should have greater resolution than lowest layer in room {string} using service {string}")
+    public void highestLayerShouldHaveGreaterResolution(String identity, String room, String service) {
+        List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
+        assertTrue(layers.size() >= 2, "Need at least 2 layers to compare, found: " + layers.size());
+
+        LivekitModels.VideoLayer highest = layers.stream()
+                .max(Comparator.comparingInt(l -> l.getWidth() * l.getHeight()))
+                .orElse(null);
+
+        LivekitModels.VideoLayer lowest = layers.stream()
+                .min(Comparator.comparingInt(l -> l.getWidth() * l.getHeight()))
+                .orElse(null);
+
+        assertNotNull(highest, "Highest layer should exist");
+        assertNotNull(lowest, "Lowest layer should exist");
+
+        int highestResolution = highest.getWidth() * highest.getHeight();
+        int lowestResolution = lowest.getWidth() * lowest.getHeight();
+
+        assertTrue(highestResolution > lowestResolution,
+            "Highest layer (" + highest.getWidth() + "x" + highest.getHeight() +
+            ") should have greater resolution than lowest (" + lowest.getWidth() + "x" + lowest.getHeight() + ")");
+    }
+
+    @Then("the CLI publisher should have simulcast video layers in room {string} using service {string}")
+    public void cliPublisherShouldHaveSimulcastLayers(String room, String service) {
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
+
+            boolean hasSimulcast = participants.stream()
+                    .flatMap(p -> p.getTracksList().stream())
+                    .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
+                    .anyMatch(t -> t.getSimulcast() && t.getLayersCount() > 1);
+
+            if (hasSimulcast) {
+                log.info("CLI publisher has simulcast video layers in room '{}'", room);
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
+        boolean hasSimulcast = participants.stream()
+                .flatMap(p -> p.getTracksList().stream())
+                .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
+                .anyMatch(t -> t.getSimulcast() && t.getLayersCount() > 1);
+
+        assertTrue(hasSimulcast, "CLI publisher should have simulcast video layers");
+    }
+
+    @Then("the CLI publisher should have exactly {int} video layer in room {string} using service {string}")
+    public void cliPublisherShouldHaveExactlyLayers(int expectedLayers, String room, String service) {
+        int maxAttempts = 20;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
+
+            int layerCount = participants.stream()
+                    .flatMap(p -> p.getTracksList().stream())
+                    .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
+                    .mapToInt(LivekitModels.TrackInfo::getLayersCount)
+                    .max()
+                    .orElse(0);
+
+            if (layerCount == expectedLayers) {
+                log.info("CLI publisher has exactly {} video layer(s)", expectedLayers);
+                return;
+            }
+
+            if (attempt < maxAttempts - 1) {
+                try {
+                    Thread.sleep(POLLING_INTERVAL_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
+        int layerCount = participants.stream()
+                .flatMap(p -> p.getTracksList().stream())
+                .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
+                .mapToInt(LivekitModels.TrackInfo::getLayersCount)
+                .max()
+                .orElse(0);
+
+        assertEquals(expectedLayers, layerCount, "CLI publisher should have exactly " + expectedLayers + " video layer(s)");
     }
 }

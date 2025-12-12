@@ -20,10 +20,16 @@ public class LiveKitMeet {
 
     private final WebDriver driver;
     private final ContainerStateManager containerManager;
+    private final boolean simulcastEnabled;
 
     public LiveKitMeet(WebDriver driver, String liveKitUrl, String jwt, String roomName, String participantName, ContainerStateManager containerManager) {
+        this(driver, liveKitUrl, jwt, roomName, participantName, containerManager, true);
+    }
+
+    public LiveKitMeet(WebDriver driver, String liveKitUrl, String jwt, String roomName, String participantName, ContainerStateManager containerManager, boolean simulcastEnabled) {
         this.driver = driver;
         this.containerManager = containerManager;
+        this.simulcastEnabled = simulcastEnabled;
         start(liveKitUrl, jwt, roomName, participantName);
     }
 
@@ -38,10 +44,11 @@ public class LiveKitMeet {
             String encodedRoomName = URLEncoder.encode(roomName, StandardCharsets.UTF_8);
             String encodedParticipantName = URLEncoder.encode(participantName, StandardCharsets.UTF_8);
             
-            String fullUrl = baseUrl + "?liveKitUrl=" + encodedLiveKitUrl + 
-                            "&token=" + encodedJwt + 
-                            "&roomName=" + encodedRoomName + 
-                            "&participantName=" + encodedParticipantName + 
+            String fullUrl = baseUrl + "?liveKitUrl=" + encodedLiveKitUrl +
+                            "&token=" + encodedJwt +
+                            "&roomName=" + encodedRoomName +
+                            "&participantName=" + encodedParticipantName +
+                            "&simulcast=" + simulcastEnabled +
                             "&autoJoin=true";
 
             driver.get(fullUrl);
@@ -56,12 +63,12 @@ public class LiveKitMeet {
             }
             
             Boolean liveKitLoaded = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                "return typeof LiveKit !== 'undefined';"
+                "return window.LiveKitTestHelpers.isLiveKitLoaded();"
             );
             log.info("LiveKit SDK loaded from local file: {}", liveKitLoaded);
-            
+
             String jsErrors = (String) ((JavascriptExecutor) driver).executeScript(
-                "return window.lastError || ''"
+                "return window.LiveKitTestHelpers.getLastError();"
             );
             if (jsErrors != null && !jsErrors.trim().isEmpty()) {
                 log.warn("JavaScript errors detected: {}", jsErrors);
@@ -117,31 +124,28 @@ public class LiveKitMeet {
                 log.warn("Connection status check timed out, proceeding with verification checks");
             }
             
-            // Check for mock usage - log warning but don't fail (containerized testing often uses mocks)
             Boolean usingMock = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                "return !!window.USING_MOCK_LIVEKIT;"
+                "return window.LiveKitTestHelpers.isUsingMock();"
             );
-            
+
             if (usingMock != null && usingMock) {
                 log.warn("MOCK LiveKit detected - this is expected in containerized testing environments");
             }
-            
-            // Check the definitive WebRTC connection verification flag
+
             Boolean realWebRTCConnection = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                "return window.REAL_WEBRTC_CONNECTION_VERIFIED || false;"
+                "return window.LiveKitTestHelpers.isRealWebRTCConnectionVerified();"
             );
-            
-            // Also check the legacy flags for compatibility
+
             Boolean connectionFlag = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                "return window.connectionEstablished || false;"
+                "return window.LiveKitTestHelpers.isConnectionEstablished();"
             );
-            
+
             Boolean clientConnected = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                "return window.liveKitClient && window.liveKitClient.isConnected();"
+                "return window.LiveKitTestHelpers.isClientConnected();"
             );
-            
+
             Long connectionTime = (Long) ((JavascriptExecutor) driver).executeScript(
-                "return window.connectionTime || 0;"
+                "return window.LiveKitTestHelpers.getConnectionTime();"
             );
             
             log.info("Connection status check - usingMock: {}, realWebRTCConnection: {}, connectionFlag: {}, clientConnected: {}, connectionTime: {}ms", 
@@ -182,10 +186,9 @@ public class LiveKitMeet {
         } catch (Exception e) {
             log.error("LiveKitMeet connection failed: {}", e.getMessage());
             
-            // Try to get browser console logs for debugging
             try {
                 String consoleLogs = (String) ((JavascriptExecutor) driver).executeScript(
-                    "return window.consoleLogCapture ? window.consoleLogCapture.join('\\n') : 'No console logs captured';"
+                    "return window.LiveKitTestHelpers.getConsoleLogs();"
                 );
                 log.error("Browser console logs: {}", consoleLogs);
             } catch (Exception logError) {
@@ -232,17 +235,16 @@ public class LiveKitMeet {
             
             try {
                 String consoleErrors = (String) ((JavascriptExecutor) driver).executeScript(
-                    "return window.lastError || ''"
+                    "return window.LiveKitTestHelpers.getLastError();"
                 );
                 if (consoleErrors != null && !consoleErrors.trim().isEmpty()) {
                     log.error("JavaScript console error: {}", consoleErrors);
                     return "JavaScript error: " + consoleErrors;
                 }
             } catch (Exception ignored) {
-                // JavaScript execution might fail
             }
-            
-            return null; // No errors found
+
+            return null;
             
         } catch (Exception e) {
             log.debug("Error checking page errors: {}", e.getMessage());
@@ -281,14 +283,13 @@ public class LiveKitMeet {
             
             try {
                 String consoleErrors = (String) ((JavascriptExecutor) driver).executeScript(
-                    "return window.lastError || ''"
+                    "return window.LiveKitTestHelpers.getLastError();"
                 );
                 if (consoleErrors != null && !consoleErrors.trim().isEmpty()) {
                     if (!errorDetails.isEmpty()) errorDetails.append(" | ");
                     errorDetails.append("JavaScript error: ").append(consoleErrors);
                 }
             } catch (Exception ignored) {
-                // JavaScript execution might fail
             }
             
             // Get current page URL for context
@@ -396,10 +397,9 @@ public class LiveKitMeet {
             String display = meetingRoom.getCssValue("display");
             boolean roomVisible = !display.equals("none");
             
-            // Additional check to verify actual LiveKit connection
             if (roomVisible) {
                 Boolean connected = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                    "return window.liveKitClient && window.liveKitClient.isInMeetingRoom();"
+                    "return window.LiveKitTestHelpers.isInMeetingRoom();"
                 );
                 return connected != null && connected;
             }
@@ -460,14 +460,14 @@ public class LiveKitMeet {
                 try {
                     wait.until(driver -> {
                         Boolean isSharing = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                                "return window.liveKitClient && window.liveKitClient.isScreenSharing();"
+                                "return window.LiveKitTestHelpers.isScreenSharing();"
                         );
                         Boolean permissionDenied = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                                "return window.screenSharePermissionDenied || false;"
+                                "return window.LiveKitTestHelpers.isScreenSharePermissionDenied();"
                         );
                         if (permissionDenied != null && permissionDenied) {
                             String error = (String) ((JavascriptExecutor) driver).executeScript(
-                                    "return window.lastScreenShareError || 'Permission denied';"
+                                    "return window.LiveKitTestHelpers.getLastScreenShareError();"
                             );
                             throw new RuntimeException("Screen share permission denied: " + error);
                         }
@@ -475,10 +475,10 @@ public class LiveKitMeet {
                     });
                 } catch (TimeoutException e) {
                     String lastError = (String) ((JavascriptExecutor) driver).executeScript(
-                            "return window.lastScreenShareError || 'No error captured';"
+                            "return window.LiveKitTestHelpers.getLastScreenShareError();"
                     );
                     Boolean permissionDenied = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                            "return window.screenSharePermissionDenied || false;"
+                            "return window.LiveKitTestHelpers.isScreenSharePermissionDenied();"
                     );
                     log.error("Screen share timeout. Last error: {}, Permission denied: {}", lastError, permissionDenied);
                     throw e;
@@ -507,7 +507,7 @@ public class LiveKitMeet {
     public boolean isScreenSharing() {
         try {
             Boolean isSharing = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                "return window.liveKitClient && window.liveKitClient.isScreenSharing() || false;"
+                "return window.LiveKitTestHelpers.isScreenSharing();"
             );
             return isSharing != null && isSharing;
         } catch (Exception e) {
@@ -518,7 +518,7 @@ public class LiveKitMeet {
     public boolean isScreenShareBlocked() {
         try {
             Boolean blocked = (Boolean) ((JavascriptExecutor) driver).executeScript(
-                "return window.screenSharePermissionDenied || false;"
+                "return window.LiveKitTestHelpers.isScreenSharePermissionDenied();"
             );
             return blocked != null && blocked;
         } catch (Exception e) {
@@ -535,5 +535,49 @@ public class LiveKitMeet {
             Thread.currentThread().interrupt();
             log.warn("Refresh sleep interrupted");
         }
+    }
+
+    public void enableSimulcast() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.enableSimulcast();"
+        );
+        log.info("LiveKitMeet simulcast enabled");
+    }
+
+    public void disableSimulcast() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.disableSimulcast();"
+        );
+        log.info("LiveKitMeet simulcast disabled");
+    }
+
+    public boolean isSimulcastEnabled() {
+        Boolean enabled = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.isSimulcastEnabled();"
+        );
+        return enabled != null && enabled;
+    }
+
+    public void setVideoQualityPreference(String quality) {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.setVideoQualityPreference(arguments[0]);",
+            quality
+        );
+        log.info("LiveKitMeet video quality preference set to: {}", quality);
+    }
+
+    public String getVideoQualityPreference() {
+        String quality = (String) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.getVideoQualityPreference();"
+        );
+        return quality != null ? quality : "HIGH";
+    }
+
+    public void setMaxReceiveBandwidth(int kbps) {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.setMaxReceiveBandwidth(arguments[0]);",
+            kbps
+        );
+        log.info("LiveKitMeet max receive bandwidth set to: {} kbps", kbps);
     }
 }

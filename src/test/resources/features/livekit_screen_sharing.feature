@@ -65,8 +65,8 @@ Feature: LiveKit Screen Sharing
     And connection is established successfully for "Uma"
 
     Then room "MultiSubRoom" should have 3 active participants in service "livekit1"
-    And participant "Tina" should see 1 remote screen share tracks in room "MultiSubRoom" using service "livekit1"
-    And participant "Uma" should see 1 remote screen share tracks in room "MultiSubRoom" using service "livekit1"
+    And participant "Tina" should have 1 remote screen share tracks available in room "MultiSubRoom" using service "livekit1"
+    And participant "Uma" should have 1 remote screen share tracks available in room "MultiSubRoom" using service "livekit1"
 
   Scenario: Screen share can be stopped and restarted
     Given an access token is created with identity "Victor" and room "StopRestartRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone\,screen_share"
@@ -84,17 +84,17 @@ Feature: LiveKit Screen Sharing
     And "Wendy" connects to room "StopRestartRoom" using the access token
     And connection is established successfully for "Wendy"
 
-    Then participant "Wendy" should see 1 remote screen share tracks in room "StopRestartRoom" using service "livekit1"
+    Then participant "Wendy" should have 1 remote screen share tracks available in room "StopRestartRoom" using service "livekit1"
 
     When "Victor" stops screen sharing
 
     Then participant "Victor" should not be publishing screen share in room "StopRestartRoom" using service "livekit1"
-    And participant "Wendy" should see 0 remote screen share tracks in room "StopRestartRoom" using service "livekit1"
+    And participant "Wendy" should have 0 remote screen share tracks available in room "StopRestartRoom" using service "livekit1"
 
     When "Victor" starts screen sharing
 
     Then participant "Victor" should be publishing screen share in room "StopRestartRoom" using service "livekit1"
-    And participant "Wendy" should see 1 remote screen share tracks in room "StopRestartRoom" using service "livekit1"
+    And participant "Wendy" should have 1 remote screen share tracks available in room "StopRestartRoom" using service "livekit1"
 
   Scenario: Camera works but screen share is blocked without screen share permission
     Given an access token is created with identity "Xavier" and room "PermissionRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"

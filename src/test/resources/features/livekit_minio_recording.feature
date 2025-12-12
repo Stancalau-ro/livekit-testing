@@ -25,7 +25,7 @@ Feature: LiveKit MinIO Recording
     And connection is established successfully for "Sophia"
     
     Then participant "Oliver" should be publishing video in room "S3RecordingRoom" using service "livekit1"
-    And participant "Sophia" should see 1 remote video tracks in room "S3RecordingRoom" using service "livekit1"
+    And participant "Sophia" should have 1 remote video tracks available in room "S3RecordingRoom" using service "livekit1"
     
     When room composite recording is started for room "S3RecordingRoom" using LiveKit service "livekit1" with S3 output to bucket "recordings"
     And the recording runs for 6 seconds

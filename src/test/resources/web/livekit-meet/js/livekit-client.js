@@ -11,13 +11,21 @@ class LiveKitMeetClient {
         this.screenShareEnabled = false;
         this.participants = new Map();
 
-        // Initialize global variables for test automation
+        const urlParams = new URLSearchParams(window.location.search);
+        const simulcastParam = urlParams.get('simulcast');
+        this.simulcastEnabled = simulcastParam !== 'false';
+        this.videoQualityPreference = 'HIGH';
+        this.maxReceiveBandwidth = null;
+
         window.subscriptionFailedEvents = [];
         window.subscriptionPermissionDenied = false;
         window.lastSubscriptionError = '';
         window.screenSharePermissionDenied = false;
         window.screenShareActive = false;
-        
+        window.simulcastEnabled = this.simulcastEnabled;
+        window.currentVideoQuality = 'HIGH';
+        window.receivingLayers = new Map();
+
         this.initializeElements();
         this.setupEventListeners();
     }
@@ -96,18 +104,26 @@ class LiveKitMeetClient {
         addTechnicalDetail(`Room: ${roomName}, Participant: ${participantName}`);
         
         try {
-            // Create LiveKit room with fallback for video resolution
-            const videoResolution = (LiveKit.VideoPresets && LiveKit.VideoPresets.h720 && LiveKit.VideoPresets.h720.resolution) 
-                ? LiveKit.VideoPresets.h720.resolution 
-                : { width: 1280, height: 720 };
-            
+            const videoResolution = { width: 640, height: 480 };
+
+            const simulcastLayers = this.simulcastEnabled && LiveKit.VideoPresets ? [
+                LiveKit.VideoPresets.h180,
+                LiveKit.VideoPresets.h480,
+            ] : undefined;
+
             this.room = new LiveKit.Room({
                 adaptiveStream: true,
                 dynacast: true,
                 videoCaptureDefaults: {
                     resolution: videoResolution,
                 },
+                publishDefaults: {
+                    simulcast: this.simulcastEnabled,
+                    videoSimulcastLayers: simulcastLayers,
+                },
             });
+
+            addTechnicalDetail(`Room created with simulcast: ${this.simulcastEnabled}`);
             
             progressToNextStep('step-room', 'Room created');
             addTechnicalDetail(`✅ Room instance created with resolution: ${videoResolution.width}x${videoResolution.height}`);
@@ -908,5 +924,105 @@ class LiveKitMeetClient {
     
     getParticipantCount() {
         return this.participants.size + (this.connected ? 1 : 0); // +1 for local participant
+    }
+
+    setSimulcastEnabled(enabled) {
+        this.simulcastEnabled = enabled;
+        window.simulcastEnabled = enabled;
+        addTechnicalDetail(`Simulcast ${enabled ? 'enabled' : 'disabled'}`);
+    }
+
+    isSimulcastEnabled() {
+        return this.simulcastEnabled;
+    }
+
+    setVideoQualityPreference(quality) {
+        const normalizedQuality = quality?.toUpperCase() || 'HIGH';
+        this.videoQualityPreference = normalizedQuality;
+        window.currentVideoQuality = normalizedQuality;
+        addTechnicalDetail(`Video quality preference set to: ${normalizedQuality}`);
+
+        if (!this.room || this.room.state !== 'connected') {
+            return;
+        }
+
+        const qualityMap = {
+            'LOW': LiveKit.VideoQuality?.LOW ?? 0,
+            'MEDIUM': LiveKit.VideoQuality?.MEDIUM ?? 1,
+            'HIGH': LiveKit.VideoQuality?.HIGH ?? 2,
+            'OFF': LiveKit.VideoQuality?.OFF ?? 3
+        };
+
+        const livekitQuality = qualityMap[normalizedQuality] ?? qualityMap['HIGH'];
+
+        this.room.remoteParticipants.forEach((participant) => {
+            participant.trackPublications.forEach((publication) => {
+                if (publication.kind === 'video' && publication.isSubscribed) {
+                    try {
+                        publication.setVideoQuality(livekitQuality);
+                        addTechnicalDetail(`Set quality ${normalizedQuality} for ${participant.identity}`);
+                    } catch (error) {
+                        console.error('Failed to set video quality:', error);
+                        addTechnicalDetail(`Failed to set quality for ${participant.identity}: ${error.message}`);
+                    }
+                }
+            });
+        });
+    }
+
+    getVideoQualityPreference() {
+        return this.videoQualityPreference;
+    }
+
+    setMaxReceiveBandwidth(kbps) {
+        this.maxReceiveBandwidth = kbps;
+        addTechnicalDetail(`Max receive bandwidth set to: ${kbps} kbps`);
+
+        if (this.room && this.room.state === 'connected') {
+            this.room.remoteParticipants.forEach((participant) => {
+                participant.trackPublications.forEach((publication) => {
+                    if (publication.kind === 'video' && publication.isSubscribed) {
+                        if (kbps < 200) {
+                            publication.setVideoQuality(LiveKit.VideoQuality?.LOW ?? 0);
+                        } else if (kbps < 500) {
+                            publication.setVideoQuality(LiveKit.VideoQuality?.MEDIUM ?? 1);
+                        }
+                    }
+                });
+            });
+        }
+    }
+
+    getRemoteVideoTracks() {
+        const tracks = [];
+        if (this.room) {
+            this.room.remoteParticipants.forEach((participant) => {
+                participant.trackPublications.forEach((publication) => {
+                    if (publication.kind === 'video' && publication.track) {
+                        let dimensions = { width: 0, height: 0 };
+                        if (publication.track.dimensions) {
+                            dimensions = publication.track.dimensions;
+                        } else if (publication.dimensions) {
+                            dimensions = publication.dimensions;
+                        } else if (publication.track.mediaStreamTrack) {
+                            const settings = publication.track.mediaStreamTrack.getSettings();
+                            dimensions = { width: settings.width || 0, height: settings.height || 0 };
+                        }
+                        tracks.push({
+                            participantIdentity: participant.identity,
+                            participant: { identity: participant.identity },
+                            trackSid: publication.trackSid,
+                            dimensions: dimensions,
+                            quality: this.videoQualityPreference
+                        });
+                    }
+                });
+            });
+        }
+        return tracks;
+    }
+
+    getReceivingLayerInfo(publisherIdentity) {
+        return window.receivingLayers.get(publisherIdentity) || null;
     }
 }

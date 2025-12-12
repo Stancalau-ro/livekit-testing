@@ -122,11 +122,11 @@ Feature: LiveKit Participant Removal
     And connection is established successfully for "Patricia"
     
     Then participant "William" should be publishing video in room "ActivePublishingRoom" using service "livekit1"
-    And participant "Patricia" should see 1 remote video tracks in room "ActivePublishingRoom" using service "livekit1"
+    And participant "Patricia" should have 1 remote video tracks available in room "ActivePublishingRoom" using service "livekit1"
     
     When participant "William" is removed from room "ActivePublishingRoom" using service "livekit1"
     Then "William" should see disconnection in the browser
-    And participant "Patricia" should see 0 remote video tracks in room "ActivePublishingRoom" using service "livekit1"
+    And participant "Patricia" should have 0 remote video tracks available in room "ActivePublishingRoom" using service "livekit1"
     And "mockserver1" should have received a "track_unpublished" event for "VIDEO" track from "CAMERA" in room "ActivePublishingRoom"
     And "mockserver1" should have received a "track_unpublished" event for "AUDIO" track from "MICROPHONE" in room "ActivePublishingRoom"
     And "mockserver1" should have received a "participant_left" event for participant "William" in room "ActivePublishingRoom"

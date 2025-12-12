@@ -24,7 +24,7 @@ Feature: LiveKit WebRTC Video Playback
     And connection is established successfully for "Lisa"
 
     Then room "VideoRoom" should have 2 active participants in service "livekit1"
-    And participant "Lisa" should see 1 remote video tracks in room "VideoRoom" using service "livekit1"
+    And participant "Lisa" should have 1 remote video tracks available in room "VideoRoom" using service "livekit1"
 
     Examples:
       | browser   |

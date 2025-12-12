@@ -24,7 +24,7 @@ Feature: LiveKit Egress Recording
     And connection is established successfully for "Rachel"
     
     Then participant "David" should be publishing video in room "EgressRecordingRoom" using service "livekit1"
-    And participant "Rachel" should see 1 remote video tracks in room "EgressRecordingRoom" using service "livekit1"
+    And participant "Rachel" should have 1 remote video tracks available in room "EgressRecordingRoom" using service "livekit1"
     
     When room composite recording is started for room "EgressRecordingRoom" using LiveKit service "livekit1"
     Then "mockserver1" should have received an "egress_started" event for room "EgressRecordingRoom"

@@ -25,8 +25,8 @@ Feature: LiveKit WebRTC Video Publishing
 
     Then room "MultiRoom" should have 2 active participants in service "livekit1"
     And participant "Jill" should be publishing video in room "MultiRoom" using service "livekit1"
-    And participant "Jack" should see 1 remote video tracks in room "MultiRoom" using service "livekit1"
-    And participant "Jill" should see 1 remote video tracks in room "MultiRoom" using service "livekit1"
+    And participant "Jack" should have 1 remote video tracks available in room "MultiRoom" using service "livekit1"
+    And participant "Jill" should have 1 remote video tracks available in room "MultiRoom" using service "livekit1"
 
   Scenario: Leave meeting and verify disconnection
     Given an access token is created with identity "Sarah" and room "TempRoom" with grants "canPublish:true,canSubscribe:true"

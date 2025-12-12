@@ -21,8 +21,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class LiveKitBrowserWebrtcSteps {
-    
+
     private final Map<String, LiveKitMeet> meetInstances = new HashMap<>();
+    private final Map<String, Boolean> simulcastPreferences = new HashMap<>();
 
     @After
     public void tearDownLiveKitWebrtcSteps(Scenario scenario) {
@@ -55,6 +56,7 @@ public class LiveKitBrowserWebrtcSteps {
         if (ManagerProvider.tokens() != null) {
             ManagerProvider.tokens().clearAll();
         }
+        simulcastPreferences.clear();
     }
 
     @When("{string} opens a {string} browser with LiveKit Meet page")
@@ -73,9 +75,9 @@ public class LiveKitBrowserWebrtcSteps {
         
         String liveKitUrl = getLiveKitServerUrl();
         String tokenString = token.toJwt();
-        
-        
-        LiveKitMeet meetInstance = new LiveKitMeet(driver, liveKitUrl, tokenString, roomName, participantName, ManagerProvider.containers());
+
+        boolean simulcastEnabled = simulcastPreferences.getOrDefault(participantName, true);
+        LiveKitMeet meetInstance = new LiveKitMeet(driver, liveKitUrl, tokenString, roomName, participantName, ManagerProvider.containers(), simulcastEnabled);
         meetInstances.put(participantName, meetInstance);
         assertNotNull(meetInstance, "LiveKitMeet instance should be created");
     }
@@ -307,41 +309,38 @@ public class LiveKitBrowserWebrtcSteps {
         assertNotNull(driver, "WebDriver should exist for " + participantName);
         
         try {
-            // Wait a bit for subscription processing
             Thread.sleep(3000);
-            
+
             JavascriptExecutor js = (JavascriptExecutor) driver;
 
             Long subscriptionFailedCount = (Long) js.executeScript(
-                "return window.subscriptionFailedEvents ? window.subscriptionFailedEvents.length : 0;"
+                "return window.LiveKitTestHelpers.getSubscriptionFailedEventCount();"
             );
 
             Boolean permissionDenied = (Boolean) js.executeScript(
-                "return window.subscriptionPermissionDenied || false;"
+                "return window.LiveKitTestHelpers.isSubscriptionPermissionDenied();"
             );
 
             String errorMessage = (String) js.executeScript(
-                "return window.lastSubscriptionError || '';"
+                "return window.LiveKitTestHelpers.getLastSubscriptionError();"
             );
 
             Long playingVideoElements = (Long) js.executeScript(
-                "try { return Array.from(document.querySelectorAll('video')).filter(v => " +
-                "v.videoWidth > 0 && v.videoHeight > 0 && !v.paused && !v.ended && v.readyState >= 2).length; } catch(e) { return 0; }"
+                "return window.LiveKitTestHelpers.getPlayingVideoElementCount();"
             );
 
             Long subscribedTracks = (Long) js.executeScript(
-                "try { return window.liveKitClient && window.liveKitClient.room ? " +
-                "Array.from(window.liveKitClient.room.tracks.values()).filter(t => t.kind === 'video' && t.isSubscribed).length : 0; } catch(e) { return 0; }"
+                "return window.LiveKitTestHelpers.getSubscribedVideoTrackCount();"
             );
 
             boolean hasSubscriptionFailures = subscriptionFailedCount > 0 || permissionDenied;
             boolean hasNoVideoPlayback = playingVideoElements == 0 && subscribedTracks == 0;
-            
-            assertTrue(hasSubscriptionFailures || hasNoVideoPlayback, 
-                participantName + " should have video subscription blocked (failedEvents: " + subscriptionFailedCount + 
-                ", permissionDenied: " + permissionDenied + ", playingVideos: " + playingVideoElements + 
+
+            assertTrue(hasSubscriptionFailures || hasNoVideoPlayback,
+                participantName + " should have video subscription blocked (failedEvents: " + subscriptionFailedCount +
+                ", permissionDenied: " + permissionDenied + ", playingVideos: " + playingVideoElements +
                 ", subscribedTracks: " + subscribedTracks + ", error: '" + errorMessage + "')");
-            
+
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             fail("Test interrupted while checking subscription status");
@@ -354,5 +353,118 @@ public class LiveKitBrowserWebrtcSteps {
         assertTrue(container.isRunning(), "LiveKit container should be running");
 
         return container.getNetworkUrl();
+    }
+
+    @When("{string} enables simulcast for video publishing")
+    public void enablesSimulcastForVideoPublishing(String participantName) {
+        simulcastPreferences.put(participantName, true);
+        log.info("Simulcast preference set to enabled for participant: {}", participantName);
+    }
+
+    @When("{string} disables simulcast for video publishing")
+    public void disablesSimulcastForVideoPublishing(String participantName) {
+        simulcastPreferences.put(participantName, false);
+        log.info("Simulcast preference set to disabled for participant: {}", participantName);
+    }
+
+    @When("{string} sets video quality preference to {string}")
+    public void setsVideoQualityPreferenceTo(String participantName, String quality) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.setVideoQualityPreference(quality);
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @When("{string} sets maximum receive bandwidth to {int} kbps")
+    public void setsMaximumReceiveBandwidth(String participantName, int kbps) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.setMaxReceiveBandwidth(kbps);
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    @Then("{string} should be receiving low quality video from {string}")
+    public void shouldBeReceivingLowQualityVideoFrom(String subscriber, String publisher) {
+        LiveKitMeet meetInstance = meetInstances.get(subscriber);
+        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
+
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", subscriber);
+        Long receivedWidth = getRemoteVideoTrackWidth(driver, publisher);
+
+        assertTrue(receivedWidth > 0 && receivedWidth <= 400,
+            subscriber + " should be receiving low quality video from " + publisher + " (width: " + receivedWidth + ", expected <= 400)");
+    }
+
+    @Then("{string} should be receiving high quality video from {string}")
+    public void shouldBeReceivingHighQualityVideoFrom(String subscriber, String publisher) {
+        LiveKitMeet meetInstance = meetInstances.get(subscriber);
+        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
+
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", subscriber);
+        Long receivedWidth = getRemoteVideoTrackWidth(driver, publisher);
+
+        assertTrue(receivedWidth >= 500,
+            subscriber + " should be receiving high quality video from " + publisher + " (width: " + receivedWidth + ", expected >= 500)");
+    }
+
+    @Then("{string} should be receiving a lower quality layer from {string}")
+    public void shouldBeReceivingLowerQualityLayerFrom(String subscriber, String publisher) {
+        LiveKitMeet meetInstance = meetInstances.get(subscriber);
+        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
+
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", subscriber);
+        Long receivedWidth = waitForLowerQualityLayer(driver, publisher, 400, 15);
+
+        assertTrue(receivedWidth > 0 && receivedWidth <= 400,
+            subscriber + " should be receiving lower quality from " + publisher + " (width: " + receivedWidth + ", expected <= 400)");
+    }
+
+    private Long waitForLowerQualityLayer(WebDriver driver, String publisherIdentity, int maxWidth, int maxAttempts) {
+        Long lastWidth = 0L;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            Object result = ((JavascriptExecutor) driver).executeScript(
+                "return window.LiveKitTestHelpers.getRemoteVideoTrackWidthByPublisher(arguments[0]);",
+                publisherIdentity
+            );
+            lastWidth = result == null ? 0L : ((Number) result).longValue();
+            if (lastWidth > 0 && lastWidth <= maxWidth) {
+                return lastWidth;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        return lastWidth;
+    }
+
+    private Long getRemoteVideoTrackWidth(WebDriver driver, String publisherIdentity) {
+        for (int attempt = 0; attempt < 10; attempt++) {
+            Object result = ((JavascriptExecutor) driver).executeScript(
+                "return window.LiveKitTestHelpers.getRemoteVideoTrackWidthByPublisher(arguments[0]);",
+                publisherIdentity
+            );
+            Long width = result == null ? 0L : ((Number) result).longValue();
+            if (width > 0) {
+                return width;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        return 0L;
     }
 }
