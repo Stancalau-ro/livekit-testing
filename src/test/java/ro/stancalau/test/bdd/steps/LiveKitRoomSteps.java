@@ -6,6 +6,7 @@ import io.cucumber.java.en.When;
 import io.livekit.server.RoomServiceClient;
 import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
+import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -393,14 +394,15 @@ public class LiveKitRoomSteps {
         return videoTrack.getLayersList();
     }
 
-    @Then("participant {string} should have simulcast enabled for video in room {string} using service {string}")
-    public void participantShouldHaveSimulcastEnabled(String identity, String room, String service) {
+    @Then("participant {string} should have simulcast {word} for video in room {string} using service {string}")
+    public void participantShouldHaveSimulcastState(String identity, String state, String room, String service) {
+        boolean expectedEnabled = "enabled".equalsIgnoreCase(state);
         int maxAttempts = 20;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
 
-            if (videoTrack != null && videoTrack.getSimulcast()) {
-                log.info("Simulcast verified as enabled for participant '{}' in room '{}'", identity, room);
+            if (videoTrack != null && videoTrack.getSimulcast() == expectedEnabled) {
+                log.info("Simulcast verified as {} for participant '{}' in room '{}'", state, identity, room);
                 return;
             }
 
@@ -416,43 +418,22 @@ public class LiveKitRoomSteps {
 
         LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
         assertNotNull(videoTrack, "Video track should exist for participant '" + identity + "'");
-        assertTrue(videoTrack.getSimulcast(), "Simulcast should be enabled for participant '" + identity + "'");
-    }
-
-    @Then("participant {string} should have simulcast disabled for video in room {string} using service {string}")
-    public void participantShouldHaveSimulcastDisabled(String identity, String room, String service) {
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
-
-            if (videoTrack != null && !videoTrack.getSimulcast()) {
-                log.info("Simulcast verified as disabled for participant '{}' in room '{}'", identity, room);
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+        if (expectedEnabled) {
+            assertTrue(videoTrack.getSimulcast(), "Simulcast should be enabled for participant '" + identity + "'");
+        } else {
+            assertFalse(videoTrack.getSimulcast(), "Simulcast should be disabled for participant '" + identity + "'");
         }
-
-        LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
-        assertNotNull(videoTrack, "Video track should exist for participant '" + identity + "'");
-        assertFalse(videoTrack.getSimulcast(), "Simulcast should be disabled for participant '" + identity + "'");
     }
 
-    @Then("participant {string} video track should have at least {int} layers in room {string} using service {string}")
-    public void videoTrackShouldHaveAtLeastLayers(String identity, int minLayers, String room, String service) {
+    @Then("participant {string} video track should have {string} layers in room {string} using service {string}")
+    public void videoTrackShouldHaveLayers(String identity, String layerExpression, String room, String service) {
+        StringParsingUtils.ComparisonExpression comparison = StringParsingUtils.parseComparisonExpression(layerExpression);
         int maxAttempts = 20;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
 
-            if (layers.size() >= minLayers) {
-                log.info("Found {} layers for participant '{}' (minimum required: {})", layers.size(), identity, minLayers);
+            if (comparison.evaluate(layers.size())) {
+                log.info("Video layer check passed for participant '{}': {} layers (expression: {})", identity, layers.size(), layerExpression);
                 return;
             }
 
@@ -467,34 +448,8 @@ public class LiveKitRoomSteps {
         }
 
         List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
-        assertTrue(layers.size() >= minLayers,
-            "Participant '" + identity + "' should have at least " + minLayers + " video layers, found: " + layers.size());
-    }
-
-    @Then("participant {string} video track should have exactly {int} layer in room {string} using service {string}")
-    public void videoTrackShouldHaveExactlyLayers(String identity, int expectedLayers, String room, String service) {
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
-
-            if (layers.size() == expectedLayers) {
-                log.info("Found exactly {} layer(s) for participant '{}'", expectedLayers, identity);
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-
-        List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
-        assertEquals(expectedLayers, layers.size(),
-            "Participant '" + identity + "' should have exactly " + expectedLayers + " video layer(s)");
+        assertTrue(comparison.evaluate(layers.size()),
+            comparison.formatMessage("Participant '" + identity + "' video layers", layers.size()));
     }
 
     @Then("participant {string} video layers should have different resolutions in room {string} using service {string}")

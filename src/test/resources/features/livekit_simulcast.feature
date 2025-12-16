@@ -7,48 +7,6 @@ Feature: Simulcast Video Publishing
     Given the LiveKit config is set to "basic"
     And a LiveKit server is running in a container with service name "livekit1"
 
-  Scenario: Participant publishes video with simulcast enabled (default)
-    Given an access token is created with identity "Alice" and room "SimulcastRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
-    And room "SimulcastRoom" is created using service "livekit1"
-
-    When "Alice" opens a "Chrome" browser with LiveKit Meet page
-    And "Alice" connects to room "SimulcastRoom" using the access token
-    And connection is established successfully for "Alice"
-
-    Then room "SimulcastRoom" should have 1 active participants in service "livekit1"
-    And participant "Alice" should be publishing video in room "SimulcastRoom" using service "livekit1"
-    And participant "Alice" should have simulcast enabled for video in room "SimulcastRoom" using service "livekit1"
-    And "Alice" closes the browser
-
-  Scenario: Participant publishes video with simulcast disabled
-    Given an access token is created with identity "Bob" and room "NoSimulcastRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
-    And room "NoSimulcastRoom" is created using service "livekit1"
-
-    When "Bob" opens a "Chrome" browser with LiveKit Meet page
-    And "Bob" disables simulcast for video publishing
-    And "Bob" connects to room "NoSimulcastRoom" using the access token
-    And connection is established successfully for "Bob"
-
-    Then room "NoSimulcastRoom" should have 1 active participants in service "livekit1"
-    And participant "Bob" should be publishing video in room "NoSimulcastRoom" using service "livekit1"
-    And participant "Bob" should have simulcast disabled for video in room "NoSimulcastRoom" using service "livekit1"
-    And "Bob" closes the browser
-
-  Scenario: Simulcast track has multiple video layers
-    Given an access token is created with identity "Charlie" and room "LayerRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
-    And room "LayerRoom" is created using service "livekit1"
-
-    When "Charlie" opens a "Chrome" browser with LiveKit Meet page
-    And "Charlie" enables simulcast for video publishing
-    And "Charlie" connects to room "LayerRoom" using the access token
-    And connection is established successfully for "Charlie"
-
-    Then room "LayerRoom" should have 1 active participants in service "livekit1"
-    And participant "Charlie" should be publishing video in room "LayerRoom" using service "livekit1"
-    And participant "Charlie" should have simulcast enabled for video in room "LayerRoom" using service "livekit1"
-    And participant "Charlie" video track should have at least 2 layers in room "LayerRoom" using service "livekit1"
-    And "Charlie" closes the browser
-
   Scenario: Non-simulcast track has single video layer
     Given an access token is created with identity "Diana" and room "SingleLayerRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
     And room "SingleLayerRoom" is created using service "livekit1"
@@ -61,7 +19,7 @@ Feature: Simulcast Video Publishing
     Then room "SingleLayerRoom" should have 1 active participants in service "livekit1"
     And participant "Diana" should be publishing video in room "SingleLayerRoom" using service "livekit1"
     And participant "Diana" should have simulcast disabled for video in room "SingleLayerRoom" using service "livekit1"
-    And participant "Diana" video track should have exactly 1 layer in room "SingleLayerRoom" using service "livekit1"
+    And participant "Diana" video track should have "1" layers in room "SingleLayerRoom" using service "livekit1"
     And "Diana" closes the browser
 
   Scenario: Simulcast layers have different resolutions
@@ -75,7 +33,8 @@ Feature: Simulcast Video Publishing
 
     Then room "QualityRoom" should have 1 active participants in service "livekit1"
     And participant "Edward" should be publishing video in room "QualityRoom" using service "livekit1"
-    And participant "Edward" video track should have at least 2 layers in room "QualityRoom" using service "livekit1"
+    And participant "Edward" should have simulcast enabled for video in room "QualityRoom" using service "livekit1"
+    And participant "Edward" video track should have ">=2" layers in room "QualityRoom" using service "livekit1"
     And participant "Edward" video layers should have different resolutions in room "QualityRoom" using service "livekit1"
     And participant "Edward" highest video layer should have greater resolution than lowest layer in room "QualityRoom" using service "livekit1"
     And "Edward" closes the browser

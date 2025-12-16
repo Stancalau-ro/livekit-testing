@@ -1,19 +1,99 @@
 package ro.stancalau.test.framework.util;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.experimental.UtilityClass;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @UtilityClass
 public class StringParsingUtils {
-    
-    /**
-     * Parses a comma-separated string with support for escaped commas using backslash.
-     * Example: "value1,value2,value with\, comma" -> ["value1", "value2", "value with, comma"]
-     */
+
+    private static final Pattern COMPARISON_PATTERN = Pattern.compile("^(>=|<=|>|<)?(\\d+)$");
+
+    @Getter
+    @AllArgsConstructor
+    public enum ComparisonOperator {
+        EQUAL("="),
+        GREATER_THAN(">"),
+        LESS_THAN("<"),
+        GREATER_THAN_OR_EQUAL(">="),
+        LESS_THAN_OR_EQUAL("<=");
+
+        private final String symbol;
+
+        public boolean evaluate(int actual, int expected) {
+            return switch (this) {
+                case EQUAL -> actual == expected;
+                case GREATER_THAN -> actual > expected;
+                case LESS_THAN -> actual < expected;
+                case GREATER_THAN_OR_EQUAL -> actual >= expected;
+                case LESS_THAN_OR_EQUAL -> actual <= expected;
+            };
+        }
+
+        public String formatMessage(String subject, int expected, int actual) {
+            return switch (this) {
+                case EQUAL -> subject + " should be exactly " + expected + ", found: " + actual;
+                case GREATER_THAN -> subject + " should be greater than " + expected + ", found: " + actual;
+                case LESS_THAN -> subject + " should be less than " + expected + ", found: " + actual;
+                case GREATER_THAN_OR_EQUAL -> subject + " should be at least " + expected + ", found: " + actual;
+                case LESS_THAN_OR_EQUAL -> subject + " should be at most " + expected + ", found: " + actual;
+            };
+        }
+    }
+
+    @Getter
+    @AllArgsConstructor
+    public static class ComparisonExpression {
+        private final ComparisonOperator operator;
+        private final int value;
+
+        public boolean evaluate(int actual) {
+            return operator.evaluate(actual, value);
+        }
+
+        public String formatMessage(String subject, int actual) {
+            return operator.formatMessage(subject, value, actual);
+        }
+    }
+
+    public ComparisonExpression parseComparisonExpression(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            throw new IllegalArgumentException("Comparison expression cannot be null or empty");
+        }
+
+        String trimmed = input.trim();
+        Matcher matcher = COMPARISON_PATTERN.matcher(trimmed);
+
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("Invalid comparison expression: '" + input + "'. Expected format: [>=|<=|>|<]<number> (e.g., '3', '>=2', '<5')");
+        }
+
+        String operatorStr = matcher.group(1);
+        int value = Integer.parseInt(matcher.group(2));
+
+        ComparisonOperator operator;
+        if (operatorStr == null || operatorStr.isEmpty()) {
+            operator = ComparisonOperator.EQUAL;
+        } else {
+            operator = switch (operatorStr) {
+                case ">=" -> ComparisonOperator.GREATER_THAN_OR_EQUAL;
+                case "<=" -> ComparisonOperator.LESS_THAN_OR_EQUAL;
+                case ">" -> ComparisonOperator.GREATER_THAN;
+                case "<" -> ComparisonOperator.LESS_THAN;
+                default -> throw new IllegalArgumentException("Unknown operator: " + operatorStr);
+            };
+        }
+
+        return new ComparisonExpression(operator, value);
+    }
+
     public List<String> parseCommaSeparatedList(String input) {
         if (input == null || input.trim().isEmpty()) {
             return new ArrayList<>();
