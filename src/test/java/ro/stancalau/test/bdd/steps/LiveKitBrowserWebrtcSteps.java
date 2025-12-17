@@ -9,6 +9,8 @@ import io.livekit.server.AccessToken;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import ro.stancalau.test.bdd.steps.params.MuteAction;
+import ro.stancalau.test.bdd.steps.params.MuteState;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
 import ro.stancalau.test.framework.state.RoomClientStateManager;
@@ -466,5 +468,45 @@ public class LiveKitBrowserWebrtcSteps {
             }
         }
         return 0L;
+    }
+
+    @When("{string} {muteAction} their audio")
+    public void togglesTheirAudio(String participantName, MuteAction action) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        if (action.shouldMute()) {
+            meetInstance.muteAudio();
+        } else {
+            meetInstance.unmuteAudio();
+        }
+        meetInstance.waitForAudioMuted(action.shouldMute());
+    }
+
+    @When("{string} {muteAction} their video")
+    public void togglesTheirVideo(String participantName, MuteAction action) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        if (action.shouldMute()) {
+            meetInstance.muteVideo();
+        } else {
+            meetInstance.unmuteVideo();
+        }
+        meetInstance.waitForVideoMuted(action.shouldMute());
+    }
+
+    @Then("{string} should have audio {muteState} locally")
+    public void shouldHaveAudioStateLocally(String participantName, MuteState state) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        assertEquals(state.isMuted(), meetInstance.isAudioMuted(),
+            participantName + " should have audio " + state + " locally");
+    }
+
+    @Then("{string} should have video {muteState} locally")
+    public void shouldHaveVideoStateLocally(String participantName, MuteState state) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        assertEquals(state.isMuted(), meetInstance.isVideoMuted(),
+            participantName + " should have video " + state + " locally");
     }
 }

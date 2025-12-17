@@ -142,6 +142,86 @@ var LiveKitTestHelpers = {
         } catch(e) {
             return 0;
         }
+    },
+
+    muteAudio: function() {
+        if (window.liveKitClient) window.liveKitClient.muteAudio();
+    },
+
+    unmuteAudio: function() {
+        if (window.liveKitClient) window.liveKitClient.unmuteAudio();
+    },
+
+    muteVideo: function() {
+        if (window.liveKitClient) window.liveKitClient.muteVideo();
+    },
+
+    unmuteVideo: function() {
+        if (window.liveKitClient) window.liveKitClient.unmuteVideo();
+    },
+
+    isAudioMuted: function() {
+        return window.liveKitClient ? window.liveKitClient.isAudioMuted() : true;
+    },
+
+    isVideoMuted: function() {
+        return window.liveKitClient ? window.liveKitClient.isVideoMuted() : true;
+    },
+
+    getLocalAudioTrackState: function() {
+        if (!window.liveKitClient || !window.liveKitClient.room) return null;
+        var pub = window.liveKitClient.room.localParticipant.getTrackPublication(LiveKit.Track.Source.Microphone);
+        if (!pub || !pub.track) return null;
+        return {
+            muted: pub.isMuted,
+            enabled: pub.track.isEnabled,
+            sid: pub.trackSid
+        };
+    },
+
+    getLocalVideoTrackState: function() {
+        if (!window.liveKitClient || !window.liveKitClient.room) return null;
+        var pub = window.liveKitClient.room.localParticipant.getTrackPublication(LiveKit.Track.Source.Camera);
+        if (!pub || !pub.track) return null;
+        return {
+            muted: pub.isMuted,
+            enabled: pub.track.isEnabled,
+            sid: pub.trackSid
+        };
+    },
+
+    getRemoteParticipantTrackMuteState: function(participantIdentity, trackType) {
+        if (!window.liveKitClient || !window.liveKitClient.room) return null;
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === participantIdentity) participant = p;
+        });
+        if (!participant) return null;
+        var result = null;
+        participant.trackPublications.forEach(function(pub) {
+            if (pub.kind === trackType) {
+                result = {
+                    muted: pub.isMuted,
+                    enabled: pub.track ? pub.track.isEnabled : false,
+                    sid: pub.trackSid
+                };
+            }
+        });
+        return result;
+    },
+
+    getMuteEventCount: function() {
+        return window.muteEvents ? window.muteEvents.length : 0;
+    },
+
+    getLastMuteEvent: function() {
+        return window.muteEvents && window.muteEvents.length > 0
+            ? window.muteEvents[window.muteEvents.length - 1]
+            : null;
+    },
+
+    clearMuteEvents: function() {
+        window.muteEvents = [];
     }
 };
 

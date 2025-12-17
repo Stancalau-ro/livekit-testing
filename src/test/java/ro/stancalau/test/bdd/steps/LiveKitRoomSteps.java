@@ -6,6 +6,8 @@ import io.cucumber.java.en.When;
 import io.livekit.server.RoomServiceClient;
 import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
+import ro.stancalau.test.bdd.steps.params.EnabledState;
+import ro.stancalau.test.bdd.steps.params.MuteState;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.io.IOException;
@@ -13,6 +15,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
@@ -22,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class LiveKitRoomSteps {
 
     public static final int POLLING_INTERVAL_MS = 500;
+    public static final int DEFAULT_MAX_ATTEMPTS = 20;
     private List<LivekitModels.Room> lastFetchedRooms;
 
 
@@ -89,23 +93,11 @@ public class LiveKitRoomSteps {
         }
     }
 
-    @Then("room {string} should exist in service {string}")
-    public void theRoomShouldExistInService(String roomName, String serviceName) {
-        List<LivekitModels.Room> rooms = getRooms(serviceName);
-        boolean roomExists = rooms.stream().anyMatch(room -> roomName.equals(room.getName()));
-        assertTrue(roomExists, "Room '" + roomName + "' should exist in service '" + serviceName + "'");
-    }
-
-    @Then("room {string} should have {int} active participants in service {string}")
-    public void theRoomShouldHaveActiveParticipantsInService(String roomName, int expectedCount, String serviceName) {
-        int maxAttempts = 20;
+    private boolean pollUntil(Supplier<Boolean> condition, int maxAttempts) {
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-
-            if (participants.size() == expectedCount) {
-                return;
+            if (condition.get()) {
+                return true;
             }
-
             if (attempt < maxAttempts - 1) {
                 try {
                     Thread.sleep(POLLING_INTERVAL_MS);
@@ -115,82 +107,70 @@ public class LiveKitRoomSteps {
                 }
             }
         }
+        return false;
+    }
 
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-        log.warn("Participant count check failed after {} attempts. Expected: {}, Found: {}", 
-            maxAttempts, expectedCount, participants.size());
-        assertEquals(expectedCount, participants.size(), "Room '" + roomName + "' should have " + expectedCount + " active participants");
+    private boolean pollUntil(Supplier<Boolean> condition) {
+        return pollUntil(condition, DEFAULT_MAX_ATTEMPTS);
+    }
+
+    private void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    private LivekitModels.ParticipantInfo findParticipant(String serviceName, String roomName, String identity) {
+        return getParticipantInfo(serviceName, roomName).stream()
+                .filter(p -> identity.equals(p.getIdentity()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private LivekitModels.ParticipantInfo findParticipantOrFail(String serviceName, String roomName, String identity) {
+        LivekitModels.ParticipantInfo participant = findParticipant(serviceName, roomName, identity);
+        assertNotNull(participant, "Participant '" + identity + "' should exist in room '" + roomName + "'");
+        return participant;
+    }
+
+    @Then("room {string} should exist in service {string}")
+    public void theRoomShouldExistInService(String roomName, String serviceName) {
+        List<LivekitModels.Room> rooms = getRooms(serviceName);
+        boolean roomExists = rooms.stream().anyMatch(room -> roomName.equals(room.getName()));
+        assertTrue(roomExists, "Room '" + roomName + "' should exist in service '" + serviceName + "'");
+    }
+
+    @Then("room {string} should have {int} active participants in service {string}")
+    public void theRoomShouldHaveActiveParticipantsInService(String roomName, int expectedCount, String serviceName) {
+        boolean success = pollUntil(() -> getParticipantInfo(serviceName, roomName).size() == expectedCount);
+        if (!success) {
+            int actualCount = getParticipantInfo(serviceName, roomName).size();
+            log.warn("Participant count check failed. Expected: {}, Found: {}", expectedCount, actualCount);
+            assertEquals(expectedCount, actualCount, "Room '" + roomName + "' should have " + expectedCount + " active participants");
+        }
     }
 
     @Then("participant {string} should be publishing video in room {string} using service {string}")
     public void participantShouldBePublishingVideoInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        int max = 10;
-        for (int attempt = 0; attempt <= max; attempt++) {
-            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-
-            LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-                    .filter(p -> participantIdentity.equals(p.getIdentity()))
-                    .findFirst()
-                    .orElse(null);
-
-            assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
-
-            long videoTrackCount = targetParticipant.getTracksList().stream()
-                    .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
-                    .count();
-
-            if (videoTrackCount >= 1) {
-                return;
-            }
-
-            try {
-                Thread.sleep(POLLING_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
+        boolean success = pollUntil(() -> {
+            LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
+            return p.getTracksList().stream().anyMatch(t -> t.getType() == LivekitModels.TrackType.VIDEO);
+        }, 10);
+        if (!success) {
+            LivekitModels.ParticipantInfo p = findParticipant(serviceName, roomName, participantIdentity);
+            long videoTrackCount = p != null ? p.getTracksList().stream().filter(t -> t.getType() == LivekitModels.TrackType.VIDEO).count() : 0;
+            log.warn("Video publishing check failed for participant '{}'. Video tracks: {}", participantIdentity, videoTrackCount);
+            assertEquals(1, videoTrackCount, "Participant '" + participantIdentity + "' should have 1 published video track");
         }
-
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-                .filter(p -> participantIdentity.equals(p.getIdentity()))
-                .findFirst()
-                .orElse(null);
-
-        long videoTrackCount = targetParticipant != null ?
-                targetParticipant.getTracksList().stream()
-                        .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
-                        .count() : 0;
-
-        log.warn("Video publishing check failed for participant '{}' after 10 seconds. Video tracks: {}, Total tracks: {}",
-                participantIdentity, videoTrackCount,
-                targetParticipant != null ? targetParticipant.getTracksList().size() : 0);
-
-        assertEquals(1, videoTrackCount, "Participant '" + participantIdentity + "' should have 1 published video track after waiting");
     }
 
     @Then("participant {string} should not be publishing video in room {string} using service {string}")
     public void participantShouldNotBePublishingVideoInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-
-        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-                .filter(p -> participantIdentity.equals(p.getIdentity()))
-                .findFirst()
-                .orElse(null);
-
-        assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
-
-        long videoTrackCount = targetParticipant.getTracksList().stream()
-                .filter(track -> track.getType() == LivekitModels.TrackType.VIDEO)
-                .count();
-
-
+        sleepQuietly(2000);
+        LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
+        long videoTrackCount = p.getTracksList().stream().filter(t -> t.getType() == LivekitModels.TrackType.VIDEO).count();
         assertEquals(0, videoTrackCount, "Participant '" + participantIdentity + "' should have 0 published video tracks");
     }
 
@@ -235,105 +215,33 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should not exist in room {string} using service {string}")
     public void participantShouldNotExistInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        int maxAttempts = 10;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-
-            boolean participantExists = participants.stream()
-                    .anyMatch(p -> participantIdentity.equals(p.getIdentity()));
-
-            if (!participantExists) {
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+        boolean success = pollUntil(() -> findParticipant(serviceName, roomName, participantIdentity) == null, 10);
+        if (!success) {
+            assertFalse(findParticipant(serviceName, roomName, participantIdentity) != null,
+                "Participant '" + participantIdentity + "' should not exist in room '" + roomName + "'");
         }
-
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-        boolean participantExists = participants.stream()
-                .anyMatch(p -> participantIdentity.equals(p.getIdentity()));
-
-        assertFalse(participantExists, "Participant '" + participantIdentity + "' should not exist in room '" + roomName + "'");
     }
 
     @Then("participant {string} should be publishing screen share in room {string} using service {string}")
     public void participantShouldBePublishingScreenShareInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-
-            LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-                    .filter(p -> participantIdentity.equals(p.getIdentity()))
-                    .findFirst()
-                    .orElse(null);
-
-            assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
-
-            long screenShareTrackCount = targetParticipant.getTracksList().stream()
-                    .filter(track -> track.getSource() == LivekitModels.TrackSource.SCREEN_SHARE)
-                    .count();
-
-            if (screenShareTrackCount >= 1) {
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+        boolean success = pollUntil(() -> {
+            LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
+            return p.getTracksList().stream().anyMatch(t -> t.getSource() == LivekitModels.TrackSource.SCREEN_SHARE);
+        });
+        if (!success) {
+            LivekitModels.ParticipantInfo p = findParticipant(serviceName, roomName, participantIdentity);
+            long screenShareCount = p != null ? p.getTracksList().stream().filter(t -> t.getSource() == LivekitModels.TrackSource.SCREEN_SHARE).count() : 0;
+            log.warn("Screen share publishing check failed for participant '{}'. Screen share tracks: {}", participantIdentity, screenShareCount);
+            assertEquals(1, screenShareCount, "Participant '" + participantIdentity + "' should have 1 published screen share track");
         }
-
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-                .filter(p -> participantIdentity.equals(p.getIdentity()))
-                .findFirst()
-                .orElse(null);
-
-        long screenShareTrackCount = targetParticipant != null ?
-                targetParticipant.getTracksList().stream()
-                        .filter(track -> track.getSource() == LivekitModels.TrackSource.SCREEN_SHARE)
-                        .count() : 0;
-
-        log.warn("Screen share publishing check failed for participant '{}' after {} seconds. Screen share tracks: {}, Total tracks: {}",
-                participantIdentity, maxAttempts * POLLING_INTERVAL_MS / 1000, screenShareTrackCount,
-                targetParticipant != null ? targetParticipant.getTracksList().size() : 0);
-
-        assertEquals(1, screenShareTrackCount, "Participant '" + participantIdentity + "' should have 1 published screen share track");
     }
 
     @Then("participant {string} should not be publishing screen share in room {string} using service {string}")
     public void participantShouldNotBePublishingScreenShareInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(serviceName, roomName);
-
-        LivekitModels.ParticipantInfo targetParticipant = participants.stream()
-                .filter(p -> participantIdentity.equals(p.getIdentity()))
-                .findFirst()
-                .orElse(null);
-
-        assertNotNull(targetParticipant, "Participant '" + participantIdentity + "' should exist in room '" + roomName + "'");
-
-        long screenShareTrackCount = targetParticipant.getTracksList().stream()
-                .filter(track -> track.getSource() == LivekitModels.TrackSource.SCREEN_SHARE)
-                .count();
-
-        assertEquals(0, screenShareTrackCount, "Participant '" + participantIdentity + "' should have 0 published screen share tracks");
+        sleepQuietly(2000);
+        LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
+        long screenShareCount = p.getTracksList().stream().filter(t -> t.getSource() == LivekitModels.TrackSource.SCREEN_SHARE).count();
+        assertEquals(0, screenShareCount, "Participant '" + participantIdentity + "' should have 0 published screen share tracks");
     }
 
     @Then("participant {string} should have {int} remote screen share tracks available in room {string} using service {string}")
@@ -394,62 +302,31 @@ public class LiveKitRoomSteps {
         return videoTrack.getLayersList();
     }
 
-    @Then("participant {string} should have simulcast {word} for video in room {string} using service {string}")
-    public void participantShouldHaveSimulcastState(String identity, String state, String room, String service) {
-        boolean expectedEnabled = "enabled".equalsIgnoreCase(state);
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+    @Then("participant {string} should have simulcast {enabledState} for video in room {string} using service {string}")
+    public void participantShouldHaveSimulcastState(String identity, EnabledState state, String room, String service) {
+        boolean success = pollUntil(() -> {
             LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
-
-            if (videoTrack != null && videoTrack.getSimulcast() == expectedEnabled) {
-                log.info("Simulcast verified as {} for participant '{}' in room '{}'", state, identity, room);
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-
-        LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
-        assertNotNull(videoTrack, "Video track should exist for participant '" + identity + "'");
-        if (expectedEnabled) {
-            assertTrue(videoTrack.getSimulcast(), "Simulcast should be enabled for participant '" + identity + "'");
+            return videoTrack != null && videoTrack.getSimulcast() == state.isEnabled();
+        });
+        if (success) {
+            log.info("Simulcast verified as {} for participant '{}' in room '{}'", state, identity, room);
         } else {
-            assertFalse(videoTrack.getSimulcast(), "Simulcast should be disabled for participant '" + identity + "'");
+            LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
+            assertNotNull(videoTrack, "Video track should exist for participant '" + identity + "'");
+            assertEquals(state.isEnabled(), videoTrack.getSimulcast(), "Simulcast should be " + state + " for participant '" + identity + "'");
         }
     }
 
     @Then("participant {string} video track should have {string} layers in room {string} using service {string}")
     public void videoTrackShouldHaveLayers(String identity, String layerExpression, String room, String service) {
         StringParsingUtils.ComparisonExpression comparison = StringParsingUtils.parseComparisonExpression(layerExpression);
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
-
-            if (comparison.evaluate(layers.size())) {
-                log.info("Video layer check passed for participant '{}': {} layers (expression: {})", identity, layers.size(), layerExpression);
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+        boolean success = pollUntil(() -> comparison.evaluate(getVideoLayersForParticipant(service, room, identity).size()));
+        if (success) {
+            log.info("Video layer check passed for participant '{}' (expression: {})", identity, layerExpression);
+        } else {
+            int layerCount = getVideoLayersForParticipant(service, room, identity).size();
+            assertTrue(comparison.evaluate(layerCount), comparison.formatMessage("Participant '" + identity + "' video layers", layerCount));
         }
-
-        List<LivekitModels.VideoLayer> layers = getVideoLayersForParticipant(service, room, identity);
-        assertTrue(comparison.evaluate(layers.size()),
-            comparison.formatMessage("Participant '" + identity + "' video layers", layers.size()));
     }
 
     @Then("participant {string} video layers should have different resolutions in room {string} using service {string}")
@@ -504,75 +381,67 @@ public class LiveKitRoomSteps {
 
     @Then("the CLI publisher should have simulcast video layers in room {string} using service {string}")
     public void cliPublisherShouldHaveSimulcastLayers(String room, String service) {
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
-
-            boolean hasSimulcast = participants.stream()
-                    .flatMap(p -> p.getTracksList().stream())
-                    .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
-                    .anyMatch(t -> t.getSimulcast() && t.getLayersCount() > 1);
-
-            if (hasSimulcast) {
-                log.info("CLI publisher has simulcast video layers in room '{}'", room);
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
-        boolean hasSimulcast = participants.stream()
+        boolean success = pollUntil(() -> getParticipantInfo(service, room).stream()
                 .flatMap(p -> p.getTracksList().stream())
                 .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
-                .anyMatch(t -> t.getSimulcast() && t.getLayersCount() > 1);
-
-        assertTrue(hasSimulcast, "CLI publisher should have simulcast video layers");
+                .anyMatch(t -> t.getSimulcast() && t.getLayersCount() > 1));
+        if (success) {
+            log.info("CLI publisher has simulcast video layers in room '{}'", room);
+        } else {
+            assertTrue(false, "CLI publisher should have simulcast video layers");
+        }
     }
 
     @Then("the CLI publisher should have exactly {int} video layer in room {string} using service {string}")
     public void cliPublisherShouldHaveExactlyLayers(int expectedLayers, String room, String service) {
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
-
-            int layerCount = participants.stream()
+        boolean success = pollUntil(() -> {
+            int layerCount = getParticipantInfo(service, room).stream()
                     .flatMap(p -> p.getTracksList().stream())
                     .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
                     .mapToInt(LivekitModels.TrackInfo::getLayersCount)
-                    .max()
-                    .orElse(0);
-
-            if (layerCount == expectedLayers) {
-                log.info("CLI publisher has exactly {} video layer(s)", expectedLayers);
-                return;
-            }
-
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
+                    .max().orElse(0);
+            return layerCount == expectedLayers;
+        });
+        if (success) {
+            log.info("CLI publisher has exactly {} video layer(s)", expectedLayers);
+        } else {
+            int layerCount = getParticipantInfo(service, room).stream()
+                    .flatMap(p -> p.getTracksList().stream())
+                    .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
+                    .mapToInt(LivekitModels.TrackInfo::getLayersCount)
+                    .max().orElse(0);
+            assertEquals(expectedLayers, layerCount, "CLI publisher should have exactly " + expectedLayers + " video layer(s)");
         }
+    }
 
-        List<LivekitModels.ParticipantInfo> participants = getParticipantInfo(service, room);
-        int layerCount = participants.stream()
-                .flatMap(p -> p.getTracksList().stream())
-                .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
-                .mapToInt(LivekitModels.TrackInfo::getLayersCount)
-                .max()
-                .orElse(0);
+    @Then("participant {string} should have audio track {muteState} in room {string} using service {string}")
+    public void participantShouldHaveAudioTrackStateInRoomUsingService(String participantIdentity, MuteState state, String roomName, String serviceName) {
+        boolean success = pollUntil(() -> {
+            LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
+            return p.getTracksList().stream()
+                    .filter(t -> t.getType() == LivekitModels.TrackType.AUDIO)
+                    .anyMatch(t -> t.getMuted() == state.isMuted());
+        });
+        if (success) {
+            log.info("Participant '{}' has audio track {} in room '{}'", participantIdentity, state, roomName);
+        } else {
+            assertTrue(false, "Participant '" + participantIdentity + "' should have audio track " + state);
+        }
+    }
 
-        assertEquals(expectedLayers, layerCount, "CLI publisher should have exactly " + expectedLayers + " video layer(s)");
+    @Then("participant {string} should have video track {muteState} in room {string} using service {string}")
+    public void participantShouldHaveVideoTrackStateInRoomUsingService(String participantIdentity, MuteState state, String roomName, String serviceName) {
+        boolean success = pollUntil(() -> {
+            LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
+            return p.getTracksList().stream()
+                    .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
+                    .filter(t -> t.getSource() == LivekitModels.TrackSource.CAMERA)
+                    .anyMatch(t -> t.getMuted() == state.isMuted());
+        });
+        if (success) {
+            log.info("Participant '{}' has video track {} in room '{}'", participantIdentity, state, roomName);
+        } else {
+            assertTrue(false, "Participant '" + participantIdentity + "' should have video track " + state);
+        }
     }
 }

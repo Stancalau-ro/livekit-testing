@@ -63,7 +63,7 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.2: Test Simulcast Video Publishing
+#### Story 1.1.2: Test Simulcast Video Publishing [DONE]
 
 **As a** test developer
 **I want** to test simulcast video publishing
@@ -78,13 +78,15 @@ The framework currently tests:
 - When adaptive streaming activates
 - Then lower quality layer is selected
 
-- [ ] Enable simulcast in video publish settings
-- [ ] Verify multiple video layers exist
-- [ ] Test layer selection via SDK
-- [ ] Measure quality differences between layers
-- [ ] Test layer switching under bandwidth constraints
+- [x] Enable simulcast in video publish settings
+- [x] Verify multiple video layers exist
+- [x] Test layer selection via SDK
+- [x] Measure quality differences between layers
+- [x] Test layer switching under bandwidth constraints
 
 **Size:** M
+
+**Implementation:** `src/test/resources/features/livekit_simulcast.feature`
 
 ---
 
@@ -189,7 +191,7 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.7: Test Track Mute and Unmute Operations
+#### Story 1.1.7: Test Track Mute and Unmute Operations [DONE]
 
 **As a** test developer
 **I want** to test track mute/unmute behavior
@@ -204,13 +206,15 @@ The framework currently tests:
 - When it is unmuted
 - Then media flow resumes
 
-- [ ] Implement mute operation from browser
-- [ ] Verify mute state via server API
-- [ ] Test mute state visible to other participants
-- [ ] Verify unmute restores media flow
+- [x] Implement mute operation from browser
+- [x] Verify mute state via server API
+- [x] Test mute state visible to other participants
+- [x] Verify unmute restores media flow
 - [ ] Test server-initiated mute
 
 **Size:** M
+
+**Implementation:** `src/test/resources/features/livekit_track_mute.feature`
 
 ---
 
@@ -1610,9 +1614,12 @@ Phase 5 (Innovation)
 ### Immediate (Next 1-2 Sprints)
 
 1. ~~Story 1.1.1 - Test Screen Sharing Functionality~~ [DONE]
-2. Story 1.1.2 - Test Simulcast Video Publishing
-3. Story 1.1.4 - Test Data Channel Communication
-4. Story 1.1.7 - Test Track Mute and Unmute Operations
+2. ~~Story 1.1.2 - Test Simulcast Video Publishing~~ [DONE]
+3. ~~Story 1.1.7 - Test Track Mute and Unmute Operations~~ [DONE]
+4. Story 1.1.4 - Test Data Channel Communication
+5. Story 1.1.3 - Test Dynacast Bandwidth Adaptation
+6. Story 1.1.5 - Test Room Metadata Operations
+7. Story 1.1.6 - Test Participant Metadata Operations
 
 ### Short-term (Next Quarter)
 

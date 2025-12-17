@@ -580,4 +580,66 @@ public class LiveKitMeet {
         );
         log.info("LiveKitMeet max receive bandwidth set to: {} kbps", kbps);
     }
+
+    public void muteAudio() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.muteAudio();"
+        );
+        log.info("LiveKitMeet audio muted");
+    }
+
+    public void unmuteAudio() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.unmuteAudio();"
+        );
+        log.info("LiveKitMeet audio unmuted");
+    }
+
+    public void muteVideo() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.muteVideo();"
+        );
+        log.info("LiveKitMeet video muted");
+    }
+
+    public void unmuteVideo() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.unmuteVideo();"
+        );
+        log.info("LiveKitMeet video unmuted");
+    }
+
+    public boolean isAudioMuted() {
+        Boolean muted = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.isAudioMuted();"
+        );
+        return muted != null && muted;
+    }
+
+    public boolean isVideoMuted() {
+        Boolean muted = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.isVideoMuted();"
+        );
+        return muted != null && muted;
+    }
+
+    public void waitForAudioMuted(boolean expectedMuted) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(d -> isAudioMuted() == expectedMuted);
+    }
+
+    public void waitForVideoMuted(boolean expectedMuted) {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        wait.until(d -> isVideoMuted() == expectedMuted);
+    }
 }

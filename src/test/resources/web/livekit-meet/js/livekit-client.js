@@ -25,6 +25,7 @@ class LiveKitMeetClient {
         window.simulcastEnabled = this.simulcastEnabled;
         window.currentVideoQuality = 'HIGH';
         window.receivingLayers = new Map();
+        window.muteEvents = [];
 
         this.initializeElements();
         this.setupEventListeners();
@@ -502,11 +503,25 @@ class LiveKitMeetClient {
         this.room.on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
             console.log('*** TrackMuted EVENT ***', publication.kind, participant.identity);
             addTechnicalDetail(`🔇 Track muted: ${publication.kind} from ${participant.identity}`);
+            window.muteEvents.push({
+                type: 'muted',
+                trackKind: publication.kind,
+                participantIdentity: participant.identity,
+                trackSid: publication.trackSid,
+                timestamp: Date.now()
+            });
         });
 
         this.room.on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
             console.log('*** TrackUnmuted EVENT ***', publication.kind, participant.identity);
             addTechnicalDetail(`🔊 Track unmuted: ${publication.kind} from ${participant.identity}`);
+            window.muteEvents.push({
+                type: 'unmuted',
+                trackKind: publication.kind,
+                participantIdentity: participant.identity,
+                trackSid: publication.trackSid,
+                timestamp: Date.now()
+            });
         });
         
         // Periodic check to ensure all video tracks are subscribed
@@ -719,14 +734,14 @@ class LiveKitMeetClient {
     
     async toggleMute() {
         if (!this.localAudioTrack) return;
-        
+
         this.audioEnabled = !this.audioEnabled;
         this.localAudioTrack.setEnabled(this.audioEnabled);
-        
+
         this.muteBtn.textContent = this.audioEnabled ? 'Mute' : 'Unmute';
         this.muteBtn.className = this.audioEnabled ? 'control-btn mute-btn' : 'control-btn mute-btn muted';
     }
-    
+
     async toggleCamera() {
         if (!this.localVideoTrack) return;
 
@@ -736,6 +751,78 @@ class LiveKitMeetClient {
         this.updateVideoDisplay();
         this.cameraBtn.textContent = this.videoEnabled ? 'Camera Off' : 'Camera On';
         this.cameraBtn.className = this.videoEnabled ? 'control-btn camera-btn' : 'control-btn camera-btn off';
+    }
+
+    async muteAudio() {
+        if (!this.room || !this.room.localParticipant) return;
+        try {
+            await this.room.localParticipant.setMicrophoneEnabled(false);
+            this.audioEnabled = false;
+            this.muteBtn.textContent = 'Unmute';
+            this.muteBtn.className = 'control-btn mute-btn muted';
+            addTechnicalDetail('🔇 Audio muted');
+        } catch (error) {
+            console.error('Failed to mute audio:', error);
+            addTechnicalDetail(`❌ Failed to mute audio: ${error.message}`);
+        }
+    }
+
+    async unmuteAudio() {
+        if (!this.room || !this.room.localParticipant) return;
+        try {
+            await this.room.localParticipant.setMicrophoneEnabled(true);
+            this.audioEnabled = true;
+            this.muteBtn.textContent = 'Mute';
+            this.muteBtn.className = 'control-btn mute-btn';
+            addTechnicalDetail('🔊 Audio unmuted');
+        } catch (error) {
+            console.error('Failed to unmute audio:', error);
+            addTechnicalDetail(`❌ Failed to unmute audio: ${error.message}`);
+        }
+    }
+
+    async muteVideo() {
+        if (!this.room || !this.room.localParticipant) return;
+        try {
+            await this.room.localParticipant.setCameraEnabled(false);
+            this.videoEnabled = false;
+            this.updateVideoDisplay();
+            this.cameraBtn.textContent = 'Camera On';
+            this.cameraBtn.className = 'control-btn camera-btn off';
+            addTechnicalDetail('📵 Video muted');
+        } catch (error) {
+            console.error('Failed to mute video:', error);
+            addTechnicalDetail(`❌ Failed to mute video: ${error.message}`);
+        }
+    }
+
+    async unmuteVideo() {
+        if (!this.room || !this.room.localParticipant) return;
+        try {
+            await this.room.localParticipant.setCameraEnabled(true);
+            this.videoEnabled = true;
+            this.updateVideoDisplay();
+            this.cameraBtn.textContent = 'Camera Off';
+            this.cameraBtn.className = 'control-btn camera-btn';
+            addTechnicalDetail('📹 Video unmuted');
+        } catch (error) {
+            console.error('Failed to unmute video:', error);
+            addTechnicalDetail(`❌ Failed to unmute video: ${error.message}`);
+        }
+    }
+
+    isAudioMuted() {
+        if (!this.room || !this.room.localParticipant) return true;
+        const micPub = this.room.localParticipant.getTrackPublication(LiveKit.Track.Source.Microphone);
+        if (!micPub) return true;
+        return micPub.isMuted || !this.audioEnabled;
+    }
+
+    isVideoMuted() {
+        if (!this.room || !this.room.localParticipant) return true;
+        const cameraPub = this.room.localParticipant.getTrackPublication(LiveKit.Track.Source.Camera);
+        if (!cameraPub) return true;
+        return cameraPub.isMuted || !this.videoEnabled;
     }
 
     async toggleScreenShare() {

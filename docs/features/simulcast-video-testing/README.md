@@ -1,7 +1,7 @@
 # Feature: Simulcast Video Testing
 
 ## Status
-**Draft** | Story 1.1.2 | Size: M (Medium)
+**Complete** | Story 1.1.2 | Size: M (Medium)
 
 ## Problem Statement
 The LiveKit testing framework currently has basic simulcast support through the CLI publisher configuration (`simulcast:true`), but lacks comprehensive test coverage for verifying simulcast video behavior. Simulcast is a critical WebRTC optimization that publishes multiple quality layers (low, medium, high) of a video stream, allowing subscribers to receive the most appropriate quality based on their bandwidth and viewing requirements. Without proper testing:
