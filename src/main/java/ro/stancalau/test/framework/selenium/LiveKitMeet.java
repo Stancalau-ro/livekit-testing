@@ -12,6 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -641,5 +642,133 @@ public class LiveKitMeet {
         }
         WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
         wait.until(d -> isVideoMuted() == expectedMuted);
+    }
+
+    public void sendDataMessage(String message, boolean reliable) {
+        Boolean success = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.sendDataMessage(arguments[0], arguments[1], null);",
+            message, reliable
+        );
+        if (success == null || !success) {
+            String error = getLastDataChannelError();
+            throw new RuntimeException("Failed to send data message: " + error);
+        }
+        log.info("Sent data message (reliable: {}): {}", reliable, message.substring(0, Math.min(50, message.length())));
+    }
+
+    public void sendDataMessageTo(String message, String recipientIdentity, boolean reliable) {
+        Boolean success = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.sendDataMessage(arguments[0], arguments[1], [arguments[2]]);",
+            message, reliable, recipientIdentity
+        );
+        if (success == null || !success) {
+            String error = getLastDataChannelError();
+            throw new RuntimeException("Failed to send targeted data message: " + error);
+        }
+        log.info("Sent targeted data message to {} (reliable: {}): {}",
+            recipientIdentity, reliable, message.substring(0, Math.min(50, message.length())));
+    }
+
+    public void sendDataMessageOfSize(int sizeBytes, boolean reliable) {
+        Boolean success = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.sendDataMessageOfSize(arguments[0], arguments[1]);",
+            sizeBytes, reliable
+        );
+        if (success == null || !success) {
+            String error = getLastDataChannelError();
+            throw new RuntimeException("Failed to send data message of size " + sizeBytes + ": " + error);
+        }
+        log.info("Sent data message of size {} bytes (reliable: {})", sizeBytes, reliable);
+    }
+
+    public void sendTimestampedDataMessage(String message, boolean reliable) {
+        Boolean success = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.sendTimestampedDataMessage(arguments[0], arguments[1]);",
+            message, reliable
+        );
+        if (success == null || !success) {
+            String error = getLastDataChannelError();
+            throw new RuntimeException("Failed to send timestamped data message: " + error);
+        }
+        log.info("Sent timestamped data message (reliable: {}): {}", reliable, message);
+    }
+
+    public boolean hasReceivedDataMessage(String expectedContent, String fromIdentity, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            Boolean hasMessage = (Boolean) ((JavascriptExecutor) driver).executeScript(
+                "return window.LiveKitTestHelpers.hasReceivedDataMessage(arguments[0], arguments[1]);",
+                expectedContent, fromIdentity
+            );
+            if (hasMessage != null && hasMessage) {
+                return true;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public int getReceivedDataMessageCount() {
+        Long count = (Long) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.getReceivedDataMessageCount();"
+        );
+        return count != null ? count.intValue() : 0;
+    }
+
+    public boolean waitForDataMessageCount(int expectedCount, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            int actualCount = getReceivedDataMessageCount();
+            if (actualCount >= expectedCount) {
+                return true;
+            }
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return false;
+    }
+
+    public boolean isDataPublishingBlocked() {
+        Boolean blocked = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.isDataPublishingBlocked();"
+        );
+        return blocked != null && blocked;
+    }
+
+    public String getLastDataChannelError() {
+        String error = (String) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.getLastDataChannelError();"
+        );
+        return error != null ? error : "";
+    }
+
+    @SuppressWarnings("unchecked")
+    public double getAverageDataChannelLatency() {
+        Object result = ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.getDataChannelLatencyStats();"
+        );
+        if (result instanceof Map) {
+            Map<String, Object> stats = (Map<String, Object>) result;
+            Object avgObj = stats.get("average");
+            if (avgObj instanceof Number) {
+                return ((Number) avgObj).doubleValue();
+            }
+        }
+        return 0.0;
+    }
+
+    public void clearDataChannelState() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.clearDataChannelState();"
+        );
     }
 }

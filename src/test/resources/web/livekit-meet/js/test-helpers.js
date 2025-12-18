@@ -222,6 +222,122 @@ var LiveKitTestHelpers = {
 
     clearMuteEvents: function() {
         window.muteEvents = [];
+    },
+
+    sendDataMessage: function(message, reliable, destinationIdentities) {
+        if (!window.liveKitClient || !window.liveKitClient.room) {
+            window.lastDataChannelError = 'No active room connection';
+            window.dataPublishingBlocked = true;
+            return false;
+        }
+        try {
+            var encoder = new TextEncoder();
+            var data = encoder.encode(message);
+            var options = { reliable: reliable !== false };
+            if (destinationIdentities && Array.isArray(destinationIdentities)) {
+                options.destinationIdentities = destinationIdentities;
+            }
+            window.liveKitClient.room.localParticipant.publishData(data, options);
+            window.dataMessagesSent = window.dataMessagesSent || [];
+            window.dataMessagesSent.push({
+                content: message,
+                reliable: reliable !== false,
+                destinationIdentities: destinationIdentities || null,
+                timestamp: Date.now(),
+                size: data.length
+            });
+            return true;
+        } catch (e) {
+            console.error('Failed to send data message:', e);
+            window.lastDataChannelError = e.message || e.toString();
+            var errorMsg = (e.message || e.toString()).toLowerCase();
+            if (errorMsg.includes('permission') || errorMsg.includes('denied') ||
+                errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
+                window.dataPublishingBlocked = true;
+            }
+            return false;
+        }
+    },
+
+    sendDataMessageOfSize: function(sizeBytes, reliable) {
+        var message = 'X'.repeat(sizeBytes);
+        return this.sendDataMessage(message, reliable, null);
+    },
+
+    sendTimestampedDataMessage: function(message, reliable) {
+        var timestampedMessage = JSON.stringify({
+            content: message,
+            timestamp: Date.now()
+        });
+        return this.sendDataMessage(timestampedMessage, reliable, null);
+    },
+
+    getReceivedDataMessages: function() {
+        return window.dataChannelMessages || [];
+    },
+
+    getReceivedDataMessageCount: function() {
+        return window.dataChannelMessages ? window.dataChannelMessages.length : 0;
+    },
+
+    findReceivedDataMessage: function(expectedContent, fromIdentity) {
+        var messages = window.dataChannelMessages || [];
+        for (var i = 0; i < messages.length; i++) {
+            if (messages[i].content === expectedContent) {
+                if (!fromIdentity || messages[i].from === fromIdentity) {
+                    return messages[i];
+                }
+            }
+        }
+        return null;
+    },
+
+    hasReceivedDataMessage: function(expectedContent, fromIdentity) {
+        return this.findReceivedDataMessage(expectedContent, fromIdentity) !== null;
+    },
+
+    getDataMessagesFromSender: function(senderIdentity) {
+        var messages = window.dataChannelMessages || [];
+        return messages.filter(function(msg) {
+            return msg.from === senderIdentity;
+        });
+    },
+
+    isDataPublishingBlocked: function() {
+        return window.dataPublishingBlocked || false;
+    },
+
+    getLastDataChannelError: function() {
+        return window.lastDataChannelError || '';
+    },
+
+    getDataChannelLatencyStats: function() {
+        var messages = window.dataChannelMessages || [];
+        var latencies = [];
+        for (var i = 0; i < messages.length; i++) {
+            if (messages[i].latency !== undefined) {
+                latencies.push(messages[i].latency);
+            }
+        }
+        if (latencies.length === 0) {
+            return { count: 0, min: 0, max: 0, average: 0 };
+        }
+        var sum = latencies.reduce(function(a, b) { return a + b; }, 0);
+        var min = Math.min.apply(null, latencies);
+        var max = Math.max.apply(null, latencies);
+        var average = sum / latencies.length;
+        return { count: latencies.length, min: min, max: max, average: average };
+    },
+
+    clearDataChannelState: function() {
+        window.dataChannelMessages = [];
+        window.dataMessagesSent = [];
+        window.lastDataChannelError = '';
+        window.dataPublishingBlocked = false;
+    },
+
+    getSentDataMessageCount: function() {
+        return window.dataMessagesSent ? window.dataMessagesSent.length : 0;
     }
 };
 

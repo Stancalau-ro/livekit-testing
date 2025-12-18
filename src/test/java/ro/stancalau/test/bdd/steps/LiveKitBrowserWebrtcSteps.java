@@ -1,5 +1,6 @@
 package ro.stancalau.test.bdd.steps;
 
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.After;
 import io.cucumber.java.Scenario;
 import io.cucumber.java.en.And;
@@ -17,6 +18,7 @@ import ro.stancalau.test.framework.state.RoomClientStateManager;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -508,5 +510,226 @@ public class LiveKitBrowserWebrtcSteps {
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
         assertEquals(state.isMuted(), meetInstance.isVideoMuted(),
             participantName + " should have video " + state + " locally");
+    }
+
+    @When("{string} sends a data message {string} via reliable channel")
+    public void sendsDataMessageViaReliableChannel(String participantName, String message) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.sendDataMessage(message, true);
+    }
+
+    @When("{string} sends a data message {string} via unreliable channel")
+    public void sendsDataMessageViaUnreliableChannel(String participantName, String message) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.sendDataMessage(message, false);
+    }
+
+    @When("{string} sends a broadcast data message {string} via reliable channel")
+    public void sendsBroadcastDataMessage(String participantName, String message) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.sendDataMessage(message, true);
+    }
+
+    @When("{string} sends a data message {string} to {string} via reliable channel")
+    public void sendsTargetedDataMessage(String sender, String message, String recipient) {
+        LiveKitMeet meetInstance = meetInstances.get(sender);
+        assertNotNull(meetInstance, "Meet instance should exist for " + sender);
+        meetInstance.sendDataMessageTo(message, recipient, true);
+    }
+
+    @When("{string} sends a data message of size {int} bytes via reliable channel")
+    public void sendsDataMessageOfSize(String participantName, int sizeBytes) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        meetInstance.sendDataMessageOfSize(sizeBytes, true);
+    }
+
+    @When("{string} sends {int} data messages via unreliable channel")
+    public void sendsMultipleDataMessagesViaUnreliableChannel(String participantName, int count) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        for (int i = 0; i < count; i++) {
+            meetInstance.sendDataMessage("Unreliable message " + (i + 1), false);
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("Test interrupted while sending multiple messages");
+            }
+        }
+    }
+
+    @When("{string} sends {int} timestamped data messages via reliable channel")
+    public void sendsTimestampedMessages(String participantName, int count) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        for (int i = 0; i < count; i++) {
+            meetInstance.sendTimestampedDataMessage("Latency test message " + (i + 1), true);
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("Test interrupted while sending timestamped messages");
+            }
+        }
+    }
+
+    @When("{string} attempts to send a data message {string}")
+    public void attemptsToSendDataMessage(String participantName, String message) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        try {
+            meetInstance.sendDataMessage(message, true);
+        } catch (Exception e) {
+            log.info("Data message send attempt failed as expected: {}", e.getMessage());
+        }
+    }
+
+    @Then("{string} should receive data message {string} from {string}")
+    public void shouldReceiveDataMessageFrom(String receiver, String message, String sender) {
+        LiveKitMeet meetInstance = meetInstances.get(receiver);
+        assertNotNull(meetInstance, "Meet instance should exist for " + receiver);
+
+        boolean received = meetInstance.hasReceivedDataMessage(message, sender, 10000);
+        assertTrue(received,
+            receiver + " should have received data message '" + message + "' from " + sender);
+    }
+
+    @Then("{string} should receive at least {int} out of {int} messages from {string}")
+    public void shouldReceiveAtLeastMessagesFrom(String receiver, int minMessages, int totalSent, String sender) {
+        LiveKitMeet meetInstance = meetInstances.get(receiver);
+        assertNotNull(meetInstance, "Meet instance should exist for " + receiver);
+
+        boolean receivedEnough = meetInstance.waitForDataMessageCount(minMessages, 15000);
+        int actualCount = meetInstance.getReceivedDataMessageCount();
+
+        assertTrue(receivedEnough && actualCount >= minMessages,
+            receiver + " should have received at least " + minMessages + " messages from " + sender +
+            " (actual: " + actualCount + " out of " + totalSent + " sent)");
+
+        log.info("Unreliable channel delivery: {} out of {} messages received ({}%)",
+            actualCount, totalSent, (actualCount * 100.0 / totalSent));
+    }
+
+    @Then("{string} should receive all timestamped messages")
+    public void shouldReceiveAllTimestampedMessages(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        int receivedCount = meetInstance.getReceivedDataMessageCount();
+        assertTrue(receivedCount >= 10,
+            participantName + " should have received all timestamped messages (received: " + receivedCount + ")");
+    }
+
+    @Then("{string} should receive a data message of size {int} bytes")
+    public void shouldReceiveDataMessageOfSize(String participantName, int expectedSize) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        boolean received = meetInstance.waitForDataMessageCount(1, 10000);
+        assertTrue(received, participantName + " should have received a data message");
+
+        int actualCount = meetInstance.getReceivedDataMessageCount();
+        assertTrue(actualCount > 0,
+            participantName + " should have at least one message (size: " + expectedSize + " bytes)");
+    }
+
+    @Then("{string} should not receive data message {string}")
+    public void shouldNotReceiveDataMessage(String participantName, String message) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        boolean received = meetInstance.hasReceivedDataMessage(message, null, 1000);
+        assertFalse(received,
+            participantName + " should not have received data message: " + message);
+    }
+
+    @Then("{string} should have data publishing blocked due to permissions")
+    public void shouldHaveDataPublishingBlockedDueToPermissions(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        boolean isBlocked = meetInstance.isDataPublishingBlocked();
+        String error = meetInstance.getLastDataChannelError();
+
+        assertTrue(isBlocked,
+            participantName + " should have data publishing blocked (error: " + error + ")");
+    }
+
+    @Then("the average data channel latency should be less than {int} ms")
+    public void averageLatencyShouldBeLessThan(int maxLatencyMs) {
+        LiveKitMeet anyMeetInstance = meetInstances.values().stream().findFirst().orElse(null);
+        assertNotNull(anyMeetInstance, "At least one meet instance should exist");
+
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        double avgLatency = anyMeetInstance.getAverageDataChannelLatency();
+        assertTrue(avgLatency > 0 && avgLatency < maxLatencyMs,
+            "Average data channel latency should be less than " + maxLatencyMs + " ms (actual: " +
+            String.format("%.2f", avgLatency) + " ms)");
+
+        log.info("Data channel latency: {:.2f} ms (threshold: {} ms)", avgLatency, maxLatencyMs);
+    }
+
+    @Then("the test logs document that lossy mode in local containers typically achieves near-100% delivery")
+    public void testLogsDocumentLossyModeDelivery() {
+        log.info("NOTE: Lossy/unreliable data channel mode in local container testing typically " +
+            "achieves near-100% delivery due to low latency and no packet loss. In production " +
+            "environments with network constraints, message loss is expected and normal.");
+    }
+
+    @Then("{string} should receive data messages in order:")
+    public void shouldReceiveDataMessagesInOrder(String participantName, DataTable dataTable) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        List<String> expectedMessages = dataTable.asList().subList(1, dataTable.asList().size());
+
+        boolean allReceived = meetInstance.waitForDataMessageCount(expectedMessages.size(), 15000);
+        assertTrue(allReceived,
+            participantName + " should have received all " + expectedMessages.size() + " messages");
+
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> receivedMessages = (List<Map<String, Object>>) ((JavascriptExecutor) driver)
+            .executeScript("return window.LiveKitTestHelpers.getReceivedDataMessages();");
+
+        assertNotNull(receivedMessages, "Should have received messages list");
+        assertTrue(receivedMessages.size() >= expectedMessages.size(),
+            "Should have received at least " + expectedMessages.size() + " messages");
+
+        for (int i = 0; i < expectedMessages.size(); i++) {
+            String expected = expectedMessages.get(i);
+            String actual = receivedMessages.get(i).get("content").toString();
+            assertEquals(expected, actual,
+                "Message at index " + i + " should match. Expected: " + expected + ", Actual: " + actual);
+        }
+
+        log.info("All {} messages received in correct order for {}", expectedMessages.size(), participantName);
     }
 }

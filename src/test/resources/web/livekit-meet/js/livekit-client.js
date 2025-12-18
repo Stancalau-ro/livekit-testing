@@ -26,6 +26,10 @@ class LiveKitMeetClient {
         window.currentVideoQuality = 'HIGH';
         window.receivingLayers = new Map();
         window.muteEvents = [];
+        window.dataChannelMessages = [];
+        window.dataMessagesSent = [];
+        window.lastDataChannelError = '';
+        window.dataPublishingBlocked = false;
 
         this.initializeElements();
         this.setupEventListeners();
@@ -523,7 +527,38 @@ class LiveKitMeetClient {
                 timestamp: Date.now()
             });
         });
-        
+
+        this.room.on(LiveKit.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
+            try {
+                var decoder = new TextDecoder();
+                var content = decoder.decode(payload);
+                var receiveTimestamp = Date.now();
+                var messageObj = {
+                    content: content,
+                    from: participant ? participant.identity : 'unknown',
+                    kind: kind,
+                    topic: topic,
+                    timestamp: receiveTimestamp,
+                    size: payload.length
+                };
+                try {
+                    var parsed = JSON.parse(content);
+                    if (parsed.timestamp) {
+                        messageObj.sentTimestamp = parsed.timestamp;
+                        messageObj.latency = receiveTimestamp - parsed.timestamp;
+                        messageObj.content = parsed.content;
+                    }
+                } catch (e) {
+                }
+                window.dataChannelMessages.push(messageObj);
+                addTechnicalDetail('📨 Data received from ' + (participant ? participant.identity : 'unknown') +
+                    ': ' + content.substring(0, 50) + (content.length > 50 ? '...' : ''));
+            } catch (error) {
+                console.error('Error processing data message:', error);
+                addTechnicalDetail('❌ Data receive error: ' + error.message);
+            }
+        });
+
         // Periodic check to ensure all video tracks are subscribed
         setInterval(() => {
             if (this.room && this.room.state === 'connected') {
