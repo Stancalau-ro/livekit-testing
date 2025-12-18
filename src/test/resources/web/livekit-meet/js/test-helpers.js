@@ -230,6 +230,13 @@ var LiveKitTestHelpers = {
             window.dataPublishingBlocked = true;
             return false;
         }
+        var permissions = window.liveKitClient.room.localParticipant.permissions;
+        if (permissions && permissions.canPublishData === false) {
+            window.lastDataChannelError = 'Permission denied: canPublishData is false';
+            window.dataPublishingBlocked = true;
+            console.warn('Data publishing blocked: canPublishData permission is false');
+            return false;
+        }
         try {
             var encoder = new TextEncoder();
             var data = encoder.encode(message);
@@ -237,22 +244,35 @@ var LiveKitTestHelpers = {
             if (destinationIdentities && Array.isArray(destinationIdentities)) {
                 options.destinationIdentities = destinationIdentities;
             }
-            window.liveKitClient.room.localParticipant.publishData(data, options);
-            window.dataMessagesSent = window.dataMessagesSent || [];
-            window.dataMessagesSent.push({
-                content: message,
-                reliable: reliable !== false,
-                destinationIdentities: destinationIdentities || null,
-                timestamp: Date.now(),
-                size: data.length
-            });
+            window.liveKitClient.room.localParticipant.publishData(data, options)
+                .then(function() {
+                    window.dataMessagesSent = window.dataMessagesSent || [];
+                    window.dataMessagesSent.push({
+                        content: message,
+                        reliable: reliable !== false,
+                        destinationIdentities: destinationIdentities || null,
+                        timestamp: Date.now(),
+                        size: data.length
+                    });
+                })
+                .catch(function(e) {
+                    console.error('Async error sending data message:', e);
+                    window.lastDataChannelError = e.message || e.toString();
+                    var errorMsg = (e.message || e.toString()).toLowerCase();
+                    if (errorMsg.includes('permission') || errorMsg.includes('denied') ||
+                        errorMsg.includes('forbidden') || errorMsg.includes('unauthorized') ||
+                        errorMsg.includes('not allowed')) {
+                        window.dataPublishingBlocked = true;
+                    }
+                });
             return true;
         } catch (e) {
             console.error('Failed to send data message:', e);
             window.lastDataChannelError = e.message || e.toString();
             var errorMsg = (e.message || e.toString()).toLowerCase();
             if (errorMsg.includes('permission') || errorMsg.includes('denied') ||
-                errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
+                errorMsg.includes('forbidden') || errorMsg.includes('unauthorized') ||
+                errorMsg.includes('not allowed')) {
                 window.dataPublishingBlocked = true;
             }
             return false;
