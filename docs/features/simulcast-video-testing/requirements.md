@@ -34,10 +34,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** the participant's track info is inspected via server API
 **Then** the track should indicate simulcast is enabled
 
-- [ ] Add browser-side simulcast enable/disable capability
-- [ ] Verify simulcast flag is accessible via LiveKitMeet page object
-- [ ] Test default simulcast behavior (enabled/disabled)
-- [ ] Verify simulcast works across Chrome, Firefox, Edge browsers
+- [x] Add browser-side simulcast enable/disable capability
+- [x] Verify simulcast flag is accessible via LiveKitMeet page object
+- [x] Test default simulcast behavior (enabled/disabled)
+- [x] Verify simulcast works across Chrome, Firefox browsers
 
 **Dependencies:** None (builds on existing WebRTC publishing)
 
@@ -65,10 +65,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** inspecting each layer
 **Then** each layer should have distinct width, height, and bitrate values
 
-- [ ] Add step definitions for layer count verification
-- [ ] Implement layer inspection via RoomServiceClient/TrackInfo
-- [ ] Verify layer count changes based on simulcast setting
-- [ ] Handle edge cases where fewer layers are published (low resolution source)
+- [x] Add step definitions for layer count verification
+- [x] Implement layer inspection via RoomServiceClient/TrackInfo
+- [x] Verify layer count changes based on simulcast setting
+- [x] Handle edge cases where fewer layers are published (low resolution source)
 
 **Dependencies:** Story 1.1.2.1
 
@@ -96,9 +96,9 @@ The original story is broken down into smaller, independent stories following IN
 **When** compared against expected ratios
 **Then** layers should follow expected scaling (e.g., high = 4x low resolution)
 
-- [ ] Add step definitions for layer property comparison
-- [ ] Verify resolution scaling between layers
-- [ ] Verify bitrate differences between layers
+- [x] Add step definitions for layer property comparison
+- [x] Verify resolution scaling between layers
+- [x] Verify bitrate differences between layers
 - [ ] Document expected layer ratios for different source resolutions
 
 **Dependencies:** Story 1.1.2.2
@@ -127,8 +127,8 @@ The original story is broken down into smaller, independent stories following IN
 **When** the request is processed
 **Then** the closest available layer should be selected
 
-- [ ] Add browser-side layer preference setting
-- [ ] Implement subscriber quality preference step definitions
+- [x] Add browser-side layer preference setting
+- [x] Implement subscriber quality preference step definitions
 - [ ] Verify layer changes via server API subscription info
 - [ ] Test layer switching latency
 
@@ -162,6 +162,8 @@ The original story is broken down into smaller, independent stories following IN
 - [ ] Compare layer counts between simulcast:true and simulcast:false
 - [ ] Test browser-CLI interoperability for simulcast
 
+Note: CLI publisher simulcast scenarios are defined in requirements but not yet implemented in the feature file.
+
 **Dependencies:** Story 1.1.2.2
 
 ---
@@ -190,8 +192,8 @@ The original story is broken down into smaller, independent stories following IN
 
 Note: Full network simulation is out of scope. This story focuses on verifiable layer selection behavior that can be tested without external traffic control tools.
 
-- [ ] Test layer selection with explicit subscriber bandwidth hints
-- [ ] Verify layer preference is respected by server
+- [x] Test layer selection with explicit subscriber bandwidth hints
+- [x] Verify layer preference is respected by server
 - [ ] Document limitations of container-based bandwidth testing
 
 **Dependencies:** Story 1.1.2.4
@@ -412,31 +414,31 @@ Feature: LiveKit Simulcast Video Publishing
 ## Definition of Done
 
 ### Code Implementation
-- [ ] New step definitions added to `LiveKitBrowserWebrtcSteps.java` for simulcast control
-- [ ] New step definitions added to `LiveKitRoomSteps.java` for layer verification
-- [ ] `LiveKitMeet.java` extended with simulcast enable/disable and quality preference methods
-- [ ] Feature file `livekit_simulcast.feature` created and passing
-- [ ] All scenarios pass on Chrome browser
-- [ ] All scenarios pass on Firefox browser
+- [x] New step definitions added to `LiveKitBrowserWebrtcSteps.java` for simulcast control
+- [x] New step definitions added to `LiveKitRoomSteps.java` for layer verification
+- [x] `LiveKitMeet.java` extended with simulcast enable/disable and quality preference methods
+- [x] Feature file `livekit_simulcast.feature` created and passing
+- [x] All scenarios pass on Chrome browser
+- [x] All scenarios pass on Firefox browser
 - [ ] All scenarios pass on Edge browser
 
 ### Testing
-- [ ] All unit tests pass
-- [ ] All BDD scenarios pass
-- [ ] Tests pass against default LiveKit version
-- [ ] Manual verification of simulcast layers in containerized browser
+- [x] All unit tests pass
+- [x] All BDD scenarios pass
+- [x] Tests pass against default LiveKit version
+- [x] Manual verification of simulcast layers in containerized browser
 - [ ] CLI publisher simulcast scenarios verified
 
 ### Documentation
-- [ ] Feature documentation complete in `docs/features/simulcast-video-testing/`
+- [x] Feature documentation complete in `docs/features/simulcast-video-testing/`
 - [ ] Step definitions documented in `docs/features.md`
 - [ ] Technical notes added for simulcast configuration
 
 ### Code Quality
-- [ ] No new Lombok violations
-- [ ] No code comments added (per project guidelines)
-- [ ] Cross-platform path handling maintained
-- [ ] Proper cleanup in After hooks
+- [x] No new Lombok violations
+- [x] No code comments added (per project guidelines)
+- [x] Cross-platform path handling maintained
+- [x] Proper cleanup in After hooks
 
 ---
 

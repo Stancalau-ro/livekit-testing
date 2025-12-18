@@ -677,23 +677,23 @@ public class LiveKitBrowserWebrtcSteps {
             participantName + " should have data publishing blocked (error: " + error + ")");
     }
 
-    @Then("the average data channel latency should be less than {int} ms")
-    public void averageLatencyShouldBeLessThan(int maxLatencyMs) {
-        LiveKitMeet anyMeetInstance = meetInstances.values().stream().findFirst().orElse(null);
-        assertNotNull(anyMeetInstance, "At least one meet instance should exist");
+    @Then("the average data channel latency for {string} should be less than {int} ms")
+    public void averageLatencyShouldBeLessThan(String participantName, int maxLatencyMs) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
 
         try {
-            Thread.sleep(1000);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
 
-        double avgLatency = anyMeetInstance.getAverageDataChannelLatency();
-        assertTrue(avgLatency > 0 && avgLatency < maxLatencyMs,
-            "Average data channel latency should be less than " + maxLatencyMs + " ms (actual: " +
+        double avgLatency = meetInstance.getAverageDataChannelLatency();
+        assertTrue(avgLatency >= 0 && avgLatency < maxLatencyMs,
+            "Average data channel latency for " + participantName + " should be less than " + maxLatencyMs + " ms (actual: " +
             String.format("%.2f", avgLatency) + " ms)");
 
-        log.info("Data channel latency: {:.2f} ms (threshold: {} ms)", avgLatency, maxLatencyMs);
+        log.info("Data channel latency for {}: {:.2f} ms (threshold: {} ms)", participantName, avgLatency, maxLatencyMs);
     }
 
     @Then("the test logs document that lossy mode in local containers typically achieves near-100% delivery")

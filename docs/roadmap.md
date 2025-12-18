@@ -115,7 +115,7 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.4: Test Data Channel Communication
+#### Story 1.1.4: Test Data Channel Communication [DONE]
 
 **As a** test developer
 **I want** to test data channel messaging
@@ -130,14 +130,16 @@ The framework currently tests:
 - When message is sent
 - Then delivery is guaranteed
 
-- [ ] Add permission grant for data publishing (canPublishData)
-- [ ] Send message via reliable data channel
-- [ ] Verify message receipt by other participant
-- [ ] Test unreliable data channel
-- [ ] Measure data channel latency
-- [ ] Test large message handling
+- [x] Add permission grant for data publishing (canPublishData)
+- [x] Send message via reliable data channel
+- [x] Verify message receipt by other participant
+- [x] Test unreliable data channel
+- [x] Measure data channel latency
+- [x] Test large message handling (up to 15 KiB)
 
 **Size:** M
+
+**Implementation:** `docs/features/data-channel-testing/` - 9 sub-stories, 16 Gherkin scenarios
 
 ---
 
@@ -1616,7 +1618,7 @@ Phase 5 (Innovation)
 1. ~~Story 1.1.1 - Test Screen Sharing Functionality~~ [DONE]
 2. ~~Story 1.1.2 - Test Simulcast Video Publishing~~ [DONE]
 3. ~~Story 1.1.7 - Test Track Mute and Unmute Operations~~ [DONE]
-4. Story 1.1.4 - Test Data Channel Communication
+4. ~~Story 1.1.4 - Test Data Channel Communication~~ [DONE]
 5. Story 1.1.3 - Test Dynacast Bandwidth Adaptation
 6. Story 1.1.5 - Test Room Metadata Operations
 7. Story 1.1.6 - Test Participant Metadata Operations

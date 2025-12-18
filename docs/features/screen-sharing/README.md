@@ -1,7 +1,7 @@
 # Feature: Screen Sharing Testing
 
 ## Status
-**Draft** | Story 1.1.1 | Size: M (Medium)
+**Complete** | Story 1.1.1 | Size: M (Medium)
 
 ## Problem Statement
 The LiveKit testing framework currently lacks comprehensive test coverage for screen sharing functionality. Screen sharing is a critical feature in video conferencing applications, and without proper testing, there is no automated verification that:

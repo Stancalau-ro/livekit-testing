@@ -117,7 +117,7 @@ Feature: LiveKit Data Channel Communication
     When "LatencySender" sends 10 timestamped data messages via reliable channel
 
     Then "LatencyReceiver" should receive all timestamped messages
-    And the average data channel latency should be less than 500 ms
+    And the average data channel latency for "LatencyReceiver" should be less than 500 ms
     And "LatencySender" closes the browser
     And "LatencyReceiver" closes the browser
 

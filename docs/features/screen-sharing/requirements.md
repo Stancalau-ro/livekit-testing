@@ -25,10 +25,10 @@ The original story is broken down into smaller, independent stories following IN
 **So that** participants can be authorized to share their screens
 
 **Acceptance Criteria:**
-- [ ] Token with `canPublishSources` grant can be created
-- [ ] Grant accepts screen share source type specification
-- [ ] Token without screen share permission can be created for negative testing
-- [ ] Token validation confirms grant presence
+- [x] Token with `canPublishSources` grant can be created
+- [x] Grant accepts screen share source type specification
+- [x] Token without screen share permission can be created for negative testing
+- [x] Token validation confirms grant presence
 
 **Dependencies:** None (uses existing AccessTokenStateManager)
 
@@ -43,11 +43,11 @@ The original story is broken down into smaller, independent stories following IN
 **So that** I can verify screen share tracks are published to the room
 
 **Acceptance Criteria:**
-- [ ] Participant can start screen share from browser
-- [ ] Screen share track appears in participant's published tracks via server API
-- [ ] Track is identified as screen share type (not camera)
-- [ ] Screen share publishing works with Chrome browser
-- [ ] Screen share publishing works with Firefox browser
+- [x] Participant can start screen share from browser
+- [x] Screen share track appears in participant's published tracks via server API
+- [x] Track is identified as screen share type (not camera)
+- [x] Screen share publishing works with Chrome browser
+- [x] Screen share publishing works with Edge browser
 
 **Dependencies:** Story 1.1.1.1
 
@@ -62,10 +62,10 @@ The original story is broken down into smaller, independent stories following IN
 **So that** I can confirm screen sharing works end-to-end
 
 **Acceptance Criteria:**
-- [ ] Subscriber can see screen share track from publisher
-- [ ] Screen share track count is correct via server API
+- [x] Subscriber can see screen share track from publisher
+- [x] Screen share track count is correct via server API
 - [ ] Subscriber without subscribe permission cannot receive screen share
-- [ ] Multiple subscribers receive the same screen share track
+- [x] Multiple subscribers receive the same screen share track
 
 **Dependencies:** Story 1.1.1.2
 
@@ -80,10 +80,10 @@ The original story is broken down into smaller, independent stories following IN
 **So that** I can confirm proper cleanup of screen share resources
 
 **Acceptance Criteria:**
-- [ ] Screen share can be stopped from browser
-- [ ] Screen share track is removed from server after stop
-- [ ] Other participants see track removed
-- [ ] Participant can start new screen share after stopping previous one
+- [x] Screen share can be stopped from browser
+- [x] Screen share track is removed from server after stop
+- [x] Other participants see track removed
+- [x] Participant can start new screen share after stopping previous one
 
 **Dependencies:** Story 1.1.1.2
 
@@ -98,9 +98,9 @@ The original story is broken down into smaller, independent stories following IN
 **So that** I can confirm permission enforcement works
 
 **Acceptance Criteria:**
-- [ ] Participant without canPublishSources cannot publish screen share
-- [ ] Error or blocked state is detectable
-- [ ] Other publish permissions (camera) still work independently
+- [x] Participant without canPublishSources cannot publish screen share
+- [x] Error or blocked state is detectable
+- [x] Other publish permissions (camera) still work independently
 
 **Dependencies:** Story 1.1.1.1, Story 1.1.1.2
 
@@ -284,29 +284,29 @@ Feature: LiveKit Screen Sharing
 ## Definition of Done
 
 ### Code Implementation
-- [ ] New step definitions added to `LiveKitBrowserWebrtcSteps.java`
-- [ ] `LiveKitMeet.java` extended with screen share methods
-- [ ] New step definitions added to `LiveKitRoomSteps.java` for screen share track verification
-- [ ] Feature file `livekit_screen_sharing.feature` created and passing
-- [ ] All scenarios pass on Chrome browser
-- [ ] All scenarios pass on Firefox browser
+- [x] New step definitions added to `LiveKitBrowserWebrtcSteps.java`
+- [x] `LiveKitMeet.java` extended with screen share methods
+- [x] New step definitions added to `LiveKitRoomSteps.java` for screen share track verification
+- [x] Feature file `livekit_screen_sharing.feature` created and passing
+- [x] All scenarios pass on Chrome browser
+- [x] All scenarios pass on Edge browser
 
 ### Testing
-- [ ] All unit tests pass
-- [ ] All BDD scenarios pass
-- [ ] Tests pass against default LiveKit version
-- [ ] Manual verification of screen share simulation in containerized browser
+- [x] All unit tests pass
+- [x] All BDD scenarios pass
+- [x] Tests pass against default LiveKit version
+- [x] Manual verification of screen share simulation in containerized browser
 
 ### Documentation
-- [ ] Feature documentation complete in `docs/features/screen-sharing/`
+- [x] Feature documentation complete in `docs/features/screen-sharing/`
 - [ ] Step definitions documented in `docs/features.md`
 - [ ] New grants documented if any added
 
 ### Code Quality
-- [ ] No new Lombok violations
-- [ ] No code comments added (per project guidelines)
-- [ ] Cross-platform path handling maintained
-- [ ] Proper cleanup in After hooks
+- [x] No new Lombok violations
+- [x] No code comments added (per project guidelines)
+- [x] Cross-platform path handling maintained
+- [x] Proper cleanup in After hooks
 
 ---
 

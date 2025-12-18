@@ -1,7 +1,9 @@
 # Feature: Track Mute and Unmute Testing
 
 ## Status
-**Draft** | Story 1.1.7 | Size: M (Medium)
+**In Progress** | Story 1.1.7 | Size: M (Medium)
+
+Core functionality implemented (Stories 1.1.7.1, 1.1.7.2, 1.1.7.3, 1.1.7.5). Server-initiated mute (1.1.7.4) and media flow verification (1.1.7.6) pending.
 
 ## Problem Statement
 The LiveKit testing framework has basic mute toggle functionality (`toggleMute()` in LiveKitMeet.java), but lacks comprehensive test coverage for verifying mute state propagation and verification. Mute/unmute is a fundamental real-time communication feature that affects both audio and video tracks. Without proper testing:
