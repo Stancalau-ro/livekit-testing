@@ -8,7 +8,7 @@ Feature: LiveKit Screen Sharing
     And a LiveKit server is running in a container with service name "livekit1"
 
   Scenario: Generate access token with screen share permission
-    When an access token is created with identity "Oliver" and room "ScreenRoom" with grants "canPublish:true,canPublishSources:screen_share"
+    When the system creates an access token with identity "Oliver" and room "ScreenRoom" with grants "canPublish:true,canPublishSources:screen_share"
     Then the access token for "Oliver" in room "ScreenRoom" should be valid
     And the access token for "Oliver" in room "ScreenRoom" should have the following grants:
       | grant             | value          |
@@ -17,7 +17,7 @@ Feature: LiveKit Screen Sharing
       | canPublishSources | [screen_share] |
 
   Scenario: Generate access token without screen share permission
-    When an access token is created with identity "Patricia" and room "RestrictedRoom" with grants "canPublish:true,canPublishSources:camera\,microphone"
+    When the system creates an access token with identity "Patricia" and room "RestrictedRoom" with grants "canPublish:true,canPublishSources:camera\,microphone"
     Then the access token for "Patricia" in room "RestrictedRoom" should be valid
     And the access token for "Patricia" in room "RestrictedRoom" should have the following grants:
       | grant             | value                |
@@ -109,5 +109,5 @@ Feature: LiveKit Screen Sharing
 
     When "Xavier" attempts to start screen sharing
 
-    Then participant "Xavier" should have screen share blocked due to permissions
+    Then participant "Xavier" should not be able to share screen due to permissions
     And participant "Xavier" should not be publishing screen share in room "PermissionRoom" using service "livekit1"

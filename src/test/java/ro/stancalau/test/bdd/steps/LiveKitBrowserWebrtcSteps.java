@@ -279,8 +279,8 @@ public class LiveKitBrowserWebrtcSteps {
         }
     }
 
-    @Then("participant {string} should have screen share blocked due to permissions")
-    public void participantShouldHaveScreenShareBlockedDueToPermissions(String participantName) {
+    @Then("participant {string} should not be able to share screen due to permissions")
+    public void participantShouldNotBeAbleToShareScreenDueToPermissions(String participantName) {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, participantName + " should have an active LiveKit Meet instance");
 
@@ -294,7 +294,7 @@ public class LiveKitBrowserWebrtcSteps {
             boolean isSharing = meetInstance.isScreenSharing();
 
             assertTrue(isBlocked || !isSharing,
-                participantName + " should have screen share blocked (blocked: " + isBlocked + ", sharing: " + isSharing + ")");
+                participantName + " should not be able to share screen (blocked: " + isBlocked + ", sharing: " + isSharing + ")");
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -302,8 +302,8 @@ public class LiveKitBrowserWebrtcSteps {
         }
     }
 
-    @Then("participant {string} should have video subscription blocked due to permissions")
-    public void participantShouldHaveVideoSubscriptionBlockedDueToPermissions(String participantName) {
+    @Then("participant {string} should not be able to subscribe to video due to permissions")
+    public void participantShouldNotBeAbleToSubscribeToVideoDueToPermissions(String participantName) {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, participantName + " should have an active LiveKit Meet instance");
         
@@ -339,7 +339,7 @@ public class LiveKitBrowserWebrtcSteps {
             boolean hasNoVideoPlayback = playingVideoElements == 0 && subscribedTracks == 0;
 
             assertTrue(hasSubscriptionFailures || hasNoVideoPlayback,
-                participantName + " should have video subscription blocked (failedEvents: " + subscriptionFailedCount +
+                participantName + " should not be able to subscribe to video (failedEvents: " + subscriptionFailedCount +
                 ", permissionDenied: " + permissionDenied + ", playingVideos: " + playingVideoElements +
                 ", subscribedTracks: " + subscribedTracks + ", error: '" + errorMessage + "')");
 

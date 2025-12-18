@@ -289,7 +289,7 @@ public class LiveKitWebhookSteps {
         }
     }
 
-    @When("{string} webhook events are cleared")
+    @When("the system clears {string} webhook events")
     public void theMockServerWebhookEventsAreCleared(String serviceName) {
         MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
         

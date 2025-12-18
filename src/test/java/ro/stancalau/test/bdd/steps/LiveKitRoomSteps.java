@@ -1,6 +1,7 @@
 package ro.stancalau.test.bdd.steps;
 
 import io.cucumber.java.After;
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.livekit.server.RoomServiceClient;
@@ -63,7 +64,7 @@ public class LiveKitRoomSteps {
         }
     }
 
-    @When("all rooms are fetched from service {string}")
+    @When("the system fetches all rooms from service {string}")
     public void allRoomsAreFetchedFromService(String serviceName) {
         lastFetchedRooms = getRooms(serviceName);
     }
@@ -74,7 +75,8 @@ public class LiveKitRoomSteps {
         assertEquals(expectedCount, lastFetchedRooms.size(), "Room count does not match expected value");
     }
 
-    @When("room {string} is created using service {string}")
+    @When("the system creates room {string} using service {string}")
+    @Given("room {string} is created using service {string}")
     public void aRoomIsCreatedUsingService(String roomName, String serviceName) {
         LivekitModels.Room createdRoom = createRoom(serviceName, roomName);
         assertNotNull(createdRoom, "Room should have been created");
@@ -187,7 +189,7 @@ public class LiveKitRoomSteps {
         assertEquals(expectedCount, remoteVideoTrackCount, "Participant '" + participantIdentity + "' should see " + expectedCount + " remote video tracks");
     }
 
-    @When("room {string} is deleted using service {string}")
+    @When("the system deletes room {string} using service {string}")
     public void roomIsDeletedUsingService(String roomName, String serviceName) {
 
         RoomServiceClient client = getRoomServiceClient(serviceName);
@@ -200,7 +202,7 @@ public class LiveKitRoomSteps {
         }
     }
 
-    @When("participant {string} is removed from room {string} using service {string}")
+    @When("the system removes participant {string} from room {string} using service {string}")
     public void participantIsRemovedFromRoomUsingService(String participantIdentity, String roomName, String serviceName) {
         RoomServiceClient client = getRoomServiceClient(serviceName);
 

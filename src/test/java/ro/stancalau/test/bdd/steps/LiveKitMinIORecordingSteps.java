@@ -143,12 +143,12 @@ public class LiveKitMinIORecordingSteps {
         log.info("Egress service {} started with S3 output configured", serviceName);
     }
 
-    @When("room composite recording is started for room {string} using LiveKit service {string} with S3 output to bucket {string}")
+    @When("the system starts room composite recording for room {string} using LiveKit service {string} with S3 output to bucket {string}")
     public void startRoomCompositeRecordingWithS3(String roomName, String livekitServiceName, String bucketName) throws Exception {
         startRoomCompositeRecordingWithS3AndPrefix(roomName, livekitServiceName, bucketName, "");
     }
 
-    @When("room composite recording is started for room {string} using LiveKit service {string} with S3 output to bucket {string} with prefix {string}")
+    @When("the system starts room composite recording for room {string} using LiveKit service {string} with S3 output to bucket {string} with prefix {string}")
     public void startRoomCompositeRecordingWithS3AndPrefix(String roomName, String livekitServiceName, String bucketName, String prefix) throws Exception {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
@@ -200,12 +200,12 @@ public class LiveKitMinIORecordingSteps {
         log.info("Started room composite recording for room {} with egress ID: {} to S3", roomName, egressId);
     }
 
-    @When("track composite recording is started for participant {string} in room {string} using LiveKit service {string} with S3 output to bucket {string}")
+    @When("the system starts track composite recording for participant {string} in room {string} using LiveKit service {string} with S3 output to bucket {string}")
     public void startTrackCompositeRecordingWithS3(String participantIdentity, String roomName, String livekitServiceName, String bucketName) throws Exception {
         startTrackCompositeRecordingWithS3AndPrefix(participantIdentity, roomName, livekitServiceName, bucketName, "");
     }
 
-    @When("track composite recording is started for participant {string} in room {string} using LiveKit service {string} with S3 output to bucket {string} with prefix {string}")
+    @When("the system starts track composite recording for participant {string} in room {string} using LiveKit service {string} with S3 output to bucket {string} with prefix {string}")
     public void startTrackCompositeRecordingWithS3AndPrefix(String participantIdentity, String roomName, String livekitServiceName, String bucketName, String prefix) throws Exception {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         LiveKitContainer liveKitContainer = containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
@@ -266,12 +266,12 @@ public class LiveKitMinIORecordingSteps {
         log.info("Started track composite recording for participant {} with egress ID: {} to S3", participantIdentity, egressId);
     }
 
-    @Then("the recording file exists in MinIO bucket {string} for room {string}")
+    @Then("the recording file should exist in MinIO bucket {string} for room {string}")
     public void verifyRecordingFileExistsInMinIO(String bucketName, String roomName) throws InterruptedException {
         verifyRecordingFileExistsInMinIOWithPrefix(bucketName, "", roomName);
     }
 
-    @Then("the recording file exists in MinIO bucket {string} with prefix {string} for room {string}")
+    @Then("the recording file should exist in MinIO bucket {string} with prefix {string} for room {string}")
     public void verifyRecordingFileExistsInMinIOWithPrefix(String bucketName, String prefix, String roomName) throws InterruptedException {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         MinIOContainer minioContainer = containerManager.getContainer("minio", MinIOContainer.class);
@@ -318,12 +318,12 @@ public class LiveKitMinIORecordingSteps {
         log.info("Recording file found in S3: {} (size: {} bytes)", recordingKey, size);
     }
 
-    @Then("the track composite recording file exists in MinIO bucket {string} for participant {string}")
+    @Then("the track composite recording file should exist in MinIO bucket {string} for participant {string}")
     public void verifyTrackCompositeRecordingFileExistsInMinIO(String bucketName, String participantIdentity) throws InterruptedException {
         verifyTrackCompositeRecordingFileExistsInMinIOWithPrefix(bucketName, "", participantIdentity);
     }
 
-    @Then("the track composite recording file exists in MinIO bucket {string} with prefix {string} for participant {string}")
+    @Then("the track composite recording file should exist in MinIO bucket {string} with prefix {string} for participant {string}")
     public void verifyTrackCompositeRecordingFileExistsInMinIOWithPrefix(String bucketName, String prefix, String participantIdentity) throws InterruptedException {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         MinIOContainer minioContainer = containerManager.getContainer("minio", MinIOContainer.class);
@@ -366,7 +366,7 @@ public class LiveKitMinIORecordingSteps {
                 recordingKey, s3Client.getObjectSize(recordingKey));
     }
 
-    @Then("the recording file in MinIO contains actual video content")
+    @Then("the recording file in MinIO should contain actual video content")
     public void verifyRecordingInMinIOContainsVideoContent() {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         MinIOContainer minioContainer = containerManager.getContainer("minio", MinIOContainer.class);
@@ -393,7 +393,7 @@ public class LiveKitMinIORecordingSteps {
         log.info("Verified S3 recording contains actual video content: {} ({} bytes)", recordingKey, size);
     }
 
-    @Then("the recording files in MinIO contain actual video content")
+    @Then("the recording files in MinIO should contain actual video content")
     public void verifyMultipleRecordingsInMinIOContainVideoContent() {
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
         MinIOContainer minioContainer = containerManager.getContainer("minio", MinIOContainer.class);
@@ -418,7 +418,7 @@ public class LiveKitMinIORecordingSteps {
                 "Expected at least 2 valid recordings in S3, found " + validRecordings);
     }
 
-    @Then("no recording file exists in the local output directory for room {string}")
+    @Then("no recording file should exist in the local output directory for room {string}")
     public void verifyNoLocalRecordingFileExists(String roomName) {
         String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "recordings");
         File recordingsDir = new File(recordingsPath);
@@ -438,7 +438,7 @@ public class LiveKitMinIORecordingSteps {
                 (files != null ? String.join(", ", java.util.Arrays.stream(files).map(File::getName).toArray(String[]::new)) : ""));
     }
 
-    @Then("no track composite recording file exists in the local output directory for participant {string}")
+    @Then("no track composite recording file should exist in the local output directory for participant {string}")
     public void verifyNoLocalTrackCompositeRecordingFileExists(String participantIdentity) {
         String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "recordings");
         File recordingsDir = new File(recordingsPath);

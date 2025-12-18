@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import io.cucumber.datatable.DataTable;
+import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.livekit.server.AccessToken;
@@ -20,61 +21,70 @@ import static org.junit.jupiter.api.Assertions.*;
 @Slf4j
 public class LiveKitAccessTokenSteps {
 
-    @When("an access token is created with identity {string} and room {string}")
-    public void anAccessTokenIsCreatedWithIdentityAndRoom(String identity, String roomName) {
+    @When("the system creates an access token with identity {string} and room {string}")
+    @Given("an access token is created with identity {string} and room {string}")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoom(String identity, String roomName) {
         AccessToken token = ManagerProvider.tokens().createTokenWithRoom(identity, roomName);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with publish permissions")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithPublishPermissions(String identity, String roomName) {
+    @When("the system creates an access token with identity {string} and room {string} with publish permissions")
+    @Given("an access token is created with identity {string} and room {string} with publish permissions")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithPublishPermissions(String identity, String roomName) {
         AccessToken token = ManagerProvider.tokens().createTokenWithRoomAndPermissions(identity, roomName, true, false);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with subscribe permissions")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithSubscribePermissions(String identity, String roomName) {
+    @When("the system creates an access token with identity {string} and room {string} with subscribe permissions")
+    @Given("an access token is created with identity {string} and room {string} with subscribe permissions")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithSubscribePermissions(String identity, String roomName) {
         AccessToken token = ManagerProvider.tokens().createTokenWithRoomAndPermissions(identity, roomName, false, true);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with publish and subscribe permissions")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithPublishAndSubscribePermissions(String identity, String roomName) {
+    @When("the system creates an access token with identity {string} and room {string} with publish and subscribe permissions")
+    @Given("an access token is created with identity {string} and room {string} with publish and subscribe permissions")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithPublishAndSubscribePermissions(String identity, String roomName) {
         AccessToken token = ManagerProvider.tokens().createTokenWithRoomAndPermissions(identity, roomName, true, true);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} that expires in {int} seconds")
-    public void anAccessTokenIsCreatedWithIdentityThatExpiresInSeconds(String identity, String roomName, int seconds) {
+    @When("the system creates an access token with identity {string} and room {string} that expires in {int} seconds")
+    @Given("an access token is created with identity {string} and room {string} that expires in {int} seconds")
+    public void theSystemCreatesAccessTokenWithIdentityThatExpiresInSeconds(String identity, String roomName, int seconds) {
         AccessToken token = ManagerProvider.tokens().createTokenWithExpiration(identity, seconds * 1000L);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with grants {string}")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrants(String identity, String roomName, String grantsString) {
+    @When("the system creates an access token with identity {string} and room {string} with grants {string}")
+    @Given("an access token is created with identity {string} and room {string} with grants {string}")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithGrants(String identity, String roomName, String grantsString) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, null);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with grants {string} and attributes {string}")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsAndAttributes(String identity, String roomName, String grantsString, String attributesString) {
+    @When("the system creates an access token with identity {string} and room {string} with grants {string} and attributes {string}")
+    @Given("an access token is created with identity {string} and room {string} with grants {string} and attributes {string}")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithGrantsAndAttributes(String identity, String roomName, String grantsString, String attributesString) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
         AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, attributes);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with grants {string} that expires in {int} seconds")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsThatExpiresInSeconds(String identity, String roomName, String grantsString, int seconds) {
+    @When("the system creates an access token with identity {string} and room {string} with grants {string} that expires in {int} seconds")
+    @Given("an access token is created with identity {string} and room {string} with grants {string} that expires in {int} seconds")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithGrantsThatExpiresInSeconds(String identity, String roomName, String grantsString, int seconds) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         long ttlMillis = seconds * 1000L;
         AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} seconds")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsAndAttributesThatExpiresInSeconds(String identity, String roomName, String grantsString, String attributesString, int seconds) {
+    @When("the system creates an access token with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} seconds")
+    @Given("an access token is created with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} seconds")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithGrantsAndAttributesThatExpiresInSeconds(String identity, String roomName, String grantsString, String attributesString, int seconds) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
         long ttlMillis = seconds * 1000L;
@@ -82,16 +92,18 @@ public class LiveKitAccessTokenSteps {
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with grants {string} that expires in {int} minutes")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsThatExpiresInMinutes(String identity, String roomName, String grantsString, int minutes) {
+    @When("the system creates an access token with identity {string} and room {string} with grants {string} that expires in {int} minutes")
+    @Given("an access token is created with identity {string} and room {string} with grants {string} that expires in {int} minutes")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithGrantsThatExpiresInMinutes(String identity, String roomName, String grantsString, int minutes) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         long ttlMillis = minutes * 60 * 1000L;
         AccessToken token = ManagerProvider.tokens().createTokenWithDynamicGrants(identity, roomName, grants, null, ttlMillis);
         assertNotNull(token, "Access token should be created");
     }
 
-    @When("an access token is created with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} minutes")
-    public void anAccessTokenIsCreatedWithIdentityAndRoomWithGrantsAndAttributesThatExpiresInMinutes(String identity, String roomName, String grantsString, String attributesString, int minutes) {
+    @When("the system creates an access token with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} minutes")
+    @Given("an access token is created with identity {string} and room {string} with grants {string} and attributes {string} that expires in {int} minutes")
+    public void theSystemCreatesAccessTokenWithIdentityAndRoomWithGrantsAndAttributesThatExpiresInMinutes(String identity, String roomName, String grantsString, String attributesString, int minutes) {
         List<String> grants = StringParsingUtils.parseCommaSeparatedList(grantsString);
         Map<String, String> attributes = StringParsingUtils.parseKeyValuePairs(attributesString);
         long ttlMillis = minutes * 60 * 1000L;

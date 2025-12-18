@@ -49,4 +49,4 @@ Feature: LiveKit WebRTC Video Playback
     And connection is established successfully for "Karen"
 
     Then room "NoViewRoom" should have 2 active participants in service "livekit1"
-    And participant "Karen" should have video subscription blocked due to permissions
+    And participant "Karen" should not be able to subscribe to video due to permissions

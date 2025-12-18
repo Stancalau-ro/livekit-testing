@@ -126,7 +126,7 @@ public class LiveKitEgressSteps {
         log.info("Egress service {} started and registered", serviceName);
     }
 
-    @When("room composite recording is started for room {string} using LiveKit service {string}")
+    @When("the system starts room composite recording for room {string} using LiveKit service {string}")
     public void startRoomCompositeRecording(String roomName, String livekitServiceName) throws Exception {
 
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
@@ -170,7 +170,7 @@ public class LiveKitEgressSteps {
         TimeUnit.SECONDS.sleep(seconds);
     }
 
-    @When("track composite recording is started for participant {string} in room {string} using LiveKit service {string}")
+    @When("the system starts track composite recording for participant {string} in room {string} using LiveKit service {string}")
     public void startTrackCompositeRecording(String participantIdentity, String roomName, String livekitServiceName) throws Exception {
 
         ContainerStateManager containerManager = ManagerProvider.getContainerManager();
@@ -218,7 +218,7 @@ public class LiveKitEgressSteps {
         log.info("Started track composite recording for participant {} with egress ID: {}", participantIdentity, egressId);
     }
 
-    @When("track composite recording is stopped for participant {string} using LiveKit service {string}")
+    @When("the system stops track composite recording for participant {string} using LiveKit service {string}")
     public void stopTrackCompositeRecording(String participantIdentity, String livekitServiceName) throws Exception {
         String egressId = ManagerProvider.getEgressStateManager().getActiveRecording(participantIdentity + "_track");
         assertNotNull(egressId, "No active track composite recording found for participant " + participantIdentity);
@@ -255,7 +255,7 @@ public class LiveKitEgressSteps {
                 participantIdentity, egressInfo.getStatus());
     }
 
-    @When("room composite recording is stopped for room {string} using LiveKit service {string}")
+    @When("the system stops room composite recording for room {string} using LiveKit service {string}")
     public void stopRoomCompositeRecording(String roomName, String livekitServiceName) throws Exception {
         String egressId = ManagerProvider.getEgressStateManager().getActiveRecording(roomName);
         assertNotNull(egressId, "No active recording found for room " + roomName);
@@ -322,7 +322,7 @@ public class LiveKitEgressSteps {
         assertTrue(trackIds.containsKey("video"), "Video track not found for participant " + participantIdentity);
     }
 
-    @Then("the recording file exists in the output directory for room {string}")
+    @Then("the recording file should exist in the output directory for room {string}")
     public void verifyRecordingFileExists(String roomName) throws InterruptedException {
         String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
@@ -375,7 +375,7 @@ public class LiveKitEgressSteps {
                 recordingFile.getName(), recordingFile.length());
     }
 
-    @Then("the track composite recording file exists for participant {string}")
+    @Then("the track composite recording file should exist for participant {string}")
     public void verifyTrackCompositeRecordingFileExists(String participantIdentity) throws InterruptedException {
         String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
@@ -418,7 +418,7 @@ public class LiveKitEgressSteps {
                 recordingFile.getName(), recordingFile.length());
     }
 
-    @And("the recording file contains actual video content")
+    @And("the recording file should contain actual video content")
     public void verifyRecordingContainsVideoContent() {
         String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
@@ -440,7 +440,7 @@ public class LiveKitEgressSteps {
                 recordingFile.getName(), recordingFile.length());
     }
 
-    @And("the recording file contains actual video content from multiple participants")
+    @And("the recording file should contain actual video content from multiple participants")
     public void verifyRecordingContainsMultipleParticipants() throws InterruptedException {
         String recordingsPath = PathUtils.join(getCurrentScenarioLogPath(), "video-recordings");
         File recordingsDir = new File(recordingsPath);
