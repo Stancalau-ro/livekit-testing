@@ -34,10 +34,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** inspected
 **Then** the data publishing permission should be absent or false
 
-- [ ] Add canPublishData grant to token creation
-- [ ] Verify grant presence in JWT token
-- [ ] Test token without data permission for negative testing
-- [ ] Document canPublishData grant behavior
+- [x] Add canPublishData grant to token creation
+- [x] Verify grant presence in JWT token
+- [x] Test token without data permission for negative testing
+- [x] Document canPublishData grant behavior
 
 **Dependencies:** None (uses existing AccessTokenStateManager)
 
@@ -65,10 +65,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** inspected in order
 **Then** messages should maintain their sending order
 
-- [ ] Add browser-side data message sending capability
-- [ ] Implement sendDataMessage method in LiveKitMeet
-- [ ] Add JavaScript helpers for data channel operations
-- [ ] Verify message sending completes without error
+- [x] Add browser-side data message sending capability
+- [x] Implement sendDataMessage method in LiveKitMeet
+- [x] Add JavaScript helpers for data channel operations
+- [x] Verify message sending completes without error
 
 **Dependencies:** Story 1.1.4.1
 
@@ -96,11 +96,11 @@ The original story is broken down into smaller, independent stories following IN
 **When** received by the subscriber
 **Then** all messages should be received in order (reliable channel)
 
-- [ ] Add browser-side message reception capability
-- [ ] Implement message listener in LiveKitMeet
-- [ ] Store received messages for verification
-- [ ] Add step definitions for message receipt verification
-- [ ] Test message content integrity
+- [x] Add browser-side message reception capability
+- [x] Implement message listener in LiveKitMeet
+- [x] Store received messages for verification
+- [x] Add step definitions for message receipt verification
+- [x] Test message content integrity
 
 **Dependencies:** Story 1.1.4.2
 
@@ -128,10 +128,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** message delivery is verified
 **Then** the test should account for potential message loss
 
-- [ ] Add unreliable data channel support to LiveKitMeet
-- [ ] Implement kind parameter for message sending (RELIABLE vs LOSSY)
-- [ ] Add step definitions for unreliable channel testing
-- [ ] Document expected behavior differences
+- [x] Add unreliable data channel support to LiveKitMeet
+- [x] Implement kind parameter for message sending (RELIABLE vs LOSSY)
+- [x] Add step definitions for unreliable channel testing
+- [x] Document expected behavior differences
 
 **Dependencies:** Story 1.1.4.3
 
@@ -159,11 +159,11 @@ The original story is broken down into smaller, independent stories following IN
 **When** results are logged
 **Then** min, max, and average latency should be reported
 
-- [ ] Add timestamp to test messages
-- [ ] Calculate latency on message receipt
-- [ ] Log latency statistics
-- [ ] Define acceptable latency thresholds for containerized testing
-- [ ] Add step definitions for latency verification
+- [x] Add timestamp to test messages
+- [x] Calculate latency on message receipt
+- [x] Log latency statistics
+- [x] Define acceptable latency thresholds for containerized testing
+- [x] Add step definitions for latency verification
 
 **Dependencies:** Story 1.1.4.3
 
@@ -192,10 +192,10 @@ The original story is broken down into smaller, independent stories following IN
 **Then** appropriate error handling should occur
 
 - [x] Determine LiveKit maximum message size (15 KiB for reliable mode)
-- [ ] Create test messages of various sizes (1KB, 8KB, 14KB)
-- [ ] Verify large message integrity on receipt
-- [ ] Test behavior at and beyond size limits
-- [ ] Document size limit behavior
+- [x] Create test messages of various sizes (1KB, 8KB, 14KB)
+- [x] Verify large message integrity on receipt
+- [x] Test behavior at and beyond size limits
+- [x] Document size limit behavior
 
 **Dependencies:** Story 1.1.4.3
 
@@ -219,10 +219,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** error state is checked
 **Then** appropriate error information should be available
 
-- [ ] Test send attempt without canPublishData permission
-- [ ] Verify error or blocked state is detectable
-- [ ] Confirm other permissions still work independently
-- [ ] Add step definitions for permission denial scenarios
+- [x] Test send attempt without canPublishData permission
+- [x] Verify error or blocked state is detectable
+- [x] Confirm other permissions still work independently
+- [x] Add step definitions for permission denial scenarios
 
 **Dependencies:** Story 1.1.4.1, Story 1.1.4.2
 
@@ -246,10 +246,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** the same operations are tested on Firefox and Edge
 **Then** behavior should be consistent
 
-- [ ] Test data send/receive on Chrome, Firefox, Edge
-- [ ] Verify cross-browser message delivery
-- [ ] Document any browser-specific differences
-- [ ] Add scenario outlines for browser matrix testing
+- [x] Test data send/receive on Chrome, Firefox, Edge
+- [x] Verify cross-browser message delivery
+- [x] Document any browser-specific differences
+- [x] Add scenario outlines for browser matrix testing
 
 **Dependencies:** Story 1.1.4.3
 
@@ -277,10 +277,10 @@ The original story is broken down into smaller, independent stories following IN
 **When** non-targeted participants are checked
 **Then** they should not have received the message
 
-- [ ] Test broadcast message delivery to all participants
-- [ ] Test targeted message delivery to specific participants
-- [ ] Verify non-recipients do not receive targeted messages
-- [ ] Add step definitions for destination-specific messaging
+- [x] Test broadcast message delivery to all participants
+- [x] Test targeted message delivery to specific participants
+- [x] Verify non-recipients do not receive targeted messages
+- [x] Add step definitions for destination-specific messaging
 
 **Dependencies:** Story 1.1.4.3
 
