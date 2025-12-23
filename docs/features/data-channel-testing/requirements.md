@@ -628,31 +628,31 @@ Feature: LiveKit Data Channel Communication
 ## Definition of Done
 
 ### Code Implementation
-- [ ] New step definitions added to `LiveKitBrowserWebrtcSteps.java` for data channel
-- [ ] New step definitions added to `LiveKitRoomSteps.java` for data verification
-- [ ] `LiveKitMeet.java` extended with data channel methods
-- [ ] JavaScript helpers added to meet.html for data operations
-- [ ] Feature file `livekit_data_channel.feature` created and passing
-- [ ] All scenarios pass on Chrome browser
-- [ ] All scenarios pass on Firefox browser
+- [x] New step definitions added to `LiveKitBrowserWebrtcSteps.java` for data channel
+- [x] New step definitions added to `LiveKitRoomSteps.java` for data verification
+- [x] `LiveKitMeet.java` extended with data channel methods
+- [x] JavaScript helpers added to meet.html for data operations
+- [x] Feature file `livekit_data_channel.feature` created and passing
+- [x] All scenarios pass on Chrome browser
+- [x] All scenarios pass on Firefox browser
 
 ### Testing
-- [ ] All unit tests pass
-- [ ] All BDD scenarios pass
-- [ ] Tests pass against default LiveKit version
-- [ ] Cross-browser data channel verified
-- [ ] Large message handling tested
+- [x] All unit tests pass
+- [x] All BDD scenarios pass
+- [x] Tests pass against default LiveKit version
+- [x] Cross-browser data channel verified
+- [x] Large message handling tested
 
 ### Documentation
-- [ ] Feature documentation complete in `docs/features/data-channel-testing/`
-- [ ] Step definitions documented in `docs/features.md`
-- [ ] Technical notes added for data channel implementation
+- [x] Feature documentation complete in `docs/features/data-channel-testing/`
+- [x] Step definitions documented in `docs/features.md`
+- [x] Technical notes added for data channel implementation
 
 ### Code Quality
-- [ ] No new Lombok violations
-- [ ] No code comments added (per project guidelines)
-- [ ] Cross-platform path handling maintained
-- [ ] Proper cleanup in After hooks
+- [x] No new Lombok violations
+- [x] No code comments added (per project guidelines)
+- [x] Cross-platform path handling maintained
+- [x] Proper cleanup in After hooks
 
 ---
 

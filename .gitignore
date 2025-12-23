@@ -44,3 +44,4 @@ bin/
 .claude
 CLAUDE_INTEGRATION_GUIDE.md
 nul
+/dev/
