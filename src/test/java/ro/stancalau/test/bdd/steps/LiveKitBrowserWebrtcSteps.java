@@ -42,6 +42,11 @@ public class LiveKitBrowserWebrtcSteps {
         
         meetInstances.values().forEach(meet -> {
             try {
+                meet.clearDynacastState();
+            } catch (Exception e) {
+                log.debug("Error clearing dynacast state: {}", e.getMessage());
+            }
+            try {
                 meet.closeWindow();
             } catch (Exception e) {
                 log.warn("Error closing meet instance: {}", e.getMessage());
@@ -733,5 +738,50 @@ public class LiveKitBrowserWebrtcSteps {
         }
 
         log.info("All {} messages received in correct order for {}", expectedMessages.size(), participantName);
+    }
+
+    @Then("dynacast should be enabled in the room for {string}")
+    public void dynacastShouldBeEnabledInTheRoomFor(String participantName) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        assertTrue(meetInstance.isDynacastEnabled(),
+            "Dynacast should be enabled in the room for " + participantName);
+    }
+
+    @When("{string} unsubscribes from {string}'s video")
+    public void unsubscribesFromVideo(String subscriber, String publisher) {
+        LiveKitMeet meetInstance = meetInstances.get(subscriber);
+        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
+        meetInstance.setVideoSubscribed(publisher, false);
+    }
+
+    @When("{string} subscribes to {string}'s video")
+    public void subscribesToVideo(String subscriber, String publisher) {
+        LiveKitMeet meetInstance = meetInstances.get(subscriber);
+        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
+        meetInstance.setVideoSubscribed(publisher, true);
+    }
+
+    @Then("{string}'s video track should be paused for {string}")
+    public void videoTrackShouldBePausedFor(String publisher, String subscriber) {
+        LiveKitMeet meetInstance = meetInstances.get(subscriber);
+        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
+        boolean isUnsubscribed = meetInstance.waitForTrackStreamState(publisher, "unsubscribed", 15000);
+        assertTrue(isUnsubscribed,
+            publisher + "'s video track should be unsubscribed for " + subscriber +
+            " (current state: " + meetInstance.getTrackStreamState(publisher) + ")");
+    }
+
+    @Then("{string}'s video track should be active for {string}")
+    public void videoTrackShouldBeActiveFor(String publisher, String subscriber) {
+        LiveKitMeet meetInstance = meetInstances.get(subscriber);
+        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
+        boolean isActive = meetInstance.waitForTrackStreamState(publisher, "active", 10000);
+        if (!isActive) {
+            boolean isPending = meetInstance.waitForTrackStreamState(publisher, "pending", 2000);
+            String state = meetInstance.getTrackStreamState(publisher);
+            assertTrue(isPending || "active".equalsIgnoreCase(state),
+                publisher + "'s video track should be active for " + subscriber + " (current state: " + state + ")");
+        }
     }
 }

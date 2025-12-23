@@ -783,4 +783,56 @@ public class LiveKitMeet {
             "window.LiveKitTestHelpers.clearDataChannelState();"
         );
     }
+
+    public boolean isDynacastEnabled() {
+        Boolean enabled = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.isDynacastEnabled();"
+        );
+        return enabled != null && enabled;
+    }
+
+    public String getTrackStreamState(String publisherIdentity) {
+        String state = (String) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.getTrackStreamState(arguments[0]);",
+            publisherIdentity
+        );
+        return state;
+    }
+
+    public void setVideoSubscribed(String publisherIdentity, boolean subscribed) {
+        Boolean success = (Boolean) ((JavascriptExecutor) driver).executeScript(
+            "return window.LiveKitTestHelpers.setVideoSubscribed(arguments[0], arguments[1]);",
+            publisherIdentity, subscribed
+        );
+        if (success == null || !success) {
+            log.warn("Failed to set video subscription for {}: subscribed={}", publisherIdentity, subscribed);
+        } else {
+            log.info("Set video subscription for {} to {}", publisherIdentity, subscribed);
+        }
+    }
+
+    public boolean waitForTrackStreamState(String publisherIdentity, String expectedState, long timeoutMs) {
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            String currentState = getTrackStreamState(publisherIdentity);
+            if (expectedState.equalsIgnoreCase(currentState)) {
+                log.info("Track stream state for {} reached: {}", publisherIdentity, expectedState);
+                return true;
+            }
+            try {
+                Thread.sleep(DATA_MESSAGE_POLL_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        log.warn("Timeout waiting for track stream state {} for {}", expectedState, publisherIdentity);
+        return false;
+    }
+
+    public void clearDynacastState() {
+        ((JavascriptExecutor) driver).executeScript(
+            "window.LiveKitTestHelpers.clearDynacastState();"
+        );
+    }
 }

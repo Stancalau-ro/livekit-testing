@@ -363,6 +363,85 @@ var LiveKitTestHelpers = {
 
     getSentDataMessageCount: function() {
         return window.dataMessagesSent ? window.dataMessagesSent.length : 0;
+    },
+
+    isDynacastEnabled: function() {
+        return window.liveKitClient && window.liveKitClient.isDynacastEnabled() || false;
+    },
+
+    getTrackStreamState: function(publisherIdentity) {
+        if (!window.liveKitClient || !window.liveKitClient.room) return null;
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === publisherIdentity) participant = p;
+        });
+        if (!participant) return null;
+        var streamState = null;
+        participant.trackPublications.forEach(function(pub) {
+            if (pub.kind === 'video') {
+                if (!pub.subscribed) {
+                    streamState = 'unsubscribed';
+                } else if (pub.track) {
+                    streamState = pub.track.streamState || 'active';
+                } else {
+                    streamState = 'pending';
+                }
+            }
+        });
+        return streamState;
+    },
+
+    isVideoSubscribed: function(publisherIdentity) {
+        if (!window.liveKitClient || !window.liveKitClient.room) return false;
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === publisherIdentity) participant = p;
+        });
+        if (!participant) return false;
+        var subscribed = false;
+        participant.trackPublications.forEach(function(pub) {
+            if (pub.kind === 'video' && pub.subscribed) {
+                subscribed = true;
+            }
+        });
+        return subscribed;
+    },
+
+    setVideoSubscribed: function(publisherIdentity, subscribed) {
+        window.lastSubscriptionError = null;
+        if (!window.liveKitClient || !window.liveKitClient.room) {
+            window.lastSubscriptionError = 'No room connected';
+            return false;
+        }
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === publisherIdentity) participant = p;
+        });
+        if (!participant) {
+            window.lastSubscriptionError = 'Participant not found: ' + publisherIdentity;
+            return false;
+        }
+        var success = false;
+        participant.trackPublications.forEach(function(pub) {
+            if (pub.kind === 'video') {
+                try {
+                    pub.setSubscribed(subscribed);
+                    success = true;
+                    console.log('Set video subscription for', publisherIdentity, 'to', subscribed);
+                } catch (e) {
+                    window.lastSubscriptionError = e.message || String(e);
+                    console.error('Failed to set subscription:', e);
+                }
+            }
+        });
+        if (!success && !window.lastSubscriptionError) {
+            window.lastSubscriptionError = 'No video track found for: ' + publisherIdentity;
+        }
+        return success;
+    },
+
+    clearDynacastState: function() {
+        window.trackStreamStateEvents = [];
     }
 };
 
