@@ -91,6 +91,8 @@ Feature: LiveKit Data Channel Communication
 
     Then room "UnreliableRoom" should have 2 active participants in service "livekit1"
 
+    # Note: Unreliable (lossy) channel may drop messages in production environments.
+    # In local containers, near-100% delivery is typical. The 80% threshold allows for edge cases.
     When "UnreliableSender" sends 10 data messages via unreliable channel
 
     Then "UnreliableReceiver" should receive at least 8 out of 10 messages from "UnreliableSender"

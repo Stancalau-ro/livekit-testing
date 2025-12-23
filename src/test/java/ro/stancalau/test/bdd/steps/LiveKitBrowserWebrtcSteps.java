@@ -593,7 +593,7 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitMeet meetInstance = meetInstances.get(receiver);
         assertNotNull(meetInstance, "Meet instance should exist for " + receiver);
 
-        boolean received = meetInstance.hasReceivedDataMessage(message, sender, 10000);
+        boolean received = meetInstance.hasReceivedDataMessage(message, sender, LiveKitMeet.DEFAULT_DATA_MESSAGE_TIMEOUT_MS);
         assertTrue(received,
             receiver + " should have received data message '" + message + "' from " + sender);
     }
@@ -603,7 +603,7 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitMeet meetInstance = meetInstances.get(receiver);
         assertNotNull(meetInstance, "Meet instance should exist for " + receiver);
 
-        boolean receivedEnough = meetInstance.waitForDataMessageCount(minMessages, 15000);
+        boolean receivedEnough = meetInstance.waitForDataMessageCount(minMessages, LiveKitMeet.BATCH_DATA_MESSAGE_TIMEOUT_MS);
         int actualCount = meetInstance.getReceivedDataMessageCount();
 
         assertTrue(receivedEnough && actualCount >= minMessages,
@@ -635,7 +635,7 @@ public class LiveKitBrowserWebrtcSteps {
         LiveKitMeet meetInstance = meetInstances.get(participantName);
         assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
 
-        boolean received = meetInstance.waitForDataMessageCount(1, 10000);
+        boolean received = meetInstance.waitForDataMessageCount(1, LiveKitMeet.DEFAULT_DATA_MESSAGE_TIMEOUT_MS);
         assertTrue(received, participantName + " should have received a data message");
 
         int actualCount = meetInstance.getReceivedDataMessageCount();
@@ -693,7 +693,7 @@ public class LiveKitBrowserWebrtcSteps {
             "Average data channel latency for " + participantName + " should be less than " + maxLatencyMs + " ms (actual: " +
             String.format("%.2f", avgLatency) + " ms)");
 
-        log.info("Data channel latency for {}: {:.2f} ms (threshold: {} ms)", participantName, avgLatency, maxLatencyMs);
+        log.info("Data channel latency for {}: {} ms (threshold: {} ms)", participantName, String.format("%.2f", avgLatency), maxLatencyMs);
     }
 
     @Then("the test logs document that lossy mode in local containers typically achieves near-100% delivery")
@@ -710,7 +710,7 @@ public class LiveKitBrowserWebrtcSteps {
 
         List<String> expectedMessages = dataTable.asList().subList(1, dataTable.asList().size());
 
-        boolean allReceived = meetInstance.waitForDataMessageCount(expectedMessages.size(), 15000);
+        boolean allReceived = meetInstance.waitForDataMessageCount(expectedMessages.size(), LiveKitMeet.BATCH_DATA_MESSAGE_TIMEOUT_MS);
         assertTrue(allReceived,
             participantName + " should have received all " + expectedMessages.size() + " messages");
 
@@ -727,7 +727,9 @@ public class LiveKitBrowserWebrtcSteps {
             String expected = expectedMessages.get(i);
             String actual = receivedMessages.get(i).get("content").toString();
             assertEquals(expected, actual,
-                "Message at index " + i + " should match. Expected: " + expected + ", Actual: " + actual);
+                "Message at position " + i + " should match expected order and content. " +
+                "Expected: '" + expected + "', Actual: '" + actual + "'. " +
+                "This indicates messages arrived out of order or with wrong content.");
         }
 
         log.info("All {} messages received in correct order for {}", expectedMessages.size(), participantName);

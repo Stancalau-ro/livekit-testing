@@ -19,6 +19,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class LiveKitMeet {
 
+    public static final long DATA_MESSAGE_POLL_INTERVAL_MS = 500;
+    public static final long DEFAULT_DATA_MESSAGE_TIMEOUT_MS = 10_000;
+    public static final long BATCH_DATA_MESSAGE_TIMEOUT_MS = 15_000;
+
     private final WebDriver driver;
     private final ContainerStateManager containerManager;
     private final boolean simulcastEnabled;
@@ -693,6 +697,10 @@ public class LiveKitMeet {
         log.info("Sent timestamped data message (reliable: {}): {}", reliable, message);
     }
 
+    public boolean hasReceivedDataMessage(String expectedContent, String fromIdentity) {
+        return hasReceivedDataMessage(expectedContent, fromIdentity, DEFAULT_DATA_MESSAGE_TIMEOUT_MS);
+    }
+
     public boolean hasReceivedDataMessage(String expectedContent, String fromIdentity, long timeoutMs) {
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < timeoutMs) {
@@ -704,7 +712,7 @@ public class LiveKitMeet {
                 return true;
             }
             try {
-                Thread.sleep(500);
+                Thread.sleep(DATA_MESSAGE_POLL_INTERVAL_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;
@@ -720,6 +728,10 @@ public class LiveKitMeet {
         return count != null ? count.intValue() : 0;
     }
 
+    public boolean waitForDataMessageCount(int expectedCount) {
+        return waitForDataMessageCount(expectedCount, DEFAULT_DATA_MESSAGE_TIMEOUT_MS);
+    }
+
     public boolean waitForDataMessageCount(int expectedCount, long timeoutMs) {
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < timeoutMs) {
@@ -728,7 +740,7 @@ public class LiveKitMeet {
                 return true;
             }
             try {
-                Thread.sleep(500);
+                Thread.sleep(DATA_MESSAGE_POLL_INTERVAL_MS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return false;

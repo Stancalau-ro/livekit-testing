@@ -281,6 +281,11 @@ var LiveKitTestHelpers = {
 
     sendDataMessageOfSize: function(sizeBytes, reliable) {
         var message = 'X'.repeat(sizeBytes);
+        var encoder = new TextEncoder();
+        var actualSize = encoder.encode(message).length;
+        if (actualSize !== sizeBytes) {
+            console.warn('Message size mismatch: requested ' + sizeBytes + ', got ' + actualSize);
+        }
         return this.sendDataMessage(message, reliable, null);
     },
 
