@@ -59,9 +59,11 @@ Feature: Simulcast Video Publishing
 
     Then room "SubQualityRoom" should have 2 active participants in service "livekit1"
 
-    When "Grace" sets video quality preference to "LOW"
+    When "Frank" measures their video publish bitrate over 3 seconds
+    And "Grace" sets video quality preference to "LOW"
 
     Then "Grace" should be receiving low quality video from "Frank"
+    And "Frank"'s video publish bitrate should have dropped by at least 30 percent
     And "Frank" closes the browser
     And "Grace" closes the browser
 
@@ -110,9 +112,11 @@ Feature: Simulcast Video Publishing
 
     Then room "BandwidthRoom" should have 2 active participants in service "livekit1"
 
-    When "Laura" sets maximum receive bandwidth to 100 kbps
+    When "Kevin" measures their video publish bitrate over 3 seconds
+    And "Laura" sets maximum receive bandwidth to 100 kbps
 
     Then "Laura" should be receiving a lower quality layer from "Kevin"
+    And "Kevin"'s video publish bitrate should have dropped by at least 30 percent
     And "Kevin" closes the browser
     And "Laura" closes the browser
 

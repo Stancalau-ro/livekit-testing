@@ -26,6 +26,7 @@ public class LiveKitMeet {
     private final WebDriver driver;
     private final ContainerStateManager containerManager;
     private final boolean simulcastEnabled;
+    private int storedBitrate;
 
     public LiveKitMeet(WebDriver driver, String liveKitUrl, String jwt, String roomName, String participantName, ContainerStateManager containerManager) {
         this(driver, liveKitUrl, jwt, roomName, participantName, containerManager, true);
@@ -834,5 +835,13 @@ public class LiveKitMeet {
         ((JavascriptExecutor) driver).executeScript(
             "window.LiveKitTestHelpers.clearDynacastState();"
         );
+    }
+
+    public void setStoredBitrate(int bitrate) {
+        this.storedBitrate = bitrate;
+    }
+
+    public int getStoredBitrate() {
+        return storedBitrate;
     }
 }

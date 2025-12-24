@@ -784,4 +784,49 @@ public class LiveKitBrowserWebrtcSteps {
                 publisher + "'s video track should be active for " + subscriber + " (current state: " + state + ")");
         }
     }
+
+    @When("{string} measures their video publish bitrate over {int} seconds")
+    public void measuresVideoPublishBitrate(String participantName, int seconds) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
+        Long bitrateKbps = (Long) ((JavascriptExecutor) driver).executeAsyncScript(
+            "var callback = arguments[arguments.length - 1];" +
+            "window.LiveKitTestHelpers.measureVideoBitrateOverInterval(" + (seconds * 1000) + ")" +
+            ".then(function(kbps) { callback(kbps); })" +
+            ".catch(function() { callback(0); });"
+        );
+
+        meetInstance.setStoredBitrate(bitrateKbps != null ? bitrateKbps.intValue() : 0);
+        log.info("Measured {} video publish bitrate: {} kbps", participantName, meetInstance.getStoredBitrate());
+    }
+
+    @Then("{string}'s video publish bitrate should have dropped by at least {int} percent")
+    public void videoPublishBitrateShouldHaveDropped(String participantName, int minDropPercent) {
+        LiveKitMeet meetInstance = meetInstances.get(participantName);
+        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+
+        int baselineBitrate = meetInstance.getStoredBitrate();
+        assertTrue(baselineBitrate > 0, "Baseline bitrate should have been measured for " + participantName);
+
+        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
+        Long currentBitrateKbps = (Long) ((JavascriptExecutor) driver).executeAsyncScript(
+            "var callback = arguments[arguments.length - 1];" +
+            "window.LiveKitTestHelpers.measureVideoBitrateOverInterval(3000)" +
+            ".then(function(kbps) { callback(kbps); })" +
+            ".catch(function() { callback(0); });"
+        );
+
+        int currentBitrate = currentBitrateKbps != null ? currentBitrateKbps.intValue() : 0;
+        int actualDropPercent = baselineBitrate > 0 ? ((baselineBitrate - currentBitrate) * 100) / baselineBitrate : 0;
+
+        log.info("{} bitrate drop: baseline={} kbps, current={} kbps, drop={}%",
+            participantName, baselineBitrate, currentBitrate, actualDropPercent);
+
+        assertTrue(actualDropPercent >= minDropPercent,
+            participantName + "'s video publish bitrate should have dropped by at least " + minDropPercent +
+            "% but only dropped by " + actualDropPercent + "% (baseline: " + baselineBitrate +
+            " kbps, current: " + currentBitrate + " kbps)");
+    }
 }
