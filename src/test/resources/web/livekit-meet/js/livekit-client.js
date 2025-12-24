@@ -30,6 +30,7 @@ class LiveKitMeetClient {
         window.dataMessagesSent = [];
         window.lastDataChannelError = '';
         window.dataPublishingBlocked = false;
+        window.trackStreamStateEvents = [];
 
         this.initializeElements();
         this.setupEventListeners();
@@ -557,6 +558,18 @@ class LiveKitMeetClient {
                 console.error('Error processing data message:', error);
                 addTechnicalDetail('❌ Data receive error: ' + error.message);
             }
+        });
+
+        this.room.on(LiveKit.RoomEvent.TrackStreamStateChanged, (publication, streamState, participant) => {
+            console.log('*** TrackStreamStateChanged EVENT ***', publication.kind, streamState, participant.identity);
+            addTechnicalDetail(`🔄 Track stream state changed: ${publication.kind} from ${participant.identity} -> ${streamState}`);
+            window.trackStreamStateEvents.push({
+                trackSid: publication.trackSid,
+                trackKind: publication.kind,
+                participantIdentity: participant.identity,
+                streamState: streamState,
+                timestamp: Date.now()
+            });
         });
 
         // Periodic check to ensure all video tracks are subscribed
@@ -1146,5 +1159,9 @@ class LiveKitMeetClient {
 
     getReceivingLayerInfo(publisherIdentity) {
         return window.receivingLayers.get(publisherIdentity) || null;
+    }
+
+    isDynacastEnabled() {
+        return this.room && this.room.options && this.room.options.dynacast === true;
     }
 }

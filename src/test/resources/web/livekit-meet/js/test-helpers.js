@@ -363,6 +363,193 @@ var LiveKitTestHelpers = {
 
     getSentDataMessageCount: function() {
         return window.dataMessagesSent ? window.dataMessagesSent.length : 0;
+    },
+
+    isDynacastEnabled: function() {
+        return window.liveKitClient && window.liveKitClient.isDynacastEnabled() || false;
+    },
+
+    getTrackStreamState: function(publisherIdentity) {
+        if (!window.liveKitClient || !window.liveKitClient.room) return null;
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === publisherIdentity) participant = p;
+        });
+        if (!participant) return null;
+        var streamState = null;
+        participant.trackPublications.forEach(function(pub) {
+            if (pub.kind === 'video') {
+                if (!pub.subscribed) {
+                    streamState = 'unsubscribed';
+                } else if (pub.track) {
+                    streamState = pub.track.streamState || 'active';
+                } else {
+                    streamState = 'pending';
+                }
+            }
+        });
+        return streamState;
+    },
+
+    isVideoSubscribed: function(publisherIdentity) {
+        if (!window.liveKitClient || !window.liveKitClient.room) return false;
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === publisherIdentity) participant = p;
+        });
+        if (!participant) return false;
+        var subscribed = false;
+        participant.trackPublications.forEach(function(pub) {
+            if (pub.kind === 'video' && pub.subscribed) {
+                subscribed = true;
+            }
+        });
+        return subscribed;
+    },
+
+    setVideoSubscribed: function(publisherIdentity, subscribed) {
+        window.lastSubscriptionError = null;
+        if (!window.liveKitClient || !window.liveKitClient.room) {
+            window.lastSubscriptionError = 'No room connected';
+            return false;
+        }
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === publisherIdentity) participant = p;
+        });
+        if (!participant) {
+            window.lastSubscriptionError = 'Participant not found: ' + publisherIdentity;
+            return false;
+        }
+        var success = false;
+        participant.trackPublications.forEach(function(pub) {
+            if (pub.kind === 'video') {
+                try {
+                    pub.setSubscribed(subscribed);
+                    success = true;
+                    console.log('Set video subscription for', publisherIdentity, 'to', subscribed);
+                } catch (e) {
+                    window.lastSubscriptionError = e.message || String(e);
+                    console.error('Failed to set subscription:', e);
+                }
+            }
+        });
+        if (!success && !window.lastSubscriptionError) {
+            window.lastSubscriptionError = 'No video track found for: ' + publisherIdentity;
+        }
+        return success;
+    },
+
+    clearDynacastState: function() {
+        window.trackStreamStateEvents = [];
+    },
+
+    capturePublisherVideoBitrate: async function() {
+        if (!window.liveKitClient || !window.liveKitClient.room) return false;
+        var localParticipant = window.liveKitClient.room.localParticipant;
+        if (!localParticipant) return false;
+
+        var cameraPub = localParticipant.getTrackPublication(LiveKit.Track.Source.Camera);
+        if (!cameraPub || !cameraPub.track) return false;
+
+        var sender = cameraPub.track.sender;
+        if (!sender) return false;
+
+        try {
+            var stats = await sender.getStats();
+            var totalBytesSent = 0;
+            stats.forEach(function(report) {
+                if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                    totalBytesSent += report.bytesSent || 0;
+                }
+            });
+            window.baselineVideoBytesCapture = {
+                bytes: totalBytesSent,
+                timestamp: Date.now()
+            };
+            return true;
+        } catch (e) {
+            console.error('Failed to capture video bitrate:', e);
+            return false;
+        }
+    },
+
+    getPublisherVideoBitrateKbps: async function() {
+        if (!window.liveKitClient || !window.liveKitClient.room) return 0;
+        var localParticipant = window.liveKitClient.room.localParticipant;
+        if (!localParticipant) return 0;
+
+        var cameraPub = localParticipant.getTrackPublication(LiveKit.Track.Source.Camera);
+        if (!cameraPub || !cameraPub.track) return 0;
+
+        var sender = cameraPub.track.sender;
+        if (!sender) return 0;
+
+        try {
+            var stats = await sender.getStats();
+            var totalBytesSent = 0;
+            stats.forEach(function(report) {
+                if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                    totalBytesSent += report.bytesSent || 0;
+                }
+            });
+
+            if (!window.baselineVideoBytesCapture) return 0;
+
+            var bytesDelta = totalBytesSent - window.baselineVideoBytesCapture.bytes;
+            var timeDeltaMs = Date.now() - window.baselineVideoBytesCapture.timestamp;
+            if (timeDeltaMs <= 0) return 0;
+
+            var bitsPerSecond = (bytesDelta * 8) / (timeDeltaMs / 1000);
+            return Math.round(bitsPerSecond / 1000);
+        } catch (e) {
+            console.error('Failed to get video bitrate:', e);
+            return 0;
+        }
+    },
+
+    measureVideoBitrateOverInterval: async function(intervalMs) {
+        if (!window.liveKitClient || !window.liveKitClient.room) return 0;
+        var localParticipant = window.liveKitClient.room.localParticipant;
+        if (!localParticipant) return 0;
+
+        var cameraPub = localParticipant.getTrackPublication(LiveKit.Track.Source.Camera);
+        if (!cameraPub || !cameraPub.track) return 0;
+
+        var sender = cameraPub.track.sender;
+        if (!sender) return 0;
+
+        try {
+            var startStats = await sender.getStats();
+            var startBytes = 0;
+            startStats.forEach(function(report) {
+                if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                    startBytes += report.bytesSent || 0;
+                }
+            });
+            var startTime = Date.now();
+
+            await new Promise(function(resolve) { setTimeout(resolve, intervalMs); });
+
+            var endStats = await sender.getStats();
+            var endBytes = 0;
+            endStats.forEach(function(report) {
+                if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                    endBytes += report.bytesSent || 0;
+                }
+            });
+            var endTime = Date.now();
+
+            var bytesDelta = endBytes - startBytes;
+            var timeDeltaMs = endTime - startTime;
+            if (timeDeltaMs <= 0) return 0;
+
+            var bitsPerSecond = (bytesDelta * 8) / (timeDeltaMs / 1000);
+            return Math.round(bitsPerSecond / 1000);
+        } catch (e) {
+            console.error('Failed to measure video bitrate:', e);
+            return 0;
+        }
     }
 };
 
