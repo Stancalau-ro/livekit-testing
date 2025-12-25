@@ -577,44 +577,316 @@ The framework currently tests:
 
 ### Epic 2.3: Version Testing Infrastructure
 
-**Goal:** Enable testing against any LiveKit ecosystem version combination.
+**Goal:** Enable testing against any LiveKit ecosystem version combination with full component configurability, protocol-aware compatibility checking, and automatic scenario filtering.
 
 **Success Metrics:**
 
-- Support testing against any released LiveKit version
-- Version switch time under 2 minutes
-- Zero version-specific configuration errors
+- All component versions (Server, Egress, JS Client, Java SDK) configurable via config/env vars
+- Dynamic fetching of Docker images and JS libraries at runtime
+- Protocol compatibility validated before test execution with early failure on incompatibility
+- Protocol abstraction layer isolates version-specific behavior
+- BDD scenarios with version annotations are automatically excluded when incompatible
 
-#### Story 2.3.1: Create Version Compatibility Matrix
+**Research Context:**
+- No official LiveKit compatibility matrix exists
+- Protocol version is the primary compatibility indicator (currently at Protocol 15)
+- Known issues: Server v1.5.x + Egress v1.7.x fails; Server v1.7.x → v1.8.x upgrade has protocol issues (fixed in v1.8.4)
+- JS Client v2.x is compatible with Server v1.7.x and newer
+- LiveKit follows "generally backward compatible" approach
+
+---
+
+#### Story 2.3.1: Complete Version Configuration for All Components [PARTIAL]
 
 **As a** test developer
-**I want** a compatibility matrix for component versions
-**So that** I know which versions work together
+**I want** all ecosystem component versions configurable via config or environment variables
+**So that** I can test any version combination without code changes
 
 **Acceptance Criteria:**
 
-- Given component versions are specified
-- When compatibility is checked
-- Then incompatible combinations are flagged
-- Given a compatibility issue is detected
-- When reported
-- Then the specific incompatibility is described
+- Given any component (Server, Egress, JS Client, Java SDK)
+- When I set its version via system property, env var, or gradle property
+- Then tests use that specific version
+- Given no version is specified
+- When tests run
+- Then the default version is used
 
-- [ ] Define compatibility rules between LiveKit and Egress
-- [ ] Define compatibility rules for SDK versions
-- [ ] Store compatibility matrix in configuration file
-- [ ] Validate version combinations before test execution
-- [ ] Log warning for untested version combinations
+**Current State:**
+- [x] LiveKit Server version: configurable via `-Dlivekit.version`, `LIVEKIT_VERSION`, `-Plivekit_docker_version`
+- [x] Egress version: configurable via `-Degress.version`, `EGRESS_VERSION`, `-Pegress_docker_version`
+- [x] JS Client version: configurable via `-Dlivekit.js.version`, `LIVEKIT_JS_VERSION`, `-Plivekit_js_version`
+- [ ] Java Server SDK version: currently fixed at compile-time in build.gradle (0.8.5)
+- [ ] Redis version: add configuration support
+- [ ] Selenium container version: add configuration support
+
+**Remaining Tasks:**
+- [ ] Add Java SDK version to TestConfig (for documentation/logging purposes)
+- [ ] Add Redis version configuration
+- [ ] Add Selenium version configuration
+- [ ] Log all component versions at test suite startup
+- [ ] Create version summary report after test execution
 
 **Size:** S
 
 ---
 
-#### Story 2.3.2: Implement Dynamic Configuration by Version
+#### Story 2.3.2: Dynamic Docker Image Fetching
 
 **As a** test developer
-**I want** configuration to adapt to the target version
-**So that** version-specific settings are applied automatically
+**I want** Docker images fetched dynamically based on version configuration
+**So that** I can test any released version without pre-pulling images
+
+**Acceptance Criteria:**
+
+- Given a version is specified that isn't locally available
+- When container starts
+- Then the image is pulled automatically
+- Given a version doesn't exist on Docker Hub
+- When container attempts to start
+- Then a clear error message identifies the invalid version
+
+- [x] LiveKitContainer fetches image dynamically (already implemented)
+- [x] EgressContainer fetches image dynamically (already implemented)
+- [ ] Add image existence validation before test execution
+- [ ] Implement image pull with progress logging
+- [ ] Add timeout and retry for image pulls
+- [ ] Cache pulled image list to avoid repeated checks
+
+**Size:** S
+
+---
+
+#### Story 2.3.3: Dynamic JavaScript Client Library Fetching
+
+**As a** test developer
+**I want** the JS client library fetched dynamically based on version configuration
+**So that** I can test any JS client version without manually downloading files
+
+**Acceptance Criteria:**
+
+- Given a JS client version is specified
+- When tests start
+- Then the correct version is available for browser tests
+- Given the version isn't cached locally
+- When requested
+- Then it is downloaded from npm/unpkg CDN automatically
+
+**Current State:**
+- JS client v2.6.4 is bundled statically at `src/test/resources/web/livekit-meet/lib/livekit-client/v2.6.4/`
+
+**Implementation Tasks:**
+- [ ] Create JsClientLibraryManager class for version management
+- [ ] Implement download from unpkg.com CDN: `https://unpkg.com/livekit-client@{version}/dist/livekit-client.umd.min.js`
+- [ ] Cache downloaded versions in `lib/livekit-client/{version}/` directory
+- [ ] Modify WebServerContainer to serve the configured version
+- [ ] Update HTML template to use dynamic script path or modify at runtime
+- [ ] Add version validation before download
+- [ ] Handle download failures gracefully with clear error messages
+- [ ] Add BDD step: `Given the JS client version is set to "{version}"`
+
+**Size:** M
+
+---
+
+#### Story 2.3.4: Protocol Version Detection and Extraction
+
+**As a** test developer
+**I want** to detect and extract protocol versions from all components
+**So that** compatibility can be validated programmatically
+
+**Acceptance Criteria:**
+
+- Given a LiveKit server container is running
+- When protocol version is queried
+- Then the server's protocol version is returned
+- Given a JS client is loaded in browser
+- When protocol version is queried
+- Then the client's supported protocol version is returned
+
+**Implementation Tasks:**
+- [ ] Create ProtocolVersionExtractor interface
+- [ ] Implement ServerProtocolExtractor using server health endpoint or WebSocket connection
+- [ ] Implement JsClientProtocolExtractor using browser JavaScript execution
+- [ ] Create ProtocolVersion record with major, minor, features
+- [ ] Add protocol version to container logs on startup
+- [ ] Store extracted versions in state manager for later use
+- [ ] Research: Check if `room.serverInfo.protocol` is accessible via Selenium
+
+**Size:** M
+
+---
+
+#### Story 2.3.5: Protocol Compatibility Rules Engine
+
+**As a** test developer
+**I want** a rules engine that defines protocol compatibility between components
+**So that** incompatible combinations are detected before tests run
+
+**Acceptance Criteria:**
+
+- Given a compatibility rule exists
+- When component versions violate the rule
+- Then the violation is identified with reason
+- Given known bad combinations exist
+- When those versions are specified
+- Then tests fail early with clear explanation
+
+**Known Compatibility Issues to Encode:**
+- Server v1.5.x + Egress v1.7.x: Update fails
+- Server v1.7.x → v1.8.x: Protocol issues (fixed in v1.8.4)
+- Dynacast with Server v0.15.1: Known bug, client auto-disables
+- Server < v1.5.2: Missing identity info in disconnect updates
+
+**Implementation Tasks:**
+- [ ] Create CompatibilityRule interface with `isCompatible(versions)` and `getViolationMessage()`
+- [ ] Create ProtocolCompatibilityRules class with rule registry
+- [ ] Define rules in YAML configuration: `src/test/resources/compatibility-rules.yaml`
+- [ ] Support rule types: `version-range`, `exact-match`, `protocol-minimum`, `known-bad`
+- [ ] Implement rule evaluation with detailed violation reporting
+- [ ] Add configurable strictness levels: `fail`, `warn`, `ignore`
+
+**Size:** M
+
+---
+
+#### Story 2.3.6: Pre-Test Protocol Compatibility Validation
+
+**As a** CI/CD operator
+**I want** protocol compatibility validated before any tests run
+**So that** incompatible configurations fail fast with actionable error messages
+
+**Acceptance Criteria:**
+
+- Given tests are starting
+- When configured versions are incompatible
+- Then tests fail immediately with compatibility error
+- Given compatibility check passes
+- When tests proceed
+- Then no compatibility-related failures occur mid-test
+
+**Implementation Tasks:**
+- [ ] Create CompatibilityValidator class as JUnit 5 extension
+- [ ] Hook into test lifecycle: validate before @BeforeAll
+- [ ] Extract protocol versions from running containers
+- [ ] Evaluate all compatibility rules against current versions
+- [ ] Fail with detailed report: which rule failed, what versions, what's recommended
+- [ ] Add `@SkipCompatibilityCheck` annotation for override
+- [ ] Log compatibility validation results with timestamps
+- [ ] Add Cucumber @Before hook for BDD tests
+
+**Size:** M
+
+**Dependencies:** Story 2.3.4, Story 2.3.5
+
+---
+
+#### Story 2.3.7: Protocol Abstraction Layer
+
+**As a** framework maintainer
+**I want** protocol-specific code isolated in an abstraction layer
+**So that** new protocol versions only require changes in one place
+
+**Acceptance Criteria:**
+
+- Given a new protocol version is released
+- When support is added
+- Then only the abstraction layer changes
+- Given the abstraction layer is updated
+- When tests run
+- Then all existing tests work without modification
+
+**Design Principles:**
+- Protocol-specific behavior behind interfaces
+- Version detection at startup, then use appropriate implementation
+- No version checks scattered through test code
+- Factory pattern for protocol-aware components
+
+**Implementation Tasks:**
+- [ ] Create `ProtocolAdapter` interface for protocol-specific operations
+- [ ] Create `ProtocolAdapterFactory` that selects adapter by protocol version
+- [ ] Implement `Protocol15Adapter` for current protocol
+- [ ] Define adapter methods: `createVideoGrant()`, `parseParticipantInfo()`, `getTrackPublishOptions()`
+- [ ] Move version-specific token grant handling to adapter
+- [ ] Move version-specific event parsing to adapter
+- [ ] Add adapter registration mechanism for new protocol versions
+- [ ] Document how to add support for new protocol versions
+
+**Size:** L
+
+---
+
+#### Story 2.3.8: BDD Scenario Version Annotations
+
+**As a** test developer
+**I want** to annotate BDD scenarios with min/max version requirements
+**So that** incompatible scenarios are automatically excluded from test runs
+
+**Acceptance Criteria:**
+
+- Given a scenario has `@MinServerVersion(v1.9.0)` annotation
+- When tests run with server v1.8.4
+- Then the scenario is skipped with reason
+- Given a scenario has no version annotation
+- When tests run
+- Then the scenario runs regardless of version
+
+**Annotation Types:**
+- `@MinServerVersion("v1.9.0")` - Minimum server version required
+- `@MaxServerVersion("v1.8.4")` - Maximum server version supported
+- `@MinJsClientVersion("2.10.0")` - Minimum JS client version
+- `@MinProtocolVersion(15)` - Minimum protocol version
+- `@RequiresFeature("dynacast")` - Requires specific feature
+- `@SkipOnVersion(server="v1.5.2", reason="Known egress bug")` - Skip specific versions
+
+**Implementation Tasks:**
+- [ ] Define Cucumber tag format: `@MinServerVersion:v1.9.0`
+- [ ] Create VersionTagFilter class implementing Cucumber TagPredicate
+- [ ] Parse version tags from scenario tags
+- [ ] Compare against current TestConfig versions
+- [ ] Skip scenarios with clear skip message in report
+- [ ] Add version requirement to scenario documentation
+- [ ] Support tag combinations: `@MinServerVersion:v1.9.0 @MinJsClient:2.10.0`
+- [ ] Log skipped scenarios with reasons at test start
+
+**Size:** M
+
+**Dependencies:** Story 2.3.1
+
+---
+
+#### Story 2.3.9: Version Compatibility Documentation Generator
+
+**As a** LiveKit integrator
+**I want** auto-generated documentation of tested version combinations
+**So that** I know which versions work together
+
+**Acceptance Criteria:**
+
+- Given tests have run against version combinations
+- When documentation is generated
+- Then compatibility matrix shows pass/fail per combination
+- Given a combination hasn't been tested
+- When viewing documentation
+- Then it's marked as "untested" with recommendation
+
+**Implementation Tasks:**
+- [ ] Create TestResultCollector that tracks version combinations
+- [ ] Store results in `docs/version-compatibility.md`
+- [ ] Auto-update after test runs (via Gradle task)
+- [ ] Include test date, pass/fail count, known issues
+- [ ] Generate matrix format: Server versions × Client versions
+- [ ] Add links to detailed test reports per combination
+- [ ] Create badge generator for README
+
+**Size:** M
+
+---
+
+#### Story 2.3.10: Dynamic Configuration by Version [ENHANCED]
+
+**As a** test developer
+**I want** configuration to adapt automatically to the target version
+**So that** version-specific settings are applied without manual intervention
 
 **Acceptance Criteria:**
 
@@ -625,9 +897,11 @@ The framework currently tests:
 - When those settings are present
 - Then they are ignored with a warning
 
-- [ ] Create version-specific configuration profiles
-- [ ] Detect and apply settings based on target version
-- [ ] Handle deprecated configuration options
+- [x] Version-specific config directories exist (v1.8.4/)
+- [x] Fallback mechanism finds latest config when current version config missing
+- [ ] Add version-specific capability detection
+- [ ] Auto-generate config for new versions from template
+- [ ] Detect and warn about deprecated configuration options
 - [ ] Log configuration differences between versions
 - [ ] Support configuration override for testing
 
@@ -635,7 +909,7 @@ The framework currently tests:
 
 ---
 
-#### Story 2.3.3: Add Version Downgrade Testing Support
+#### Story 2.3.11: Version Downgrade Testing Support
 
 **As a** test developer
 **I want** to test downgrade scenarios
@@ -658,7 +932,7 @@ The framework currently tests:
 
 **Size:** L
 
-**Dependencies:** Story 2.3.2
+**Dependencies:** Story 2.3.10
 
 ---
 
@@ -1572,9 +1846,17 @@ Phase 2 (Foundation)
     +-- Epic 2.2 (Error Handling)
     |   Stories are largely independent
     |
-    +-- Epic 2.3 (Version Infrastructure)
-        2.3.2 --> 2.3.3
-        (2.3.1 is independent)
+    +-- Epic 2.3 (Version Infrastructure) [EXPANDED]
+        2.3.1 (Config) - partial, foundation for all
+        2.3.2 (Docker Images) - independent
+        2.3.3 (JS Library Fetching) - independent
+        2.3.4 (Protocol Detection) - foundation for compatibility
+        2.3.5 (Rules Engine) - foundation for validation
+        2.3.4, 2.3.5 --> 2.3.6 (Pre-Test Validation)
+        2.3.7 (Abstraction Layer) - independent, high value
+        2.3.1 --> 2.3.8 (BDD Version Annotations)
+        2.3.9 (Doc Generator) - independent
+        2.3.10 --> 2.3.11 (Downgrade Testing)
 
 Phase 3 (Growth)
     |
@@ -1629,12 +1911,19 @@ Phase 5 (Innovation)
 2. Story 2.1.1 - Container Health Checks
 3. Story 2.1.2 - Retry Mechanism
 4. Story 2.2.2 - Container Logs on Failure
+5. **Story 2.3.1 - Complete Version Configuration** (finish remaining components)
+6. **Story 2.3.3 - Dynamic JS Client Library Fetching** (enables client version testing)
+7. **Story 2.3.6 - Pre-Test Protocol Compatibility Validation** (fail-fast on bad combinations)
 
 ### Medium-term
 
 1. Complete Epic 2.1 (Reliability)
 2. Complete Epic 2.2 (Error Handling)
-3. Epic 2.3 (Version Infrastructure)
+3. **Epic 2.3 (Version Infrastructure) - High Priority Items:**
+   - Story 2.3.4 - Protocol Version Detection
+   - Story 2.3.5 - Protocol Compatibility Rules Engine
+   - Story 2.3.7 - Protocol Abstraction Layer
+   - Story 2.3.8 - BDD Scenario Version Annotations
 4. Stories 3.1.1-3.1.5 (CI/CD)
 
 ### Long-term
@@ -1654,6 +1943,10 @@ Phase 5 (Innovation)
 3. **Cloud Testing**: Should tests run against managed LiveKit Cloud?
 4. **MCP Distribution**: What is the preferred distribution channel for MCP server?
 5. **Performance Baselines**: What performance metrics should be baselined first?
+6. **Protocol Abstraction Scope**: Which operations need protocol-specific handling? (grants, events, track options)
+7. **Version Matrix Depth**: Should we test N×M combinations (all servers × all clients) or focus on diagonal (matching releases)?
+8. **Java SDK Runtime Switching**: Is compile-time SDK version acceptable, or do we need runtime switching?
+9. **Compatibility Rule Sources**: Should rules be community-contributed or maintained internally?
 
 ---
 
@@ -1667,3 +1960,7 @@ The roadmap will be considered successful when:
 4. Compatibility matrix covers recent releases
 5. MCP server helps developers integrate LiveKit effectively
 6. Framework is adopted by LiveKit community for integration testing
+7. **All component versions configurable without code changes**
+8. **Incompatible version combinations fail fast before test execution**
+9. **New protocol versions require changes only to abstraction layer**
+10. **BDD scenarios automatically skip when version requirements not met**
