@@ -14,20 +14,21 @@ import ro.stancalau.test.bdd.steps.params.MuteAction;
 import ro.stancalau.test.bdd.steps.params.MuteState;
 import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
-import ro.stancalau.test.framework.state.RoomClientStateManager;
+import ro.stancalau.test.framework.util.BrowserPollingHelper;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
 public class LiveKitBrowserWebrtcSteps {
 
-    private final Map<String, LiveKitMeet> meetInstances = new HashMap<>();
-    private final Map<String, Boolean> simulcastPreferences = new HashMap<>();
+    private static final int LOW_QUALITY_MAX_WIDTH = 400;
+    private static final int HIGH_QUALITY_MIN_WIDTH = 500;
+    private static final int MIN_TIMESTAMPED_MESSAGES = 10;
 
     @After
     public void tearDownLiveKitWebrtcSteps(Scenario scenario) {
@@ -39,33 +40,6 @@ public class LiveKitBrowserWebrtcSteps {
                 }
             });
         }
-        
-        meetInstances.values().forEach(meet -> {
-            try {
-                meet.clearDynacastState();
-            } catch (Exception e) {
-                log.debug("Error clearing dynacast state: {}", e.getMessage());
-            }
-            try {
-                meet.closeWindow();
-            } catch (Exception e) {
-                log.warn("Error closing meet instance: {}", e.getMessage());
-            }
-        });
-        meetInstances.clear();
-        
-        if (ManagerProvider.webDrivers() != null) {
-            ManagerProvider.webDrivers().closeAllWebDrivers();
-        }
-        
-        RoomClientStateManager roomClientManager = ManagerProvider.getRoomClientManager();
-        if (roomClientManager != null) {
-            roomClientManager.clearAll();
-        }
-        if (ManagerProvider.tokens() != null) {
-            ManagerProvider.tokens().clearAll();
-        }
-        simulcastPreferences.clear();
     }
 
     @When("{string} opens a {string} browser with LiveKit Meet page")
@@ -78,27 +52,23 @@ public class LiveKitBrowserWebrtcSteps {
     public void connectsToRoomUsingTheAccessToken(String participantName, String roomName) {
         AccessToken token = ManagerProvider.tokens().getLastToken(participantName, roomName);
         assertNotNull(token, "Access token should exist for " + participantName + " in room " + roomName);
-        
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
-        assertNotNull(driver, "WebDriver should exist for participant: " + participantName);
-        
+
+        WebDriver driver = ManagerProvider.meetSessions().getWebDriver(participantName);
         String liveKitUrl = getLiveKitServerUrl();
         String tokenString = token.toJwt();
 
-        boolean simulcastEnabled = simulcastPreferences.getOrDefault(participantName, true);
+        boolean simulcastEnabled = ManagerProvider.videoQuality().getSimulcastPreference(participantName);
         LiveKitMeet meetInstance = new LiveKitMeet(driver, liveKitUrl, tokenString, roomName, participantName, ManagerProvider.containers(), simulcastEnabled);
-        meetInstances.put(participantName, meetInstance);
+        ManagerProvider.meetSessions().putMeetInstance(participantName, meetInstance);
         assertNotNull(meetInstance, "LiveKitMeet instance should be created");
     }
 
     @And("connection is established successfully for {string}")
     public void connectionIsEstablishedSuccessfullyFor(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         int maxRetries = 3;
         int retryDelayMs = 1000;
-        
+
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
                 boolean connected = meetInstance.waitForConnection();
@@ -108,44 +78,40 @@ public class LiveKitBrowserWebrtcSteps {
                     }
                     return;
                 }
-                
+
                 String errorDetails = meetInstance.getPageErrorDetails();
                 boolean isRetryableError = isRetryableServerError(errorDetails);
-                
+
                 if (isRetryableError && attempt < maxRetries) {
-                    log.warn("Retryable server error for {}, attempt {}/{}: {}. Retrying in {}ms", 
+                    log.warn("Retryable server error for {}, attempt {}/{}: {}. Retrying in {}ms",
                             participantName, attempt, maxRetries, errorDetails, retryDelayMs);
-                    Thread.sleep(retryDelayMs);
+                    BrowserPollingHelper.safeSleep(retryDelayMs);
                     meetInstance.refreshAndReconnect();
                     continue;
                 }
-                
+
                 String failureMessage = participantName + " should successfully connect to the meeting (attempt " + attempt + "/" + maxRetries + ")";
                 if (errorDetails != null && !errorDetails.trim().isEmpty()) {
                     failureMessage += ". Browser error: " + errorDetails;
                 }
                 fail(failureMessage);
-                
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                fail("Connection attempt interrupted for " + participantName);
+
             } catch (Exception e) {
+                if (e instanceof InterruptedException) {
+                    Thread.currentThread().interrupt();
+                    fail("Connection attempt interrupted for " + participantName);
+                }
                 String errorDetails = meetInstance.getPageErrorDetails();
                 boolean isRetryableError = isRetryableServerError(errorDetails);
-                
+
                 if (isRetryableError && attempt < maxRetries) {
-                    log.warn("Retryable exception for {}, attempt {}/{}: {}. Retrying in {}ms", 
+                    log.warn("Retryable exception for {}, attempt {}/{}: {}. Retrying in {}ms",
                             participantName, attempt, maxRetries, e.getMessage(), retryDelayMs);
-                    try {
-                        Thread.sleep(retryDelayMs);
-                        meetInstance.refreshAndReconnect();
-                        continue;
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        fail("Connection retry interrupted for " + participantName);
-                    }
+                    BrowserPollingHelper.safeSleep(retryDelayMs);
+                    meetInstance.refreshAndReconnect();
+                    continue;
                 }
-                
+
                 String failureMessage = "Connection failed for " + participantName + " with exception: " + e.getMessage();
                 if (errorDetails != null && !errorDetails.trim().isEmpty()) {
                     failureMessage += ". Browser error: " + errorDetails;
@@ -154,7 +120,7 @@ public class LiveKitBrowserWebrtcSteps {
             }
         }
     }
-    
+
     private boolean isRetryableServerError(String errorDetails) {
         if (errorDetails == null) {
             return false;
@@ -163,10 +129,10 @@ public class LiveKitBrowserWebrtcSteps {
         return errorLower.contains("could not find any available nodes") ||
                errorLower.contains("server error") ||
                errorLower.contains("500") ||
-                errorLower.contains("internal server error") ||
-                errorLower.contains("websocket error") ||
-                errorLower.contains("signal connection") ||
-                errorLower.contains("could not establish");
+               errorLower.contains("internal server error") ||
+               errorLower.contains("websocket error") ||
+               errorLower.contains("signal connection") ||
+               errorLower.contains("could not establish");
     }
 
     @Then("the connection should be successful for {string}")
@@ -176,109 +142,75 @@ public class LiveKitBrowserWebrtcSteps {
 
     @And("{string} can toggle camera controls")
     public void participantCanToggleCameraControls(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         meetInstance.toggleCamera();
         meetInstance.toggleCamera();
     }
 
     @And("{string} can toggle mute controls")
     public void participantCanToggleMuteControls(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         meetInstance.toggleMute();
         meetInstance.toggleMute();
     }
 
-
     @Then("participants {string} should see room name {string}")
     public void participantsShouldSeeRoomName(String participantList, String expectedRoomName) {
         String[] participants = StringParsingUtils.parseCommaSeparatedList(participantList).toArray(new String[0]);
-
         for (String participantName : participants) {
-            LiveKitMeet meetInstance = meetInstances.get(participantName);
-            assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
+            LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
             String actualRoomName = meetInstance.getCurrentRoomName();
-            assertEquals(expectedRoomName, actualRoomName,
-                "Participant " + participantName + " should see correct room name");
-
+            assertEquals(expectedRoomName, actualRoomName, "Participant " + participantName + " should see correct room name");
         }
     }
 
     @And("{string} leaves the meeting")
     public void participantLeavesTheMeeting(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         meetInstance.stop();
     }
 
     @Then("{string} should be disconnected from the room")
     public void participantShouldBeDisconnectedFromTheRoom(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         boolean disconnected = meetInstance.disconnected();
         assertTrue(disconnected, participantName + " should be disconnected from the room");
     }
 
     @Then("{string} should see disconnection in the browser")
     public void participantShouldSeeDisconnectionInTheBrowser(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        
-        int maxAttempts = 20;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            boolean disconnected = meetInstance.disconnected();
-            if (disconnected) {
-                return;
-            }
-            
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-        
-        boolean disconnected = meetInstance.disconnected();
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
+        boolean disconnected = BrowserPollingHelper.pollForCondition(meetInstance::disconnected, 20, 500);
         assertTrue(disconnected, participantName + " should see disconnection in the browser after being removed by the server");
     }
 
     @Then("{string} should see the join form again")
     public void participantShouldSeeTheJoinFormAgain(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         assertTrue(meetInstance.isJoinFormVisible(), "Join form should be visible for " + participantName);
     }
 
     @And("{string} closes the browser")
     public void participantClosesTheBrowser(String participantName) {
         ManagerProvider.webDrivers().closeWebDriver("meet", participantName);
-        meetInstances.remove(participantName);
+        ManagerProvider.meetSessions().removeMeetInstance(participantName);
     }
-    
+
     @When("{string} starts screen sharing")
     public void startsScreenSharing(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         meetInstance.startScreenShare();
     }
 
     @When("{string} stops screen sharing")
     public void stopsScreenSharing(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         meetInstance.stopScreenShare();
     }
 
     @When("{string} attempts to start screen sharing")
     public void attemptsToStartScreenSharing(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         try {
             meetInstance.startScreenShare();
         } catch (Exception e) {
@@ -288,199 +220,91 @@ public class LiveKitBrowserWebrtcSteps {
 
     @Then("participant {string} should not be able to share screen due to permissions")
     public void participantShouldNotBeAbleToShareScreenDueToPermissions(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, participantName + " should have an active LiveKit Meet instance");
-
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
-        assertNotNull(driver, "WebDriver should exist for " + participantName);
-
-        try {
-            Thread.sleep(2000);
-
-            boolean isBlocked = meetInstance.isScreenShareBlocked();
-            boolean isSharing = meetInstance.isScreenSharing();
-
-            assertTrue(isBlocked || !isSharing,
-                participantName + " should not be able to share screen (blocked: " + isBlocked + ", sharing: " + isSharing + ")");
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            fail("Test interrupted while checking screen share status");
-        }
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
+        ManagerProvider.meetSessions().getWebDriver(participantName);
+        BrowserPollingHelper.safeSleep(2000);
+        boolean isBlocked = meetInstance.isScreenShareBlocked();
+        boolean isSharing = meetInstance.isScreenSharing();
+        assertTrue(isBlocked || !isSharing,
+            participantName + " should not be able to share screen (blocked: " + isBlocked + ", sharing: " + isSharing + ")");
     }
 
     @Then("participant {string} should not be able to subscribe to video due to permissions")
     public void participantShouldNotBeAbleToSubscribeToVideoDueToPermissions(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, participantName + " should have an active LiveKit Meet instance");
-        
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
-        assertNotNull(driver, "WebDriver should exist for " + participantName);
-        
-        try {
-            Thread.sleep(3000);
+        ManagerProvider.meetSessions().getMeetInstance(participantName);
+        WebDriver driver = ManagerProvider.meetSessions().getWebDriver(participantName);
+        BrowserPollingHelper.safeSleep(3000);
 
-            JavascriptExecutor js = (JavascriptExecutor) driver;
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        Long subscriptionFailedCount = (Long) js.executeScript("return window.LiveKitTestHelpers.getSubscriptionFailedEventCount();");
+        Boolean permissionDenied = (Boolean) js.executeScript("return window.LiveKitTestHelpers.isSubscriptionPermissionDenied();");
+        String errorMessage = (String) js.executeScript("return window.LiveKitTestHelpers.getLastSubscriptionError();");
+        Long playingVideoElements = (Long) js.executeScript("return window.LiveKitTestHelpers.getPlayingVideoElementCount();");
+        Long subscribedTracks = (Long) js.executeScript("return window.LiveKitTestHelpers.getSubscribedVideoTrackCount();");
 
-            Long subscriptionFailedCount = (Long) js.executeScript(
-                "return window.LiveKitTestHelpers.getSubscriptionFailedEventCount();"
-            );
+        boolean hasSubscriptionFailures = subscriptionFailedCount > 0 || permissionDenied;
+        boolean hasNoVideoPlayback = playingVideoElements == 0 && subscribedTracks == 0;
 
-            Boolean permissionDenied = (Boolean) js.executeScript(
-                "return window.LiveKitTestHelpers.isSubscriptionPermissionDenied();"
-            );
-
-            String errorMessage = (String) js.executeScript(
-                "return window.LiveKitTestHelpers.getLastSubscriptionError();"
-            );
-
-            Long playingVideoElements = (Long) js.executeScript(
-                "return window.LiveKitTestHelpers.getPlayingVideoElementCount();"
-            );
-
-            Long subscribedTracks = (Long) js.executeScript(
-                "return window.LiveKitTestHelpers.getSubscribedVideoTrackCount();"
-            );
-
-            boolean hasSubscriptionFailures = subscriptionFailedCount > 0 || permissionDenied;
-            boolean hasNoVideoPlayback = playingVideoElements == 0 && subscribedTracks == 0;
-
-            assertTrue(hasSubscriptionFailures || hasNoVideoPlayback,
-                participantName + " should not be able to subscribe to video (failedEvents: " + subscriptionFailedCount +
-                ", permissionDenied: " + permissionDenied + ", playingVideos: " + playingVideoElements +
-                ", subscribedTracks: " + subscribedTracks + ", error: '" + errorMessage + "')");
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            fail("Test interrupted while checking subscription status");
-        }
+        assertTrue(hasSubscriptionFailures || hasNoVideoPlayback,
+            participantName + " should not be able to subscribe to video (failedEvents: " + subscriptionFailedCount +
+            ", permissionDenied: " + permissionDenied + ", playingVideos: " + playingVideoElements +
+            ", subscribedTracks: " + subscribedTracks + ", error: '" + errorMessage + "')");
     }
 
     private String getLiveKitServerUrl() {
         LiveKitContainer container = ManagerProvider.containers().getContainer("livekit1", LiveKitContainer.class);
         assertNotNull(container, "LiveKit container should be running");
         assertTrue(container.isRunning(), "LiveKit container should be running");
-
         return container.getNetworkUrl();
     }
 
     @When("{string} enables simulcast for video publishing")
     public void enablesSimulcastForVideoPublishing(String participantName) {
-        simulcastPreferences.put(participantName, true);
-        log.info("Simulcast preference set to enabled for participant: {}", participantName);
+        ManagerProvider.videoQuality().setSimulcastEnabled(participantName, true);
     }
 
     @When("{string} disables simulcast for video publishing")
     public void disablesSimulcastForVideoPublishing(String participantName) {
-        simulcastPreferences.put(participantName, false);
-        log.info("Simulcast preference set to disabled for participant: {}", participantName);
+        ManagerProvider.videoQuality().setSimulcastEnabled(participantName, false);
     }
 
     @When("{string} sets video quality preference to {string}")
     public void setsVideoQualityPreferenceTo(String participantName, String quality) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        meetInstance.setVideoQualityPreference(quality);
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        ManagerProvider.videoQuality().setQualityPreference(participantName, quality);
     }
 
     @When("{string} sets maximum receive bandwidth to {int} kbps")
     public void setsMaximumReceiveBandwidth(String participantName, int kbps) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        meetInstance.setMaxReceiveBandwidth(kbps);
-        try {
-            Thread.sleep(3000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        ManagerProvider.videoQuality().setMaxReceiveBandwidth(participantName, kbps);
     }
 
     @Then("{string} should be receiving low quality video from {string}")
     public void shouldBeReceivingLowQualityVideoFrom(String subscriber, String publisher) {
-        LiveKitMeet meetInstance = meetInstances.get(subscriber);
-        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
-
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", subscriber);
-        Long receivedWidth = getRemoteVideoTrackWidth(driver, publisher);
-
-        assertTrue(receivedWidth > 0 && receivedWidth <= 400,
-            subscriber + " should be receiving low quality video from " + publisher + " (width: " + receivedWidth + ", expected <= 400)");
+        Long receivedWidth = ManagerProvider.videoQuality().getReceivedVideoWidth(subscriber, publisher);
+        assertTrue(receivedWidth > 0 && receivedWidth <= LOW_QUALITY_MAX_WIDTH,
+            subscriber + " should be receiving low quality video from " + publisher +
+            " (width: " + receivedWidth + ", expected <= " + LOW_QUALITY_MAX_WIDTH + ")");
     }
 
     @Then("{string} should be receiving high quality video from {string}")
     public void shouldBeReceivingHighQualityVideoFrom(String subscriber, String publisher) {
-        LiveKitMeet meetInstance = meetInstances.get(subscriber);
-        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
-
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", subscriber);
-        Long receivedWidth = getRemoteVideoTrackWidth(driver, publisher);
-
-        assertTrue(receivedWidth >= 500,
-            subscriber + " should be receiving high quality video from " + publisher + " (width: " + receivedWidth + ", expected >= 500)");
+        Long receivedWidth = ManagerProvider.videoQuality().getReceivedVideoWidth(subscriber, publisher);
+        assertTrue(receivedWidth >= HIGH_QUALITY_MIN_WIDTH,
+            subscriber + " should be receiving high quality video from " + publisher +
+            " (width: " + receivedWidth + ", expected >= " + HIGH_QUALITY_MIN_WIDTH + ")");
     }
 
     @Then("{string} should be receiving a lower quality layer from {string}")
     public void shouldBeReceivingLowerQualityLayerFrom(String subscriber, String publisher) {
-        LiveKitMeet meetInstance = meetInstances.get(subscriber);
-        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
-
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", subscriber);
-        Long receivedWidth = waitForLowerQualityLayer(driver, publisher, 400, 15);
-
-        assertTrue(receivedWidth > 0 && receivedWidth <= 400,
-            subscriber + " should be receiving lower quality from " + publisher + " (width: " + receivedWidth + ", expected <= 400)");
-    }
-
-    private Long waitForLowerQualityLayer(WebDriver driver, String publisherIdentity, int maxWidth, int maxAttempts) {
-        Long lastWidth = 0L;
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            Object result = ((JavascriptExecutor) driver).executeScript(
-                "return window.LiveKitTestHelpers.getRemoteVideoTrackWidthByPublisher(arguments[0]);",
-                publisherIdentity
-            );
-            lastWidth = result == null ? 0L : ((Number) result).longValue();
-            if (lastWidth > 0 && lastWidth <= maxWidth) {
-                return lastWidth;
-            }
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-        return lastWidth;
-    }
-
-    private Long getRemoteVideoTrackWidth(WebDriver driver, String publisherIdentity) {
-        for (int attempt = 0; attempt < 10; attempt++) {
-            Object result = ((JavascriptExecutor) driver).executeScript(
-                "return window.LiveKitTestHelpers.getRemoteVideoTrackWidthByPublisher(arguments[0]);",
-                publisherIdentity
-            );
-            Long width = result == null ? 0L : ((Number) result).longValue();
-            if (width > 0) {
-                return width;
-            }
-            try {
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-        return 0L;
+        Long receivedWidth = ManagerProvider.videoQuality().pollForLowerQualityWidth(subscriber, publisher, LOW_QUALITY_MAX_WIDTH);
+        assertTrue(receivedWidth > 0 && receivedWidth <= LOW_QUALITY_MAX_WIDTH,
+            subscriber + " should be receiving lower quality from " + publisher +
+            " (width: " + receivedWidth + ", expected <= " + LOW_QUALITY_MAX_WIDTH + ")");
     }
 
     @When("{string} {muteAction} their audio")
     public void togglesTheirAudio(String participantName, MuteAction action) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         if (action.shouldMute()) {
             meetInstance.muteAudio();
         } else {
@@ -491,8 +315,7 @@ public class LiveKitBrowserWebrtcSteps {
 
     @When("{string} {muteAction} their video")
     public void togglesTheirVideo(String participantName, MuteAction action) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         if (action.shouldMute()) {
             meetInstance.muteVideo();
         } else {
@@ -503,202 +326,109 @@ public class LiveKitBrowserWebrtcSteps {
 
     @Then("{string} should have audio {muteState} locally")
     public void shouldHaveAudioStateLocally(String participantName, MuteState state) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        assertEquals(state.isMuted(), meetInstance.isAudioMuted(),
-            participantName + " should have audio " + state + " locally");
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
+        assertEquals(state.isMuted(), meetInstance.isAudioMuted(), participantName + " should have audio " + state + " locally");
     }
 
     @Then("{string} should have video {muteState} locally")
     public void shouldHaveVideoStateLocally(String participantName, MuteState state) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        assertEquals(state.isMuted(), meetInstance.isVideoMuted(),
-            participantName + " should have video " + state + " locally");
+        LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
+        assertEquals(state.isMuted(), meetInstance.isVideoMuted(), participantName + " should have video " + state + " locally");
     }
 
     @When("{string} sends a data message {string} via reliable channel")
     public void sendsDataMessageViaReliableChannel(String participantName, String message) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        meetInstance.sendDataMessage(message, true);
+        ManagerProvider.dataChannel().sendMessage(participantName, message, true);
     }
 
     @When("{string} sends a data message {string} via unreliable channel")
     public void sendsDataMessageViaUnreliableChannel(String participantName, String message) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        meetInstance.sendDataMessage(message, false);
+        ManagerProvider.dataChannel().sendMessage(participantName, message, false);
     }
 
     @When("{string} sends a broadcast data message {string} via reliable channel")
     public void sendsBroadcastDataMessage(String participantName, String message) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        meetInstance.sendDataMessage(message, true);
+        ManagerProvider.dataChannel().sendBroadcastMessage(participantName, message, true);
     }
 
     @When("{string} sends a data message {string} to {string} via reliable channel")
     public void sendsTargetedDataMessage(String sender, String message, String recipient) {
-        LiveKitMeet meetInstance = meetInstances.get(sender);
-        assertNotNull(meetInstance, "Meet instance should exist for " + sender);
-        meetInstance.sendDataMessageTo(message, recipient, true);
+        ManagerProvider.dataChannel().sendTargetedMessage(sender, message, recipient, true);
     }
 
     @When("{string} sends a data message of size {int} bytes via reliable channel")
     public void sendsDataMessageOfSize(String participantName, int sizeBytes) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        meetInstance.sendDataMessageOfSize(sizeBytes, true);
+        ManagerProvider.dataChannel().sendMessageOfSize(participantName, sizeBytes, true);
     }
 
     @When("{string} sends {int} data messages via unreliable channel")
     public void sendsMultipleDataMessagesViaUnreliableChannel(String participantName, int count) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        for (int i = 0; i < count; i++) {
-            meetInstance.sendDataMessage("Unreliable message " + (i + 1), false);
-            try {
-                Thread.sleep(50);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                fail("Test interrupted while sending multiple messages");
-            }
-        }
+        ManagerProvider.dataChannel().sendMultipleMessages(participantName, count, false);
     }
 
     @When("{string} sends {int} timestamped data messages via reliable channel")
     public void sendsTimestampedMessages(String participantName, int count) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        for (int i = 0; i < count; i++) {
-            meetInstance.sendTimestampedDataMessage("Latency test message " + (i + 1), true);
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                fail("Test interrupted while sending timestamped messages");
-            }
-        }
+        ManagerProvider.dataChannel().sendTimestampedMessages(participantName, count, true);
     }
 
     @When("{string} attempts to send a data message {string}")
     public void attemptsToSendDataMessage(String participantName, String message) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        try {
-            meetInstance.sendDataMessage(message, true);
-        } catch (Exception e) {
-            log.info("Data message send attempt failed as expected: {}", e.getMessage());
-        }
+        ManagerProvider.dataChannel().attemptSendMessage(participantName, message);
     }
 
     @Then("{string} should receive data message {string} from {string}")
     public void shouldReceiveDataMessageFrom(String receiver, String message, String sender) {
-        LiveKitMeet meetInstance = meetInstances.get(receiver);
-        assertNotNull(meetInstance, "Meet instance should exist for " + receiver);
-
-        boolean received = meetInstance.hasReceivedDataMessage(message, sender, LiveKitMeet.DEFAULT_DATA_MESSAGE_TIMEOUT_MS);
-        assertTrue(received,
-            receiver + " should have received data message '" + message + "' from " + sender);
+        boolean received = ManagerProvider.dataChannel().hasReceivedMessage(receiver, message, sender);
+        assertTrue(received, receiver + " should have received data message '" + message + "' from " + sender);
     }
 
     @Then("{string} should receive at least {int} out of {int} messages from {string}")
     public void shouldReceiveAtLeastMessagesFrom(String receiver, int minMessages, int totalSent, String sender) {
-        LiveKitMeet meetInstance = meetInstances.get(receiver);
-        assertNotNull(meetInstance, "Meet instance should exist for " + receiver);
-
-        boolean receivedEnough = meetInstance.waitForDataMessageCount(minMessages, LiveKitMeet.BATCH_DATA_MESSAGE_TIMEOUT_MS);
-        int actualCount = meetInstance.getReceivedDataMessageCount();
-
+        boolean receivedEnough = ManagerProvider.dataChannel().waitForMessageCount(receiver, minMessages, LiveKitMeet.BATCH_DATA_MESSAGE_TIMEOUT_MS);
+        int actualCount = ManagerProvider.dataChannel().getReceivedMessageCount(receiver);
         assertTrue(receivedEnough && actualCount >= minMessages,
             receiver + " should have received at least " + minMessages + " messages from " + sender +
             " (actual: " + actualCount + " out of " + totalSent + " sent)");
-
         log.info("Unreliable channel delivery: {} out of {} messages received ({}%)",
             actualCount, totalSent, (actualCount * 100.0 / totalSent));
     }
 
     @Then("{string} should receive all timestamped messages")
     public void shouldReceiveAllTimestampedMessages(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        int receivedCount = meetInstance.getReceivedDataMessageCount();
-        assertTrue(receivedCount >= 10,
+        int receivedCount = ManagerProvider.dataChannel().getReceivedMessageCountAfterWait(participantName);
+        assertTrue(receivedCount >= MIN_TIMESTAMPED_MESSAGES,
             participantName + " should have received all timestamped messages (received: " + receivedCount + ")");
     }
 
     @Then("{string} should receive a data message of size {int} bytes")
     public void shouldReceiveDataMessageOfSize(String participantName, int expectedSize) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
-        boolean received = meetInstance.waitForDataMessageCount(1, LiveKitMeet.DEFAULT_DATA_MESSAGE_TIMEOUT_MS);
+        boolean received = ManagerProvider.dataChannel().waitForMessageCount(participantName, 1, LiveKitMeet.DEFAULT_DATA_MESSAGE_TIMEOUT_MS);
         assertTrue(received, participantName + " should have received a data message");
-
-        int actualCount = meetInstance.getReceivedDataMessageCount();
-        assertTrue(actualCount > 0,
-            participantName + " should have at least one message (size: " + expectedSize + " bytes)");
+        int actualCount = ManagerProvider.dataChannel().getReceivedMessageCount(participantName);
+        assertTrue(actualCount > 0, participantName + " should have at least one message (size: " + expectedSize + " bytes)");
     }
 
     @Then("{string} should not receive data message {string}")
     public void shouldNotReceiveDataMessage(String participantName, String message) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        boolean received = meetInstance.hasReceivedDataMessage(message, null, 1000);
-        assertFalse(received,
-            participantName + " should not have received data message: " + message);
+        boolean received = ManagerProvider.dataChannel().hasReceivedMessageAfterWait(participantName, message);
+        assertFalse(received, participantName + " should not have received data message: " + message);
     }
 
     @Then("{string} should have data publishing blocked due to permissions")
     public void shouldHaveDataPublishingBlockedDueToPermissions(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        boolean isBlocked = meetInstance.isDataPublishingBlocked();
-        String error = meetInstance.getLastDataChannelError();
-
-        assertTrue(isBlocked,
-            participantName + " should have data publishing blocked (error: " + error + ")");
+        boolean isBlocked = ManagerProvider.dataChannel().isDataPublishingBlocked(participantName);
+        String error = ManagerProvider.dataChannel().getLastDataChannelError(participantName);
+        assertTrue(isBlocked, participantName + " should have data publishing blocked (error: " + error + ")");
     }
 
     @Then("the average data channel latency for {string} should be less than {int} ms")
     public void averageLatencyShouldBeLessThan(String participantName, int maxLatencyMs) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
-        try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
-        double avgLatency = meetInstance.getAverageDataChannelLatency();
+        double avgLatency = ManagerProvider.dataChannel().getAverageLatency(participantName);
         assertTrue(avgLatency >= 0 && avgLatency < maxLatencyMs,
-            "Average data channel latency for " + participantName + " should be less than " + maxLatencyMs + " ms (actual: " +
-            String.format("%.2f", avgLatency) + " ms)");
-
-        log.info("Data channel latency for {}: {} ms (threshold: {} ms)", participantName, String.format("%.2f", avgLatency), maxLatencyMs);
+            "Average data channel latency for " + participantName + " should be less than " + maxLatencyMs +
+            " ms (actual: " + String.format("%.2f", avgLatency) + " ms)");
+        log.info("Data channel latency for {}: {} ms (threshold: {} ms)",
+            participantName, String.format("%.2f", avgLatency), maxLatencyMs);
     }
 
     @Then("the test logs document that lossy mode in local containers typically achieves near-100% delivery")
@@ -710,21 +440,12 @@ public class LiveKitBrowserWebrtcSteps {
 
     @Then("{string} should receive data messages in order:")
     public void shouldReceiveDataMessagesInOrder(String participantName, DataTable dataTable) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
         List<String> expectedMessages = dataTable.asList().subList(1, dataTable.asList().size());
+        boolean allReceived = ManagerProvider.dataChannel().waitForMessageCount(participantName, expectedMessages.size(), LiveKitMeet.BATCH_DATA_MESSAGE_TIMEOUT_MS);
+        assertTrue(allReceived, participantName + " should have received all " + expectedMessages.size() + " messages");
 
-        boolean allReceived = meetInstance.waitForDataMessageCount(expectedMessages.size(), LiveKitMeet.BATCH_DATA_MESSAGE_TIMEOUT_MS);
-        assertTrue(allReceived,
-            participantName + " should have received all " + expectedMessages.size() + " messages");
-
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> receivedMessages = (List<Map<String, Object>>) ((JavascriptExecutor) driver)
-            .executeScript("return window.LiveKitTestHelpers.getReceivedDataMessages();");
-
-        assertNotNull(receivedMessages, "Should have received messages list");
+        List<Map<String, Object>> receivedMessages = ManagerProvider.dataChannel().getReceivedMessages(participantName);
+        Objects.requireNonNull(receivedMessages, "Should have received messages list");
         assertTrue(receivedMessages.size() >= expectedMessages.size(),
             "Should have received at least " + expectedMessages.size() + " messages");
 
@@ -736,50 +457,39 @@ public class LiveKitBrowserWebrtcSteps {
                 "Expected: '" + expected + "', Actual: '" + actual + "'. " +
                 "This indicates messages arrived out of order or with wrong content.");
         }
-
         log.info("All {} messages received in correct order for {}", expectedMessages.size(), participantName);
     }
 
     @Then("dynacast should be enabled in the room for {string}")
     public void dynacastShouldBeEnabledInTheRoomFor(String participantName) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-        assertTrue(meetInstance.isDynacastEnabled(),
+        assertTrue(ManagerProvider.videoQuality().isDynacastEnabled(participantName),
             "Dynacast should be enabled in the room for " + participantName);
     }
 
     @When("{string} unsubscribes from {string}'s video")
     public void unsubscribesFromVideo(String subscriber, String publisher) {
-        LiveKitMeet meetInstance = meetInstances.get(subscriber);
-        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
-        meetInstance.setVideoSubscribed(publisher, false);
+        ManagerProvider.videoQuality().setVideoSubscribed(subscriber, publisher, false);
     }
 
     @When("{string} subscribes to {string}'s video")
     public void subscribesToVideo(String subscriber, String publisher) {
-        LiveKitMeet meetInstance = meetInstances.get(subscriber);
-        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
-        meetInstance.setVideoSubscribed(publisher, true);
+        ManagerProvider.videoQuality().setVideoSubscribed(subscriber, publisher, true);
     }
 
     @Then("{string}'s video track should be paused for {string}")
     public void videoTrackShouldBePausedFor(String publisher, String subscriber) {
-        LiveKitMeet meetInstance = meetInstances.get(subscriber);
-        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
-        boolean isUnsubscribed = meetInstance.waitForTrackStreamState(publisher, "unsubscribed", 15000);
+        boolean isUnsubscribed = ManagerProvider.videoQuality().waitForTrackStreamState(subscriber, publisher, "unsubscribed", 15000);
         assertTrue(isUnsubscribed,
             publisher + "'s video track should be unsubscribed for " + subscriber +
-            " (current state: " + meetInstance.getTrackStreamState(publisher) + ")");
+            " (current state: " + ManagerProvider.videoQuality().getTrackStreamState(subscriber, publisher) + ")");
     }
 
     @Then("{string}'s video track should be active for {string}")
     public void videoTrackShouldBeActiveFor(String publisher, String subscriber) {
-        LiveKitMeet meetInstance = meetInstances.get(subscriber);
-        assertNotNull(meetInstance, "Meet instance should exist for " + subscriber);
-        boolean isActive = meetInstance.waitForTrackStreamState(publisher, "active", 10000);
+        boolean isActive = ManagerProvider.videoQuality().waitForTrackStreamState(subscriber, publisher, "active", 10000);
         if (!isActive) {
-            boolean isPending = meetInstance.waitForTrackStreamState(publisher, "pending", 2000);
-            String state = meetInstance.getTrackStreamState(publisher);
+            boolean isPending = ManagerProvider.videoQuality().waitForTrackStreamState(subscriber, publisher, "pending", 2000);
+            String state = ManagerProvider.videoQuality().getTrackStreamState(subscriber, publisher);
             assertTrue(isPending || "active".equalsIgnoreCase(state),
                 publisher + "'s video track should be active for " + subscriber + " (current state: " + state + ")");
         }
@@ -787,38 +497,15 @@ public class LiveKitBrowserWebrtcSteps {
 
     @When("{string} measures their video publish bitrate over {int} seconds")
     public void measuresVideoPublishBitrate(String participantName, int seconds) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
-        Long bitrateKbps = (Long) ((JavascriptExecutor) driver).executeAsyncScript(
-            "var callback = arguments[arguments.length - 1];" +
-            "window.LiveKitTestHelpers.measureVideoBitrateOverInterval(" + (seconds * 1000) + ")" +
-            ".then(function(kbps) { callback(kbps); })" +
-            ".catch(function() { callback(0); });"
-        );
-
-        meetInstance.setStoredBitrate(bitrateKbps != null ? bitrateKbps.intValue() : 0);
-        log.info("Measured {} video publish bitrate: {} kbps", participantName, meetInstance.getStoredBitrate());
+        ManagerProvider.videoQuality().measureBitrate(participantName, seconds);
     }
 
     @Then("{string}'s video publish bitrate should have dropped by at least {int} percent")
     public void videoPublishBitrateShouldHaveDropped(String participantName, int minDropPercent) {
-        LiveKitMeet meetInstance = meetInstances.get(participantName);
-        assertNotNull(meetInstance, "Meet instance should exist for " + participantName);
-
-        int baselineBitrate = meetInstance.getStoredBitrate();
+        int baselineBitrate = ManagerProvider.videoQuality().getStoredBitrate(participantName);
         assertTrue(baselineBitrate > 0, "Baseline bitrate should have been measured for " + participantName);
 
-        WebDriver driver = ManagerProvider.webDrivers().getWebDriver("meet", participantName);
-        Long currentBitrateKbps = (Long) ((JavascriptExecutor) driver).executeAsyncScript(
-            "var callback = arguments[arguments.length - 1];" +
-            "window.LiveKitTestHelpers.measureVideoBitrateOverInterval(3000)" +
-            ".then(function(kbps) { callback(kbps); })" +
-            ".catch(function() { callback(0); });"
-        );
-
-        int currentBitrate = currentBitrateKbps != null ? currentBitrateKbps.intValue() : 0;
+        int currentBitrate = ManagerProvider.videoQuality().measureCurrentBitrate(participantName);
         int actualDropPercent = baselineBitrate > 0 ? ((baselineBitrate - currentBitrate) * 100) / baselineBitrate : 0;
 
         log.info("{} bitrate drop: baseline={} kbps, current={} kbps, drop={}%",

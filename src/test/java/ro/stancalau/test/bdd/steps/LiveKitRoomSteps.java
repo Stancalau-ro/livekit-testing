@@ -9,6 +9,7 @@ import livekit.LivekitModels;
 import lombok.extern.slf4j.Slf4j;
 import ro.stancalau.test.bdd.steps.params.EnabledState;
 import ro.stancalau.test.bdd.steps.params.MuteState;
+import ro.stancalau.test.framework.util.BrowserPollingHelper;
 import ro.stancalau.test.framework.util.StringParsingUtils;
 
 import java.io.IOException;
@@ -16,7 +17,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
@@ -95,35 +95,6 @@ public class LiveKitRoomSteps {
         }
     }
 
-    private boolean pollUntil(Supplier<Boolean> condition, int maxAttempts) {
-        for (int attempt = 0; attempt < maxAttempts; attempt++) {
-            if (condition.get()) {
-                return true;
-            }
-            if (attempt < maxAttempts - 1) {
-                try {
-                    Thread.sleep(POLLING_INTERVAL_MS);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-        }
-        return false;
-    }
-
-    private boolean pollUntil(Supplier<Boolean> condition) {
-        return pollUntil(condition, DEFAULT_MAX_ATTEMPTS);
-    }
-
-    private void sleepQuietly(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-    }
-
     private LivekitModels.ParticipantInfo findParticipant(String serviceName, String roomName, String identity) {
         return getParticipantInfo(serviceName, roomName).stream()
                 .filter(p -> identity.equals(p.getIdentity()))
@@ -146,7 +117,7 @@ public class LiveKitRoomSteps {
 
     @Then("room {string} should have {int} active participants in service {string}")
     public void theRoomShouldHaveActiveParticipantsInService(String roomName, int expectedCount, String serviceName) {
-        boolean success = pollUntil(() -> getParticipantInfo(serviceName, roomName).size() == expectedCount);
+        boolean success = BrowserPollingHelper.pollForCondition(() -> getParticipantInfo(serviceName, roomName).size() == expectedCount, DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (!success) {
             int actualCount = getParticipantInfo(serviceName, roomName).size();
             log.warn("Participant count check failed. Expected: {}, Found: {}", expectedCount, actualCount);
@@ -156,10 +127,10 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should be publishing video in room {string} using service {string}")
     public void participantShouldBePublishingVideoInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        boolean success = pollUntil(() -> {
+        boolean success = BrowserPollingHelper.pollForCondition(() -> {
             LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
             return p.getTracksList().stream().anyMatch(t -> t.getType() == LivekitModels.TrackType.VIDEO);
-        }, 10);
+        }, 10, POLLING_INTERVAL_MS);
         if (!success) {
             LivekitModels.ParticipantInfo p = findParticipant(serviceName, roomName, participantIdentity);
             long videoTrackCount = p != null ? p.getTracksList().stream().filter(t -> t.getType() == LivekitModels.TrackType.VIDEO).count() : 0;
@@ -170,7 +141,7 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should not be publishing video in room {string} using service {string}")
     public void participantShouldNotBePublishingVideoInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        sleepQuietly(2000);
+        BrowserPollingHelper.safeSleep(2000);
         LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
         long videoTrackCount = p.getTracksList().stream().filter(t -> t.getType() == LivekitModels.TrackType.VIDEO).count();
         assertEquals(0, videoTrackCount, "Participant '" + participantIdentity + "' should have 0 published video tracks");
@@ -217,7 +188,7 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should not exist in room {string} using service {string}")
     public void participantShouldNotExistInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        boolean success = pollUntil(() -> findParticipant(serviceName, roomName, participantIdentity) == null, 10);
+        boolean success = BrowserPollingHelper.pollForCondition(() -> findParticipant(serviceName, roomName, participantIdentity) == null, 10, POLLING_INTERVAL_MS);
         if (!success) {
             assertFalse(findParticipant(serviceName, roomName, participantIdentity) != null,
                 "Participant '" + participantIdentity + "' should not exist in room '" + roomName + "'");
@@ -226,10 +197,10 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should be publishing screen share in room {string} using service {string}")
     public void participantShouldBePublishingScreenShareInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        boolean success = pollUntil(() -> {
+        boolean success = BrowserPollingHelper.pollForCondition(() -> {
             LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
             return p.getTracksList().stream().anyMatch(t -> t.getSource() == LivekitModels.TrackSource.SCREEN_SHARE);
-        });
+        }, DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (!success) {
             LivekitModels.ParticipantInfo p = findParticipant(serviceName, roomName, participantIdentity);
             long screenShareCount = p != null ? p.getTracksList().stream().filter(t -> t.getSource() == LivekitModels.TrackSource.SCREEN_SHARE).count() : 0;
@@ -240,7 +211,7 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should not be publishing screen share in room {string} using service {string}")
     public void participantShouldNotBePublishingScreenShareInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
-        sleepQuietly(2000);
+        BrowserPollingHelper.safeSleep(2000);
         LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
         long screenShareCount = p.getTracksList().stream().filter(t -> t.getSource() == LivekitModels.TrackSource.SCREEN_SHARE).count();
         assertEquals(0, screenShareCount, "Participant '" + participantIdentity + "' should have 0 published screen share tracks");
@@ -306,10 +277,10 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should have simulcast {enabledState} for video in room {string} using service {string}")
     public void participantShouldHaveSimulcastState(String identity, EnabledState state, String room, String service) {
-        boolean success = pollUntil(() -> {
+        boolean success = BrowserPollingHelper.pollForCondition(() -> {
             LivekitModels.TrackInfo videoTrack = getVideoTrackForParticipant(service, room, identity);
             return videoTrack != null && videoTrack.getSimulcast() == state.isEnabled();
-        });
+        }, DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (success) {
             log.info("Simulcast verified as {} for participant '{}' in room '{}'", state, identity, room);
         } else {
@@ -322,7 +293,7 @@ public class LiveKitRoomSteps {
     @Then("participant {string} video track should have {string} layers in room {string} using service {string}")
     public void videoTrackShouldHaveLayers(String identity, String layerExpression, String room, String service) {
         StringParsingUtils.ComparisonExpression comparison = StringParsingUtils.parseComparisonExpression(layerExpression);
-        boolean success = pollUntil(() -> comparison.evaluate(getVideoLayersForParticipant(service, room, identity).size()));
+        boolean success = BrowserPollingHelper.pollForCondition(() -> comparison.evaluate(getVideoLayersForParticipant(service, room, identity).size()), DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (success) {
             log.info("Video layer check passed for participant '{}' (expression: {})", identity, layerExpression);
         } else {
@@ -383,10 +354,10 @@ public class LiveKitRoomSteps {
 
     @Then("the CLI publisher should have simulcast video layers in room {string} using service {string}")
     public void cliPublisherShouldHaveSimulcastLayers(String room, String service) {
-        boolean success = pollUntil(() -> getParticipantInfo(service, room).stream()
+        boolean success = BrowserPollingHelper.pollForCondition(() -> getParticipantInfo(service, room).stream()
                 .flatMap(p -> p.getTracksList().stream())
                 .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
-                .anyMatch(t -> t.getSimulcast() && t.getLayersCount() > 1));
+                .anyMatch(t -> t.getSimulcast() && t.getLayersCount() > 1), DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (success) {
             log.info("CLI publisher has simulcast video layers in room '{}'", room);
         } else {
@@ -396,14 +367,14 @@ public class LiveKitRoomSteps {
 
     @Then("the CLI publisher should have exactly {int} video layer in room {string} using service {string}")
     public void cliPublisherShouldHaveExactlyLayers(int expectedLayers, String room, String service) {
-        boolean success = pollUntil(() -> {
+        boolean success = BrowserPollingHelper.pollForCondition(() -> {
             int layerCount = getParticipantInfo(service, room).stream()
                     .flatMap(p -> p.getTracksList().stream())
                     .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
                     .mapToInt(LivekitModels.TrackInfo::getLayersCount)
                     .max().orElse(0);
             return layerCount == expectedLayers;
-        });
+        }, DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (success) {
             log.info("CLI publisher has exactly {} video layer(s)", expectedLayers);
         } else {
@@ -418,12 +389,12 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should have audio track {muteState} in room {string} using service {string}")
     public void participantShouldHaveAudioTrackStateInRoomUsingService(String participantIdentity, MuteState state, String roomName, String serviceName) {
-        boolean success = pollUntil(() -> {
+        boolean success = BrowserPollingHelper.pollForCondition(() -> {
             LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
             return p.getTracksList().stream()
                     .filter(t -> t.getType() == LivekitModels.TrackType.AUDIO)
                     .anyMatch(t -> t.getMuted() == state.isMuted());
-        });
+        }, DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (success) {
             log.info("Participant '{}' has audio track {} in room '{}'", participantIdentity, state, roomName);
         } else {
@@ -433,13 +404,13 @@ public class LiveKitRoomSteps {
 
     @Then("participant {string} should have video track {muteState} in room {string} using service {string}")
     public void participantShouldHaveVideoTrackStateInRoomUsingService(String participantIdentity, MuteState state, String roomName, String serviceName) {
-        boolean success = pollUntil(() -> {
+        boolean success = BrowserPollingHelper.pollForCondition(() -> {
             LivekitModels.ParticipantInfo p = findParticipantOrFail(serviceName, roomName, participantIdentity);
             return p.getTracksList().stream()
                     .filter(t -> t.getType() == LivekitModels.TrackType.VIDEO)
                     .filter(t -> t.getSource() == LivekitModels.TrackSource.CAMERA)
                     .anyMatch(t -> t.getMuted() == state.isMuted());
-        });
+        }, DEFAULT_MAX_ATTEMPTS, POLLING_INTERVAL_MS);
         if (success) {
             log.info("Participant '{}' has video track {} in room '{}'", participantIdentity, state, roomName);
         } else {

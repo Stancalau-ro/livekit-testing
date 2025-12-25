@@ -11,8 +11,10 @@ import org.testcontainers.containers.VncRecordingContainer;
 import org.testcontainers.lifecycle.TestDescription;
 import ro.stancalau.test.framework.config.TestConfig;
 import ro.stancalau.test.framework.selenium.SeleniumConfig;
+import ro.stancalau.test.framework.util.BrowserPollingHelper;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -450,53 +452,42 @@ public class WebDriverStateManager {
         return new HashMap<>(webDrivers);
     }
     
-    /**
-     * Wait for recording file to be written to disk after finalization
-     * Uses polling with exponential backoff to avoid unnecessary waits
-     */
     private void waitForRecordingFile(TestDescription testDescription, Boolean testPassed) {
         String status = (testPassed != null && testPassed) ? "PASSED" : "FAILED";
         String expectedFilePrefix = status + "-" + testDescription.getFilesystemFriendlyName();
         int maxAttempts = 20;
-        int attemptMs = 100;
-        
+        AtomicInteger delayMs = new AtomicInteger(100);
+        AtomicInteger totalTimeMs = new AtomicInteger(0);
+
         log.debug("Waiting for recording file with prefix: {}", expectedFilePrefix);
-        
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+
+        File foundFile = BrowserPollingHelper.pollUntil(() -> {
             File currentRecDir = getCurrentRecordingDir();
-            File[] recordings = currentRecDir.listFiles((dir, name) -> 
+            File[] recordings = currentRecDir.listFiles((dir, name) ->
                 name.startsWith(expectedFilePrefix) && name.endsWith(".mp4")
             );
-            
+
             if (recordings != null) {
                 for (File recording : recordings) {
                     if (recording.length() > 0) {
-                        log.debug("Recording file found after {}ms: {} (size: {} bytes)", 
-                                attempt * attemptMs, recording.getName(), recording.length());
-                        return;
+                        return recording;
                     }
                 }
             }
-            
-            try {
-                Thread.sleep(attemptMs);
-                attemptMs = Math.min(500, (int)(attemptMs * 1.5));
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("Interrupted while waiting for recording file");
-                return;
-            }
+
+            int currentDelay = delayMs.get();
+            totalTimeMs.addAndGet(currentDelay);
+            delayMs.set(Math.min(500, (int)(currentDelay * 1.5)));
+            return null;
+        }, file -> file != null, maxAttempts, delayMs.get());
+
+        if (foundFile != null) {
+            log.debug("Recording file found after {}ms: {} (size: {} bytes)",
+                    totalTimeMs.get(), foundFile.getName(), foundFile.length());
+        } else {
+            log.warn("Recording file with prefix '{}' not found after {} attempts ({}ms total)",
+                    expectedFilePrefix, maxAttempts, totalTimeMs.get());
         }
-        
-        int totalTimeMs = 0;
-        int tempMs = 100;
-        for (int i = 1; i <= maxAttempts; i++) {
-            totalTimeMs += tempMs;
-            tempMs = Math.min(500, (int)(tempMs * 1.5));
-        }
-        
-        log.warn("Recording file with prefix '{}' not found after {} attempts ({}ms total)", 
-                expectedFilePrefix, maxAttempts, totalTimeMs);
     }
     
     /**

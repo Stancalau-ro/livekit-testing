@@ -2,10 +2,13 @@ package ro.stancalau.test.bdd.steps;
 
 import ro.stancalau.test.framework.state.AccessTokenStateManager;
 import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.state.DataChannelStateManager;
 import ro.stancalau.test.framework.state.EgressStateManager;
 import ro.stancalau.test.framework.state.ImageSnapshotStateManager;
 import ro.stancalau.test.framework.state.ManagerFactory;
+import ro.stancalau.test.framework.state.MeetSessionStateManager;
 import ro.stancalau.test.framework.state.RoomClientStateManager;
+import ro.stancalau.test.framework.state.VideoQualityStateManager;
 import ro.stancalau.test.framework.state.WebDriverStateManager;
 
 /**
@@ -126,5 +129,41 @@ public class ManagerProvider {
     
     public static ImageSnapshotStateManager snapshots() {
         return getImageSnapshotStateManager();
+    }
+
+    public static MeetSessionStateManager getMeetSessionManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.meetSessionStateManager();
+    }
+
+    public static VideoQualityStateManager getVideoQualityManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.videoQualityStateManager();
+    }
+
+    public static DataChannelStateManager getDataChannelManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.dataChannelStateManager();
+    }
+
+    public static MeetSessionStateManager meetSessions() {
+        return getMeetSessionManager();
+    }
+
+    public static VideoQualityStateManager videoQuality() {
+        return getVideoQualityManager();
+    }
+
+    public static DataChannelStateManager dataChannel() {
+        return getDataChannelManager();
     }
 }

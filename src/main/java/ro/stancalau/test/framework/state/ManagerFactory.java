@@ -26,69 +26,92 @@ public class ManagerFactory {
         AccessTokenStateManager accessTokenManager = new AccessTokenStateManager();
         EgressStateManager egressStateManager = new EgressStateManager();
         ImageSnapshotStateManager imageSnapshotStateManager = new ImageSnapshotStateManager();
-        
+
+        MeetSessionStateManager meetSessionStateManager = new MeetSessionStateManager(webDriverManager);
+        VideoQualityStateManager videoQualityStateManager = new VideoQualityStateManager(meetSessionStateManager);
+        DataChannelStateManager dataChannelStateManager = new DataChannelStateManager(meetSessionStateManager);
+
         return new ManagerSet(
             containerManager,
-            webDriverManager, 
+            webDriverManager,
             roomClientManager,
             accessTokenManager,
             egressStateManager,
-            imageSnapshotStateManager
+            imageSnapshotStateManager,
+            meetSessionStateManager,
+            videoQualityStateManager,
+            dataChannelStateManager
         );
     }
 
-    /**
-         * Container class that holds all manager instances for a test scenario.
-         * Provides easy access to all managers with proper type safety.
-         */
-        public record ManagerSet(ContainerStateManager containerManager, WebDriverStateManager webDriverManager,
-                                 RoomClientStateManager roomClientManager, AccessTokenStateManager accessTokenManager,
-                                 EgressStateManager egressStateManager, ImageSnapshotStateManager imageSnapshotStateManager) {
+    public record ManagerSet(
+            ContainerStateManager containerManager,
+            WebDriverStateManager webDriverManager,
+            RoomClientStateManager roomClientManager,
+            AccessTokenStateManager accessTokenManager,
+            EgressStateManager egressStateManager,
+            ImageSnapshotStateManager imageSnapshotStateManager,
+            MeetSessionStateManager meetSessionStateManager,
+            VideoQualityStateManager videoQualityStateManager,
+            DataChannelStateManager dataChannelStateManager) {
 
-        /**
-             * Cleanup all managers in proper order to release resources.
-             * Call this at the end of each test scenario.
-             */
-            public void cleanup() {
-                log.debug("Cleaning up manager set");
+        public void cleanup() {
+            log.debug("Cleaning up manager set");
 
-                // Cleanup in reverse dependency order
-                try {
-                    webDriverManager.closeAllWebDrivers();
-                } catch (Exception e) {
-                    log.warn("Error cleaning up WebDriverManager", e);
-                }
+            try {
+                dataChannelStateManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up DataChannelStateManager", e);
+            }
 
-                try {
-                    roomClientManager.clearAll();
-                } catch (Exception e) {
-                    log.warn("Error cleaning up RoomClientManager", e);
-                }
+            try {
+                videoQualityStateManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up VideoQualityStateManager", e);
+            }
 
-                try {
-                    accessTokenManager.clearAll();
-                } catch (Exception e) {
-                    log.warn("Error cleaning up AccessTokenManager", e);
-                }
+            try {
+                meetSessionStateManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up MeetSessionStateManager", e);
+            }
 
-                try {
-                    egressStateManager.clearAll();
-                } catch (Exception e) {
-                    log.warn("Error cleaning up EgressStateManager", e);
-                }
+            try {
+                webDriverManager.closeAllWebDrivers();
+            } catch (Exception e) {
+                log.warn("Error cleaning up WebDriverManager", e);
+            }
 
-                try {
-                    imageSnapshotStateManager.clearAll();
-                } catch (Exception e) {
-                    log.warn("Error cleaning up ImageSnapshotStateManager", e);
-                }
+            try {
+                roomClientManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up RoomClientManager", e);
+            }
 
-                try {
-                    containerManager.stopAllContainers();
-                    containerManager.closeNetwork();
-                } catch (Exception e) {
-                    log.warn("Error cleaning up ContainerManager", e);
-                }
+            try {
+                accessTokenManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up AccessTokenManager", e);
+            }
+
+            try {
+                egressStateManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up EgressStateManager", e);
+            }
+
+            try {
+                imageSnapshotStateManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up ImageSnapshotStateManager", e);
+            }
+
+            try {
+                containerManager.stopAllContainers();
+                containerManager.closeNetwork();
+            } catch (Exception e) {
+                log.warn("Error cleaning up ContainerManager", e);
             }
         }
+    }
 }
