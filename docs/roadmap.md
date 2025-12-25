@@ -90,7 +90,7 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.3: Test Dynacast Bandwidth Adaptation
+#### Story 1.1.3: Test Dynacast Bandwidth Adaptation [DONE]
 
 **As a** test developer
 **I want** to test dynacast functionality
@@ -105,13 +105,15 @@ The framework currently tests:
 - When sufficient capacity is available
 - Then quality increases appropriately
 
-- [ ] Enable dynacast in room configuration
-- [ ] Simulate bandwidth constraints
-- [ ] Verify quality adaptation occurs
-- [ ] Measure adaptation response time
-- [ ] Test recovery when bandwidth increases
+- [x] Enable dynacast in room configuration
+- [x] Simulate bandwidth constraints via quality preference API
+- [x] Verify quality adaptation occurs
+- [x] Measure adaptation response time via bitrate monitoring
+- [x] Test recovery when bandwidth increases
 
 **Size:** L
+
+**Implementation:** `src/test/resources/features/livekit_dynacast.feature`
 
 ---
 
@@ -614,7 +616,8 @@ The framework currently tests:
 **Current State:**
 - [x] LiveKit Server version: configurable via `-Dlivekit.version`, `LIVEKIT_VERSION`, `-Plivekit_docker_version`
 - [x] Egress version: configurable via `-Degress.version`, `EGRESS_VERSION`, `-Pegress_docker_version`
-- [x] JS Client version: configurable via `-Dlivekit.js.version`, `LIVEKIT_JS_VERSION`, `-Plivekit_js_version`
+- [x] JS Client version: configurable via `-Dlivekit.js.version`, `LIVEKIT_JS_VERSION`, `-Plivekit_js_version` (newly added)
+- [x] Web resources moved to main resources with dynamic JS SDK version URL parameter
 - [ ] Java Server SDK version: currently fixed at compile-time in build.gradle (0.8.5)
 - [ ] Redis version: add configuration support
 - [ ] Selenium container version: add configuration support
@@ -1901,7 +1904,7 @@ Phase 5 (Innovation)
 2. ~~Story 1.1.2 - Test Simulcast Video Publishing~~ [DONE]
 3. ~~Story 1.1.7 - Test Track Mute and Unmute Operations~~ [DONE]
 4. ~~Story 1.1.4 - Test Data Channel Communication~~ [DONE]
-5. Story 1.1.3 - Test Dynacast Bandwidth Adaptation
+5. ~~Story 1.1.3 - Test Dynacast Bandwidth Adaptation~~ [DONE]
 6. Story 1.1.5 - Test Room Metadata Operations
 7. Story 1.1.6 - Test Participant Metadata Operations
 

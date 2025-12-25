@@ -231,6 +231,11 @@ The framework uses Cucumber for behavior-driven development, enabling readable t
 | `livekit_cli_publisher.feature` | 9 | CLI-based load testing |
 | `livekit_minio_recording.feature` | - | S3 storage integration |
 | `livekit_participant_removal.feature` | - | Participant management |
+| `livekit_screen_sharing.feature` | 4 | Screen sharing functionality |
+| `livekit_simulcast.feature` | 5 | Multi-layer video publishing |
+| `livekit_track_mute.feature` | 4 | Track mute/unmute operations |
+| `livekit_data_channel.feature` | 16 | Data channel messaging |
+| `livekit_dynacast.feature` | 4 | Bandwidth adaptation testing |
 
 ### Running Tests
 
@@ -780,4 +785,5 @@ When room "WebhookTestRoom" is deleted using service "livekit1"
 |---------|----------------|--------------|-----------------|---------|
 | LiveKit Version | `-Dlivekit.version` | `LIVEKIT_VERSION` | `-Plivekit_docker_version` | v1.8.4 |
 | Egress Version | `-Degress.version` | `EGRESS_VERSION` | `-Pegress_docker_version` | v1.8.4 |
+| JS SDK Version | `-Dlivekit.js.version` | `LIVEKIT_JS_VERSION` | `-Plivekit_js_version` | 2.6.4 |
 | Recording Mode | `-Drecording.mode` | `RECORDING_MODE` | - | all |

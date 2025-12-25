@@ -1,7 +1,7 @@
 # Feature: Dynacast Bandwidth Adaptation Testing
 
 ## Status
-**Draft** | Story 1.1.3 | Size: L (Large)
+**Complete** | Story 1.1.3 | Size: L (Large)
 
 ## Problem Statement
 The LiveKit testing framework currently has dynacast enabled by default in the client configuration (`dynacast: true`), but lacks comprehensive test coverage for verifying dynacast's automatic bandwidth adaptation behavior. Dynacast is LiveKit's intelligent bandwidth optimization feature that dynamically pauses and resumes video layer transmission based on subscriber viewing state and network conditions. Without proper testing:
