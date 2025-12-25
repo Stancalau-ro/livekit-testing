@@ -19,6 +19,10 @@ public class TestConfig {
     private static final String DEFAULT_EGRESS_VERSION = "v1.8.4";
     private static final String EGRESS_VERSION_PROPERTY = "egress.version";
     private static final String EGRESS_VERSION_ENV = "EGRESS_VERSION";
+
+    private static final String DEFAULT_JS_VERSION = "2.6.4";
+    private static final String JS_VERSION_PROPERTY = "livekit.js.version";
+    private static final String JS_VERSION_ENV = "LIVEKIT_JS_VERSION";
     
     private static final String RECORDING_MODE_PROPERTY = "recording.mode";
     private static final String RECORDING_MODE_ENV = "RECORDING_MODE";
@@ -93,13 +97,33 @@ public class TestConfig {
         return DEFAULT_EGRESS_VERSION;
     }
     
-    /**
-     * Gets the default egress version
-     */
     public static String getDefaultEgressVersion() {
         return DEFAULT_EGRESS_VERSION;
     }
-    
+
+    public static String getJsVersion() {
+        String version = System.getProperty(JS_VERSION_PROPERTY);
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+
+        version = System.getenv(JS_VERSION_ENV);
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+
+        version = System.getProperty("livekit_js_version");
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+
+        return DEFAULT_JS_VERSION;
+    }
+
+    public static String getDefaultJsVersion() {
+        return DEFAULT_JS_VERSION;
+    }
+
     /**
      * Gets the VNC recording mode for browser tests.
      * Priority: System Property > Environment Variable > Default

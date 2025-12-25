@@ -1,10 +1,10 @@
 package ro.stancalau.test.framework.state;
 
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -43,23 +43,19 @@ public class MeetSessionStateManager {
         return Objects.requireNonNull(driver, "WebDriver should exist for participant: " + participantName);
     }
 
-    public JavascriptExecutor getJsExecutor(String participantName) {
-        return (JavascriptExecutor) getWebDriver(participantName);
-    }
-
     public boolean hasMeetInstance(String participantName) {
         return meetInstances.containsKey(participantName);
     }
 
     public Map<String, LiveKitMeet> getAllMeetInstances() {
-        return meetInstances;
+        return Collections.unmodifiableMap(meetInstances);
     }
 
     public void clearAll() {
         log.info("Clearing all meet session state");
         meetInstances.values().forEach(meet -> {
             try {
-                meet.clearDynacastState();
+                meet.getSimulcast().clearDynacastState();
             } catch (Exception e) {
                 log.debug("Error clearing dynacast state: {}", e.getMessage());
             }

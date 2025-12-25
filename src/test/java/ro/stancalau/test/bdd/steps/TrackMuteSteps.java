@@ -16,9 +16,9 @@ public class TrackMuteSteps {
     public void togglesTheirAudio(String participantName, MuteAction action) {
         LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         if (action.shouldMute()) {
-            meetInstance.muteAudio();
+            meetInstance.getMedia().muteAudio();
         } else {
-            meetInstance.unmuteAudio();
+            meetInstance.getMedia().unmuteAudio();
         }
         meetInstance.waitForAudioMuted(action.shouldMute());
     }
@@ -27,9 +27,9 @@ public class TrackMuteSteps {
     public void togglesTheirVideo(String participantName, MuteAction action) {
         LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
         if (action.shouldMute()) {
-            meetInstance.muteVideo();
+            meetInstance.getMedia().muteVideo();
         } else {
-            meetInstance.unmuteVideo();
+            meetInstance.getMedia().unmuteVideo();
         }
         meetInstance.waitForVideoMuted(action.shouldMute());
     }
@@ -37,12 +37,12 @@ public class TrackMuteSteps {
     @Then("{string} should have audio {muteState} locally")
     public void shouldHaveAudioStateLocally(String participantName, MuteState state) {
         LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
-        assertEquals(state.isMuted(), meetInstance.isAudioMuted(), participantName + " should have audio " + state + " locally");
+        assertEquals(state.isMuted(), meetInstance.getMedia().isAudioMuted(), participantName + " should have audio " + state + " locally");
     }
 
     @Then("{string} should have video {muteState} locally")
     public void shouldHaveVideoStateLocally(String participantName, MuteState state) {
         LiveKitMeet meetInstance = ManagerProvider.meetSessions().getMeetInstance(participantName);
-        assertEquals(state.isMuted(), meetInstance.isVideoMuted(), participantName + " should have video " + state + " locally");
+        assertEquals(state.isMuted(), meetInstance.getMedia().isVideoMuted(), participantName + " should have video " + state + " locally");
     }
 }

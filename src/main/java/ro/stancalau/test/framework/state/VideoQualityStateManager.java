@@ -1,8 +1,6 @@
 package ro.stancalau.test.framework.state;
 
 import lombok.extern.slf4j.Slf4j;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
 import ro.stancalau.test.framework.util.BrowserPollingHelper;
 
@@ -37,34 +35,36 @@ public class VideoQualityStateManager {
 
     public void setQualityPreference(String participantName, String quality) {
         LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(participantName);
-        meetInstance.setVideoQualityPreference(quality);
+        meetInstance.getSimulcast().setVideoQualityPreference(quality);
         BrowserPollingHelper.safeSleep(QUALITY_CHANGE_DELAY_MS);
     }
 
     public void setMaxReceiveBandwidth(String participantName, int kbps) {
         LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(participantName);
-        meetInstance.setMaxReceiveBandwidth(kbps);
+        meetInstance.getSimulcast().setMaxReceiveBandwidth(kbps);
         BrowserPollingHelper.safeSleep(BANDWIDTH_CHANGE_DELAY_MS);
     }
 
     public void setVideoSubscribed(String subscriber, String publisher, boolean subscribed) {
         LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(subscriber);
-        meetInstance.setVideoSubscribed(publisher, subscribed);
+        meetInstance.getSimulcast().setVideoSubscribed(publisher, subscribed);
     }
 
     public Long getReceivedVideoWidth(String subscriber, String publisher) {
-        WebDriver driver = meetSessionStateManager.getWebDriver(subscriber);
-        return pollForVideoWidth(driver, publisher, VIDEO_WIDTH_MAX_ATTEMPTS, POLL_DELAY_MS);
+        LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(subscriber);
+        Long width = pollForVideoWidth(meetInstance, publisher, VIDEO_WIDTH_MAX_ATTEMPTS, POLL_DELAY_MS);
+        return width != null ? width : 0L;
     }
 
     public Long pollForLowerQualityWidth(String subscriber, String publisher, int maxWidth) {
-        WebDriver driver = meetSessionStateManager.getWebDriver(subscriber);
-        return pollForLowerQualityLayer(driver, publisher, maxWidth, LOWER_LAYER_MAX_ATTEMPTS, POLL_DELAY_MS);
+        LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(subscriber);
+        Long width = pollForLowerQualityLayer(meetInstance, publisher, maxWidth, LOWER_LAYER_MAX_ATTEMPTS, POLL_DELAY_MS);
+        return width != null ? width : 0L;
     }
 
     public boolean isDynacastEnabled(String participantName) {
         LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(participantName);
-        return meetInstance.isDynacastEnabled();
+        return meetInstance.getSimulcast().isDynacastEnabled();
     }
 
     public boolean waitForTrackStreamState(String subscriber, String publisher, String expectedState, int timeoutMs) {
@@ -74,19 +74,13 @@ public class VideoQualityStateManager {
 
     public String getTrackStreamState(String subscriber, String publisher) {
         LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(subscriber);
-        return meetInstance.getTrackStreamState(publisher);
+        return meetInstance.getSimulcast().getTrackStreamState(publisher);
     }
 
     public void measureBitrate(String participantName, int seconds) {
         LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(participantName);
-        WebDriver driver = meetSessionStateManager.getWebDriver(participantName);
-        Long bitrateKbps = (Long) ((JavascriptExecutor) driver).executeAsyncScript(
-            "var callback = arguments[arguments.length - 1];" +
-            "window.LiveKitTestHelpers.measureVideoBitrateOverInterval(" + (seconds * 1000) + ")" +
-            ".then(function(kbps) { callback(kbps); })" +
-            ".catch(function() { callback(0); });"
-        );
-        meetInstance.setStoredBitrate(bitrateKbps != null ? bitrateKbps.intValue() : 0);
+        long bitrateKbps = meetInstance.getSimulcast().measureVideoBitrateOverInterval(seconds * 1000);
+        meetInstance.setStoredBitrate((int) bitrateKbps);
         log.info("Measured {} video publish bitrate: {} kbps", participantName, meetInstance.getStoredBitrate());
     }
 
@@ -96,14 +90,9 @@ public class VideoQualityStateManager {
     }
 
     public int measureCurrentBitrate(String participantName) {
-        WebDriver driver = meetSessionStateManager.getWebDriver(participantName);
-        Long currentBitrateKbps = (Long) ((JavascriptExecutor) driver).executeAsyncScript(
-            "var callback = arguments[arguments.length - 1];" +
-            "window.LiveKitTestHelpers.measureVideoBitrateOverInterval(" + BITRATE_MEASUREMENT_MS + ")" +
-            ".then(function(kbps) { callback(kbps); })" +
-            ".catch(function() { callback(0); });"
-        );
-        return currentBitrateKbps != null ? currentBitrateKbps.intValue() : 0;
+        LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(participantName);
+        long currentBitrateKbps = meetInstance.getSimulcast().measureVideoBitrateOverInterval(BITRATE_MEASUREMENT_MS);
+        return (int) currentBitrateKbps;
     }
 
     public void clearAll() {
@@ -111,34 +100,21 @@ public class VideoQualityStateManager {
         simulcastPreferences.clear();
     }
 
-    private Long pollForVideoWidth(WebDriver driver, String publisherIdentity, int maxAttempts, long delayMs) {
+    private Long pollForVideoWidth(LiveKitMeet meetInstance, String publisherIdentity, int maxAttempts, long delayMs) {
         return BrowserPollingHelper.pollUntil(
-            () -> executeVideoWidthScript(driver, publisherIdentity),
+            () -> meetInstance.getSimulcast().getRemoteVideoTrackWidthByPublisher(publisherIdentity),
             width -> width != null && width > 0,
             maxAttempts,
             delayMs
         );
     }
 
-    private Long pollForLowerQualityLayer(WebDriver driver, String publisherIdentity, int maxWidth, int maxAttempts, long delayMs) {
+    private Long pollForLowerQualityLayer(LiveKitMeet meetInstance, String publisherIdentity, int maxWidth, int maxAttempts, long delayMs) {
         return BrowserPollingHelper.pollUntil(
-            () -> executeVideoWidthScript(driver, publisherIdentity),
+            () -> meetInstance.getSimulcast().getRemoteVideoTrackWidthByPublisher(publisherIdentity),
             width -> width != null && width > 0 && width <= maxWidth,
             maxAttempts,
             delayMs
         );
-    }
-
-    private Long executeVideoWidthScript(WebDriver driver, String publisherIdentity) {
-        try {
-            Object result = ((JavascriptExecutor) driver).executeScript(
-                "return window.LiveKitTestHelpers.getRemoteVideoTrackWidthByPublisher(arguments[0]);",
-                publisherIdentity
-            );
-            return result == null ? 0L : ((Number) result).longValue();
-        } catch (Exception e) {
-            log.debug("Failed to get video width for {}: {}", publisherIdentity, e.getMessage());
-            return 0L;
-        }
     }
 }

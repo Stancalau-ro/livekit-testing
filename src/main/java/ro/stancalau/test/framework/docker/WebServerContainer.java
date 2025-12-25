@@ -19,7 +19,6 @@ public class WebServerContainer extends GenericContainer<WebServerContainer> {
     
     private static final String NGINX_IMAGE = "nginx:alpine";
     private static final int HTTP_PORT = 80;
-    private static final int HTTPS_PORT = 443;
     private static final String CONTAINER_WEB_ROOT = "/usr/share/nginx/html";
     
     public WebServerContainer() {
@@ -55,20 +54,16 @@ public class WebServerContainer extends GenericContainer<WebServerContainer> {
         return this;
     }
     
-    /**
-     * Add the LiveKit Meet HTML files to the web server
-     * @return this container for method chaining
-     */
     public WebServerContainer withLiveKitMeetFiles() {
-        String meetHtmlPath = "src/test/resources/web/livekit-meet";
+        String meetHtmlPath = "src/main/resources/web/livekit-meet";
         File meetDir = new File(meetHtmlPath);
-        
+
         if (!meetDir.exists()) {
             throw new RuntimeException("LiveKit Meet directory not found: " + meetHtmlPath);
         }
-        
+
         withCopyFileToContainer(MountableFile.forHostPath(meetHtmlPath), CONTAINER_WEB_ROOT);
-        
+
         log.info("Added LiveKit Meet files from: {}", meetHtmlPath);
         return this;
     }

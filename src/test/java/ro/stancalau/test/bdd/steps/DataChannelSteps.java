@@ -29,7 +29,7 @@ public class DataChannelSteps {
 
     @When("{string} sends a broadcast data message {string} via reliable channel")
     public void sendsBroadcastDataMessage(String participantName, String message) {
-        ManagerProvider.dataChannel().sendBroadcastMessage(participantName, message, true);
+        ManagerProvider.dataChannel().sendMessage(participantName, message, true);
     }
 
     @When("{string} sends a data message {string} to {string} via reliable channel")
