@@ -1,7 +1,13 @@
 # Feature: Metadata Operations Testing
 
 ## Status
-**Not Started** | Stories 1.1.5 & 1.1.6 | Size: M (Medium)
+**Complete** | Stories 1.1.5 & 1.1.6 | Size: M (Medium)
+
+## Implementation
+- Feature file: `src/test/resources/features/livekit_metadata.feature`
+- 11 Gherkin scenarios covering room and participant metadata operations
+- Tests room metadata CRUD, events, late joiners, JSON metadata, and size limits
+- Tests participant metadata via tokens, API updates, event propagation, and webhooks
 
 ## Problem Statement
 The LiveKit testing framework currently lacks test coverage for metadata operations at both the room and participant levels. Metadata is a critical feature that enables applications to store and propagate custom information associated with rooms and participants in real-time. Without proper testing:

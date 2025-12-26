@@ -18,6 +18,12 @@ The framework currently tests:
 - Egress recording (local and S3/MinIO)
 - Image snapshots (room and participant tracks)
 - CLI publisher integration (load testing)
+- Screen sharing (publish, subscribe, quality settings)
+- Simulcast video (multi-layer publishing, layer selection)
+- Dynacast bandwidth adaptation (quality preference, bitrate monitoring)
+- Data channel messaging (reliable/unreliable, broadcast, targeted)
+- Track mute/unmute (local mute, remote visibility)
+- Room and participant metadata (CRUD, events, propagation)
 
 ---
 
@@ -145,7 +151,7 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.5: Test Room Metadata Operations
+#### Story 1.1.5: Test Room Metadata Operations [DONE]
 
 **As a** test developer
 **I want** to test room metadata updates
@@ -160,17 +166,19 @@ The framework currently tests:
 - When metadata changes
 - Then the participant receives the update event
 
-- [ ] Set room metadata via RoomServiceClient
-- [ ] Verify metadata is retrievable
-- [ ] Test metadata update events
-- [ ] Verify participants receive metadata changes
-- [ ] Test metadata size limits
+- [x] Set room metadata via RoomServiceClient
+- [x] Verify metadata is retrievable
+- [x] Test metadata update events
+- [x] Verify participants receive metadata changes
+- [x] Test metadata size limits
 
 **Size:** S
 
+**Implementation:** `src/test/resources/features/livekit_metadata.feature`
+
 ---
 
-#### Story 1.1.6: Test Participant Metadata Operations
+#### Story 1.1.6: Test Participant Metadata Operations [DONE]
 
 **As a** test developer
 **I want** to test participant metadata updates
@@ -185,13 +193,15 @@ The framework currently tests:
 - When the participant joins
 - Then the initial metadata is visible
 
-- [ ] Set participant metadata via token attributes
-- [ ] Update participant metadata via API
-- [ ] Verify metadata update events
-- [ ] Test other participants receive updates
-- [ ] Verify metadata in webhook events
+- [x] Set participant metadata via token attributes
+- [x] Update participant metadata via API
+- [x] Verify metadata update events
+- [x] Test other participants receive updates
+- [x] Verify metadata in webhook events
 
 **Size:** S
+
+**Implementation:** `src/test/resources/features/livekit_metadata.feature`
 
 ---
 
@@ -1905,8 +1915,10 @@ Phase 5 (Innovation)
 3. ~~Story 1.1.7 - Test Track Mute and Unmute Operations~~ [DONE]
 4. ~~Story 1.1.4 - Test Data Channel Communication~~ [DONE]
 5. ~~Story 1.1.3 - Test Dynacast Bandwidth Adaptation~~ [DONE]
-6. Story 1.1.5 - Test Room Metadata Operations
-7. Story 1.1.6 - Test Participant Metadata Operations
+6. ~~Story 1.1.5 - Test Room Metadata Operations~~ [DONE]
+7. ~~Story 1.1.6 - Test Participant Metadata Operations~~ [DONE]
+8. Story 1.1.8 - Test Ingress Stream Input
+9. Story 1.1.9 - Test SIP Integration
 
 ### Short-term (Next Quarter)
 

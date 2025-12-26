@@ -16,6 +16,7 @@ This document provides comprehensive documentation of all implemented features i
 - [Image Snapshot Capture](#image-snapshot-capture)
 - [MinIO S3 Storage Integration](#minio-s3-storage-integration)
 - [Room Management](#room-management)
+- [Metadata Operations](#metadata-operations)
 
 ---
 
@@ -236,6 +237,7 @@ The framework uses Cucumber for behavior-driven development, enabling readable t
 | `livekit_track_mute.feature` | 4 | Track mute/unmute operations |
 | `livekit_data_channel.feature` | 16 | Data channel messaging |
 | `livekit_dynacast.feature` | 4 | Bandwidth adaptation testing |
+| `livekit_metadata.feature` | 11 | Room and participant metadata operations |
 
 ### Running Tests
 
@@ -748,6 +750,75 @@ Then participant "Jack" should see 1 remote video tracks in room "MultiRoom" usi
 #### Delete Room
 ```gherkin
 When room "WebhookTestRoom" is deleted using service "livekit1"
+```
+
+---
+
+## Metadata Operations
+
+### Overview
+Room and participant metadata testing validates that custom application data can be stored, updated, and propagated through the LiveKit system in real-time.
+
+### Features
+- Room metadata CRUD operations via RoomServiceClient
+- Participant metadata via access token attributes
+- Participant metadata updates via API
+- Real-time metadata event propagation to all participants
+- Webhook event verification for metadata changes
+- JSON and special character support
+- Metadata size limit testing
+
+### Usage
+
+#### Setting Room Metadata
+```gherkin
+When room metadata for "MetadataRoom" is set to "initial-metadata" using service "livekit1"
+Then room "MetadataRoom" should have metadata "initial-metadata" in service "livekit1"
+```
+
+#### Room Metadata Events
+```gherkin
+When "Alice" starts listening for room metadata events
+And room metadata for "EventRoom" is set to "shared-data" using service "livekit1"
+Then "Alice" should receive a room metadata update event with value "shared-data"
+And "Alice" should see room metadata "shared-data"
+```
+
+#### Participant Metadata via Token
+```gherkin
+Given an access token is created with identity "Alice" and room "TokenMetaRoom" with grants "CanPublish, CanSubscribe" and metadata "alice-token-meta"
+When "Alice" connects to room "TokenMetaRoom" using the access token
+Then participant "Alice" should have metadata "alice-token-meta" in room "TokenMetaRoom" using service "livekit1"
+```
+
+#### Update Participant Metadata via API
+```gherkin
+When participant "Alice" metadata is updated to "api-set-metadata" in room "ApiMetaRoom" using service "livekit1"
+Then participant "Alice" should have metadata "api-set-metadata" in room "ApiMetaRoom" using service "livekit1"
+```
+
+#### Participant Metadata Events
+```gherkin
+When "Bob" starts listening for participant metadata events
+And participant "Alice" metadata is updated to "alice-updated" in room "ParticipantEventRoom" using service "livekit1"
+Then "Bob" should receive a participant metadata update event for "Alice" with value "alice-updated"
+```
+
+#### Verify Participant Metadata Visibility
+```gherkin
+Then "Bob" should see participant "Alice" with metadata "early-bird-meta"
+```
+
+#### JSON Metadata
+```gherkin
+When room metadata for "JsonMetaRoom" is set to "{\"type\":\"meeting\",\"host\":\"Alice\"}" using service "livekit1"
+Then room "JsonMetaRoom" should have metadata "{\"type\":\"meeting\",\"host\":\"Alice\"}" in service "livekit1"
+```
+
+#### Metadata Size Limits
+```gherkin
+When room metadata for "SizeRoom" is set to a string of 1000 bytes using service "livekit1"
+Then room "SizeRoom" should have metadata of length 1000 bytes in service "livekit1"
 ```
 
 ---

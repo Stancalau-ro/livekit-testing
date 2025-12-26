@@ -771,38 +771,38 @@ Feature: LiveKit Metadata Operations
 ## Definition of Done
 
 ### Code Implementation
-- [ ] New step definitions added for room metadata operations
-- [ ] New step definitions added for participant metadata operations
-- [ ] AccessTokenStateManager extended to support metadata attribute
-- [ ] `LiveKitMeet.java` extended with metadata event listener methods
-- [ ] JavaScript helpers added for metadata event capture
-- [ ] RoomServiceClient usage for UpdateParticipant metadata
-- [ ] Feature file `livekit_metadata.feature` created and passing
-- [ ] All scenarios pass on Chrome browser
-- [ ] All scenarios pass on Firefox browser
-- [ ] Webhook verification scenarios pass
+- [x] New step definitions added for room metadata operations
+- [x] New step definitions added for participant metadata operations
+- [x] AccessTokenStateManager extended to support metadata attribute
+- [x] `LiveKitMeet.java` extended with metadata event listener methods
+- [x] JavaScript helpers added for metadata event capture
+- [x] RoomServiceClient usage for UpdateParticipant metadata
+- [x] Feature file `livekit_metadata.feature` created and passing
+- [x] All scenarios pass on Chrome browser
+- [x] All scenarios pass on Firefox browser
+- [x] Webhook verification scenarios pass
 
 ### Testing
-- [ ] All unit tests pass
-- [ ] All BDD scenarios pass
-- [ ] Tests pass against default LiveKit version
-- [ ] Room metadata operations verified via API
-- [ ] Participant metadata visible to other participants
-- [ ] Metadata events received by all participants
-- [ ] Webhook events contain metadata
+- [x] All unit tests pass
+- [x] All BDD scenarios pass
+- [x] Tests pass against default LiveKit version
+- [x] Room metadata operations verified via API
+- [x] Participant metadata visible to other participants
+- [x] Metadata events received by all participants
+- [x] Webhook events contain metadata
 
 ### Documentation
-- [ ] Feature documentation complete in `docs/features/metadata-testing/`
-- [ ] Step definitions documented in `docs/features.md`
-- [ ] Technical notes added for metadata implementation
-- [ ] Size limits documented
-- [ ] Known limitations documented
+- [x] Feature documentation complete in `docs/features/metadata-testing/`
+- [x] Step definitions documented in `docs/features.md`
+- [x] Technical notes added for metadata implementation
+- [x] Size limits documented
+- [x] Known limitations documented
 
 ### Code Quality
-- [ ] No new Lombok violations
-- [ ] No code comments added (per project guidelines)
-- [ ] Cross-platform path handling maintained
-- [ ] Proper cleanup in After hooks
+- [x] No new Lombok violations
+- [x] No code comments added (per project guidelines)
+- [x] Cross-platform path handling maintained
+- [x] Proper cleanup in After hooks
 
 ---
 
