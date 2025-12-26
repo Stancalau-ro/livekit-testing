@@ -26,7 +26,9 @@ Feature: LiveKit Room and Participant Metadata
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Bob" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "EventRoom" using the access token
+    And connection is established successfully for "Alice"
     And "Bob" connects to room "EventRoom" using the access token
+    And connection is established successfully for "Bob"
     And "Alice" starts listening for room metadata events
     And "Bob" starts listening for room metadata events
     When room metadata for "EventRoom" is set to "shared-data" using service "livekit1"
@@ -76,8 +78,11 @@ Feature: LiveKit Room and Participant Metadata
     And "Bob" opens a "Chrome" browser with LiveKit Meet page
     And "Charlie" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "ParticipantEventRoom" using the access token
+    And connection is established successfully for "Alice"
     And "Bob" connects to room "ParticipantEventRoom" using the access token
+    And connection is established successfully for "Bob"
     And "Charlie" connects to room "ParticipantEventRoom" using the access token
+    And connection is established successfully for "Charlie"
     And "Alice" starts listening for participant metadata events
     And "Bob" starts listening for participant metadata events
     And "Charlie" starts listening for participant metadata events
