@@ -1,4 +1,3 @@
-// LiveKit WebRTC Implementation
 class LiveKitMeetClient {
     constructor() {
         this.room = null;
@@ -17,25 +16,38 @@ class LiveKitMeetClient {
         this.videoQualityPreference = 'HIGH';
         this.maxReceiveBandwidth = null;
 
-        window.subscriptionFailedEvents = [];
-        window.subscriptionPermissionDenied = false;
-        window.lastSubscriptionError = '';
-        window.screenSharePermissionDenied = false;
-        window.screenShareActive = false;
-        window.simulcastEnabled = this.simulcastEnabled;
-        window.currentVideoQuality = 'HIGH';
-        window.receivingLayers = new Map();
-        window.muteEvents = [];
-        window.dataChannelMessages = [];
-        window.dataMessagesSent = [];
-        window.lastDataChannelError = '';
-        window.dataPublishingBlocked = false;
-        window.trackStreamStateEvents = [];
-        window.roomMetadataEvents = [];
-        window.participantMetadataEvents = [];
+        this.eventListenerManager = window.EventListenerManager ? window.EventListenerManager.create() : null;
+        this.subscriptionCheckInterval = null;
 
+        this.initializeState();
         this.initializeElements();
         this.setupEventListeners();
+    }
+
+    initializeState() {
+        if (window.TestStateStore) {
+            window.TestStateStore.reset();
+            window.TestStateStore.simulcast.setEnabled(this.simulcastEnabled);
+            window.TestStateStore.simulcast.setCurrentQuality('HIGH');
+            window.TestStateStore.syncToWindow();
+        } else {
+            window.subscriptionFailedEvents = [];
+            window.subscriptionPermissionDenied = false;
+            window.lastSubscriptionError = '';
+            window.screenSharePermissionDenied = false;
+            window.screenShareActive = false;
+            window.simulcastEnabled = this.simulcastEnabled;
+            window.currentVideoQuality = 'HIGH';
+            window.receivingLayers = new Map();
+            window.muteEvents = [];
+            window.dataChannelMessages = [];
+            window.dataMessagesSent = [];
+            window.lastDataChannelError = '';
+            window.dataPublishingBlocked = false;
+            window.trackStreamStateEvents = [];
+            window.roomMetadataEvents = [];
+            window.participantMetadataEvents = [];
+        }
     }
     
     initializeElements() {
@@ -65,11 +77,25 @@ class LiveKitMeetClient {
     }
 
     setupEventListeners() {
-        this.meetingForm.addEventListener('submit', (e) => this.handleJoinMeeting(e));
-        this.muteBtn.addEventListener('click', () => this.toggleMute());
-        this.cameraBtn.addEventListener('click', () => this.toggleCamera());
-        this.screenShareBtn.addEventListener('click', () => this.toggleScreenShare());
-        this.leaveBtn.addEventListener('click', () => this.leaveMeeting());
+        const submitHandler = (e) => this.handleJoinMeeting(e);
+        const muteHandler = () => this.toggleMute();
+        const cameraHandler = () => this.toggleCamera();
+        const screenShareHandler = () => this.toggleScreenShare();
+        const leaveHandler = () => this.leaveMeeting();
+
+        if (this.eventListenerManager) {
+            this.eventListenerManager.addListener(this.meetingForm, 'submit', submitHandler);
+            this.eventListenerManager.addListener(this.muteBtn, 'click', muteHandler);
+            this.eventListenerManager.addListener(this.cameraBtn, 'click', cameraHandler);
+            this.eventListenerManager.addListener(this.screenShareBtn, 'click', screenShareHandler);
+            this.eventListenerManager.addListener(this.leaveBtn, 'click', leaveHandler);
+        } else {
+            this.meetingForm.addEventListener('submit', submitHandler);
+            this.muteBtn.addEventListener('click', muteHandler);
+            this.cameraBtn.addEventListener('click', cameraHandler);
+            this.screenShareBtn.addEventListener('click', screenShareHandler);
+            this.leaveBtn.addEventListener('click', leaveHandler);
+        }
     }
     
     async handleJoinMeeting(e) {
@@ -391,24 +417,7 @@ class LiveKitMeetClient {
                         } catch (error) {
                             console.error('Manual subscription failed:', error);
                             addTechnicalDetail(`❌ Manual subscription failed: ${error.message}`);
-                            
-                            // Capture manual subscription failure for test automation
-                            window.subscriptionFailedEvents.push({
-                                trackSid: trackSid,
-                                participantIdentity: participant.identity,
-                                error: error?.message || error?.toString() || 'Manual subscription failed',
-                                timestamp: Date.now(),
-                                type: 'manual'
-                            });
-                            
-                            // Check if it's a permission-related error
-                            const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
-                            if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
-                                window.subscriptionPermissionDenied = true;
-                                window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied for manual subscription';
-                            } else {
-                                window.lastSubscriptionError = error?.message || error?.toString() || 'Manual subscription failed';
-                            }
+                            this.handleSubscriptionError(error, trackSid, participant.identity, 'manual');
                         }
                     }
                 });
@@ -457,24 +466,7 @@ class LiveKitMeetClient {
                     } catch (error) {
                         console.error('Forced subscription failed:', error);
                         addTechnicalDetail(`❌ Forced subscription failed: ${error.message}`);
-                        
-                        // Capture forced subscription failure for test automation
-                        window.subscriptionFailedEvents.push({
-                            trackSid: publication.trackSid,
-                            participantIdentity: participant.identity,
-                            error: error?.message || error?.toString() || 'Forced subscription failed',
-                            timestamp: Date.now(),
-                            type: 'forced'
-                        });
-                        
-                        // Check if it's a permission-related error
-                        const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
-                        if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
-                            window.subscriptionPermissionDenied = true;
-                            window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied for forced subscription';
-                        } else {
-                            window.lastSubscriptionError = error?.message || error?.toString() || 'Forced subscription failed';
-                        }
+                        this.handleSubscriptionError(error, publication.trackSid, participant.identity, 'forced');
                     }
                 }, 100);
             }
@@ -488,55 +480,51 @@ class LiveKitMeetClient {
         this.room.on(LiveKit.RoomEvent.TrackSubscriptionFailed, (trackSid, participant, error) => {
             console.error('*** TrackSubscriptionFailed EVENT ***', trackSid, participant.identity, error);
             addTechnicalDetail(`❌ Track subscription failed: ${trackSid} from ${participant.identity}`);
-            
-            // Capture subscription failure for test automation
-            window.subscriptionFailedEvents.push({
-                trackSid: trackSid,
-                participantIdentity: participant.identity,
-                error: error?.message || error?.toString() || 'Unknown subscription error',
-                timestamp: Date.now()
-            });
-            
-            // Check if it's a permission-related error
-            const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
-            if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
-                window.subscriptionPermissionDenied = true;
-                window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied';
-            } else {
-                window.lastSubscriptionError = error?.message || error?.toString() || 'Subscription failed';
-            }
+            this.handleSubscriptionError(error, trackSid, participant.identity, 'event');
         });
 
         this.room.on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
             console.log('*** TrackMuted EVENT ***', publication.kind, participant.identity);
             addTechnicalDetail(`🔇 Track muted: ${publication.kind} from ${participant.identity}`);
-            window.muteEvents.push({
+            const muteEvent = {
                 type: 'muted',
                 trackKind: publication.kind,
                 participantIdentity: participant.identity,
                 trackSid: publication.trackSid,
                 timestamp: Date.now()
-            });
+            };
+            if (window.TestStateStore) {
+                window.TestStateStore.mute.addEvent(muteEvent);
+                window.TestStateStore.syncToWindow();
+            } else {
+                window.muteEvents.push(muteEvent);
+            }
         });
 
         this.room.on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
             console.log('*** TrackUnmuted EVENT ***', publication.kind, participant.identity);
             addTechnicalDetail(`🔊 Track unmuted: ${publication.kind} from ${participant.identity}`);
-            window.muteEvents.push({
+            const unmuteEvent = {
                 type: 'unmuted',
                 trackKind: publication.kind,
                 participantIdentity: participant.identity,
                 trackSid: publication.trackSid,
                 timestamp: Date.now()
-            });
+            };
+            if (window.TestStateStore) {
+                window.TestStateStore.mute.addEvent(unmuteEvent);
+                window.TestStateStore.syncToWindow();
+            } else {
+                window.muteEvents.push(unmuteEvent);
+            }
         });
 
         this.room.on(LiveKit.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
             try {
-                var decoder = new TextDecoder();
-                var content = decoder.decode(payload);
-                var receiveTimestamp = Date.now();
-                var messageObj = {
+                const decoder = new TextDecoder();
+                const content = decoder.decode(payload);
+                const receiveTimestamp = Date.now();
+                const messageObj = {
                     content: content,
                     from: participant ? participant.identity : 'unknown',
                     kind: kind,
@@ -545,7 +533,7 @@ class LiveKitMeetClient {
                     size: payload.length
                 };
                 try {
-                    var parsed = JSON.parse(content);
+                    const parsed = JSON.parse(content);
                     if (parsed.timestamp) {
                         messageObj.sentTimestamp = parsed.timestamp;
                         messageObj.latency = receiveTimestamp - parsed.timestamp;
@@ -553,7 +541,12 @@ class LiveKitMeetClient {
                     }
                 } catch (e) {
                 }
-                window.dataChannelMessages.push(messageObj);
+                if (window.TestStateStore) {
+                    window.TestStateStore.dataChannel.addMessage(messageObj);
+                    window.TestStateStore.syncToWindow();
+                } else {
+                    window.dataChannelMessages.push(messageObj);
+                }
                 addTechnicalDetail('📨 Data received from ' + (participant ? participant.identity : 'unknown') +
                     ': ' + content.substring(0, 50) + (content.length > 50 ? '...' : ''));
             } catch (error) {
@@ -565,13 +558,19 @@ class LiveKitMeetClient {
         this.room.on(LiveKit.RoomEvent.TrackStreamStateChanged, (publication, streamState, participant) => {
             console.log('*** TrackStreamStateChanged EVENT ***', publication.kind, streamState, participant.identity);
             addTechnicalDetail(`🔄 Track stream state changed: ${publication.kind} from ${participant.identity} -> ${streamState}`);
-            window.trackStreamStateEvents.push({
+            const stateEvent = {
                 trackSid: publication.trackSid,
                 trackKind: publication.kind,
                 participantIdentity: participant.identity,
                 streamState: streamState,
                 timestamp: Date.now()
-            });
+            };
+            if (window.TestStateStore) {
+                window.TestStateStore.trackStream.addStateEvent(stateEvent);
+                window.TestStateStore.syncToWindow();
+            } else {
+                window.trackStreamStateEvents.push(stateEvent);
+            }
         });
 
         const roomMetadataEvent = LiveKit.RoomEvent?.RoomMetadataChanged ?? 'roomMetadataChanged';
@@ -579,10 +578,16 @@ class LiveKitMeetClient {
         this.room.on(roomMetadataEvent, (metadata) => {
             console.log('*** RoomMetadataChanged EVENT ***', metadata);
             addTechnicalDetail(`📋 Room metadata changed: ${metadata ? metadata.substring(0, 50) : 'null'}`);
-            window.roomMetadataEvents.push({
+            const roomEvent = {
                 metadata: metadata,
                 timestamp: Date.now()
-            });
+            };
+            if (window.TestStateStore) {
+                window.TestStateStore.metadata.addRoomEvent(roomEvent);
+                window.TestStateStore.syncToWindow();
+            } else {
+                window.roomMetadataEvents.push(roomEvent);
+            }
         });
 
         const participantMetadataEvent = LiveKit.RoomEvent?.ParticipantMetadataChanged ?? 'participantMetadataChanged';
@@ -591,16 +596,25 @@ class LiveKitMeetClient {
             const newMetadata = participant.metadata || '';
             console.log('*** ParticipantMetadataChanged EVENT ***', participant.identity, 'prev:', prevMetadata, 'new:', newMetadata);
             addTechnicalDetail(`📋 Participant ${participant.identity} metadata changed: prev='${prevMetadata}' new='${newMetadata ? newMetadata.substring(0, 50) : 'null'}'`);
-            window.participantMetadataEvents.push({
+            const participantEvent = {
                 participantIdentity: participant.identity,
                 metadata: newMetadata,
                 prevMetadata: prevMetadata,
                 timestamp: Date.now()
-            });
+            };
+            if (window.TestStateStore) {
+                window.TestStateStore.metadata.addParticipantEvent(participantEvent);
+                window.TestStateStore.syncToWindow();
+            } else {
+                window.participantMetadataEvents.push(participantEvent);
+            }
         });
 
-        // Periodic check to ensure all video tracks are subscribed
-        setInterval(() => {
+        this.startSubscriptionCheck();
+    }
+
+    startSubscriptionCheck() {
+        const checkSubscriptions = () => {
             if (this.room && this.room.state === 'connected') {
                 this.room.remoteParticipants.forEach((participant) => {
                     participant.trackPublications.forEach((publication) => {
@@ -609,30 +623,54 @@ class LiveKitMeetClient {
                             addTechnicalDetail(`🔄 Periodic check: subscribing to ${participant.identity} video`);
                             publication.setSubscribed(true).catch(error => {
                                 console.error('Periodic subscription failed:', error);
-                                
-                                // Capture periodic subscription failure for test automation
-                                window.subscriptionFailedEvents.push({
-                                    trackSid: publication.trackSid,
-                                    participantIdentity: participant.identity,
-                                    error: error?.message || error?.toString() || 'Periodic subscription failed',
-                                    timestamp: Date.now(),
-                                    type: 'periodic'
-                                });
-                                
-                                // Check if it's a permission-related error
-                                const errorMsg = error?.message?.toLowerCase() || error?.toString()?.toLowerCase() || '';
-                                if (errorMsg.includes('permission') || errorMsg.includes('denied') || errorMsg.includes('forbidden') || errorMsg.includes('unauthorized')) {
-                                    window.subscriptionPermissionDenied = true;
-                                    window.lastSubscriptionError = error?.message || error?.toString() || 'Permission denied for periodic subscription';
-                                } else {
-                                    window.lastSubscriptionError = error?.message || error?.toString() || 'Periodic subscription failed';
-                                }
+                                this.handleSubscriptionError(error, publication.trackSid, participant.identity, 'periodic');
                             });
                         }
                     });
                 });
             }
-        }, 5000); // Check every 5 seconds
+        };
+
+        if (this.eventListenerManager) {
+            this.subscriptionCheckInterval = this.eventListenerManager.addInterval(checkSubscriptions, 5000);
+        } else {
+            this.subscriptionCheckInterval = setInterval(checkSubscriptions, 5000);
+        }
+    }
+
+    handleSubscriptionError(error, trackSid, participantIdentity, type) {
+        const errorMsg = error?.message || error?.toString() || 'Subscription failed';
+        const isPermissionError = window.ErrorClassifier
+            ? window.ErrorClassifier.isPermissionError(error)
+            : (errorMsg.toLowerCase().includes('permission') ||
+               errorMsg.toLowerCase().includes('denied') ||
+               errorMsg.toLowerCase().includes('forbidden') ||
+               errorMsg.toLowerCase().includes('unauthorized'));
+
+        const failureEvent = {
+            trackSid: trackSid,
+            participantIdentity: participantIdentity,
+            error: errorMsg,
+            timestamp: Date.now(),
+            type: type
+        };
+
+        if (window.TestStateStore) {
+            window.TestStateStore.subscription.addFailure(failureEvent);
+            if (isPermissionError) {
+                window.TestStateStore.subscription.setPermissionDenied(true);
+            }
+            window.TestStateStore.subscription.setLastError(errorMsg);
+            window.TestStateStore.syncToWindow();
+        } else {
+            window.subscriptionFailedEvents.push(failureEvent);
+            if (isPermissionError) {
+                window.subscriptionPermissionDenied = true;
+                window.lastSubscriptionError = errorMsg;
+            } else {
+                window.lastSubscriptionError = errorMsg;
+            }
+        }
     }
     
     // OLD METHOD - Kept for reference. Now using room.localParticipant.enableCameraAndMicrophone()
@@ -990,8 +1028,16 @@ class LiveKitMeetClient {
     
     handleDisconnection() {
         this.connected = false;
-        
-        // Clean up tracks
+
+        if (this.subscriptionCheckInterval) {
+            if (this.eventListenerManager) {
+                this.eventListenerManager.clearInterval(this.subscriptionCheckInterval);
+            } else {
+                clearInterval(this.subscriptionCheckInterval);
+            }
+            this.subscriptionCheckInterval = null;
+        }
+
         if (this.localVideoTrack) {
             this.localVideoTrack.stop();
             this.localVideoTrack = null;
@@ -1005,18 +1051,14 @@ class LiveKitMeetClient {
             this.screenShareTrack = null;
         }
 
-        // Clean up room
         this.room = null;
-        
-        // Clear participants
+
         this.participants.clear();
         this.remoteVideos.innerHTML = '';
-        
-        // Reset UI
+
         this.showJoinForm();
         this.showStatus('Left the meeting', 'info');
-        
-        // Reset button states
+
         this.muteBtn.textContent = 'Mute';
         this.muteBtn.className = 'control-btn mute-btn';
         this.cameraBtn.textContent = 'Camera Off';
@@ -1026,7 +1068,13 @@ class LiveKitMeetClient {
         this.audioEnabled = true;
         this.videoEnabled = true;
         this.screenShareEnabled = false;
-        window.screenShareActive = false;
+
+        if (window.TestStateStore) {
+            window.TestStateStore.screenShare.setActive(false);
+            window.TestStateStore.syncToWindow();
+        } else {
+            window.screenShareActive = false;
+        }
     }
     
     showMeetingRoom(roomName) {

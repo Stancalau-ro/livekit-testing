@@ -65,6 +65,7 @@ async function onSdkLoaded() {
         await loadScript('js/core/TestStateStore.js');
         await loadScript('js/core/ErrorClassifier.js');
         await loadScript('js/core/EventListenerManager.js');
+        await loadScript('js/core/EventHandlerRegistry.js');
         await loadScript('js/helpers/ConnectionHelpers.js');
         await loadScript('js/helpers/MediaHelpers.js');
         await loadScript('js/helpers/MuteHelpers.js');
