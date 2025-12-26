@@ -62,6 +62,16 @@ async function onSdkLoaded() {
     window.LiveKit = LivekitClient;
 
     try {
+        await loadScript('js/core/TestStateStore.js');
+        await loadScript('js/core/ErrorClassifier.js');
+        await loadScript('js/core/EventListenerManager.js');
+        await loadScript('js/helpers/ConnectionHelpers.js');
+        await loadScript('js/helpers/MediaHelpers.js');
+        await loadScript('js/helpers/MuteHelpers.js');
+        await loadScript('js/helpers/DataChannelHelpers.js');
+        await loadScript('js/helpers/MetadataHelpers.js');
+        await loadScript('js/helpers/SubscriptionHelpers.js');
+        await loadScript('js/helpers/BitrateHelpers.js');
         await loadScript('js/livekit-client.js');
         await loadScript('js/test-helpers.js');
         await loadScript('js/app-init.js');
