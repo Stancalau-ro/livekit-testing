@@ -31,6 +31,8 @@ class LiveKitMeetClient {
         window.lastDataChannelError = '';
         window.dataPublishingBlocked = false;
         window.trackStreamStateEvents = [];
+        window.roomMetadataEvents = [];
+        window.participantMetadataEvents = [];
 
         this.initializeElements();
         this.setupEventListeners();
@@ -568,6 +570,31 @@ class LiveKitMeetClient {
                 trackKind: publication.kind,
                 participantIdentity: participant.identity,
                 streamState: streamState,
+                timestamp: Date.now()
+            });
+        });
+
+        const roomMetadataEvent = LiveKit.RoomEvent?.RoomMetadataChanged ?? 'roomMetadataChanged';
+        console.log('Registering RoomMetadataChanged event listener with event:', roomMetadataEvent);
+        this.room.on(roomMetadataEvent, (metadata) => {
+            console.log('*** RoomMetadataChanged EVENT ***', metadata);
+            addTechnicalDetail(`📋 Room metadata changed: ${metadata ? metadata.substring(0, 50) : 'null'}`);
+            window.roomMetadataEvents.push({
+                metadata: metadata,
+                timestamp: Date.now()
+            });
+        });
+
+        const participantMetadataEvent = LiveKit.RoomEvent?.ParticipantMetadataChanged ?? 'participantMetadataChanged';
+        console.log('Registering ParticipantMetadataChanged event listener with event:', participantMetadataEvent);
+        this.room.on(participantMetadataEvent, (prevMetadata, participant) => {
+            const newMetadata = participant.metadata || '';
+            console.log('*** ParticipantMetadataChanged EVENT ***', participant.identity, 'prev:', prevMetadata, 'new:', newMetadata);
+            addTechnicalDetail(`📋 Participant ${participant.identity} metadata changed: prev='${prevMetadata}' new='${newMetadata ? newMetadata.substring(0, 50) : 'null'}'`);
+            window.participantMetadataEvents.push({
+                participantIdentity: participant.identity,
+                metadata: newMetadata,
+                prevMetadata: prevMetadata,
                 timestamp: Date.now()
             });
         });

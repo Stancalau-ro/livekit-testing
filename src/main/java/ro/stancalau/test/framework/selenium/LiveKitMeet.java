@@ -8,10 +8,12 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 import ro.stancalau.test.framework.capabilities.ConnectionCapability;
 import ro.stancalau.test.framework.capabilities.DataChannelCapability;
 import ro.stancalau.test.framework.capabilities.MediaControlCapability;
+import ro.stancalau.test.framework.capabilities.MetadataCapability;
 import ro.stancalau.test.framework.capabilities.SimulcastCapability;
 import ro.stancalau.test.framework.capabilities.impl.ConnectionCapabilityImpl;
 import ro.stancalau.test.framework.capabilities.impl.DataChannelCapabilityImpl;
 import ro.stancalau.test.framework.capabilities.impl.MediaControlCapabilityImpl;
+import ro.stancalau.test.framework.capabilities.impl.MetadataCapabilityImpl;
 import ro.stancalau.test.framework.capabilities.impl.SimulcastCapabilityImpl;
 import ro.stancalau.test.framework.config.TestConfig;
 import ro.stancalau.test.framework.docker.WebServerContainer;
@@ -50,6 +52,8 @@ public class LiveKitMeet {
     private final SimulcastCapability simulcast;
     @Getter
     private final DataChannelCapability dataChannel;
+    @Getter
+    private final MetadataCapability metadata;
 
     private int storedBitrate;
     private ScheduledExecutorService stopScheduler;
@@ -68,6 +72,7 @@ public class LiveKitMeet {
         this.media = new MediaControlCapabilityImpl(jsExecutor);
         this.simulcast = new SimulcastCapabilityImpl(jsExecutor);
         this.dataChannel = new DataChannelCapabilityImpl(jsExecutor);
+        this.metadata = new MetadataCapabilityImpl(jsExecutor);
 
         start(liveKitUrl, jwt, roomName, participantName);
     }

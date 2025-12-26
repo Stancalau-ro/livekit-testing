@@ -11,6 +11,7 @@ import java.util.function.Supplier;
 public class BrowserPollingHelper {
 
     public static final int DEFAULT_MAX_ATTEMPTS = 10;
+    public static final int EXTENDED_MAX_ATTEMPTS = 20;
     public static final long DEFAULT_DELAY_MS = 500;
 
     public <T> T pollUntil(Supplier<T> supplier, Predicate<T> condition, int maxAttempts, long delayMs) {

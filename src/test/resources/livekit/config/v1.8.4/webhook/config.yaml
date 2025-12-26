@@ -1,0 +1,23 @@
+port: 7880
+
+rtc:
+  port_range_start: 50000
+  port_range_end: 60000
+  tcp_port: 7881
+  use_external_ip: true
+
+keys:
+    devkey: secret
+
+logging:
+    level: info
+    pion_level: error
+    json: true
+
+room:
+    auto_create: true
+
+webhook:
+  api_key: devkey
+  urls:
+    - http://mockserver:1080/webhook

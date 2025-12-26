@@ -133,3 +133,42 @@ This is a **LiveKit testing framework** that provides Docker-based integration t
   - All state management classes need to be injectable, never singletons
 - The project must run on both windows and linux so local paths must always be handled appropriately
 - Commit messages must be short and focus on the "why", without any refference to claude or emoticons
+
+## LiveKit Research Strategy
+
+When implementing LiveKit features or answering LiveKit questions, use the livekit-docs MCP tools strategically:
+
+### Quick Lookup
+```
+1. mcp__livekit-docs__docs_search("your query")
+2. mcp__livekit-docs__get_pages(["/path/from/search"])
+```
+
+### Finding Code Patterns
+```
+1. mcp__livekit-docs__code_search with class/function names (NOT natural language)
+   - GOOD: "class AgentSession", "RoomServiceClient", "@function_tool"
+   - BAD: "how to create room", "agent implementation"
+2. Use returnFullFile=true for deep dives
+```
+
+### AI Agent Examples
+```
+1. mcp__livekit-docs__get_python_agent_example() - get index of 100+ examples
+2. mcp__livekit-docs__get_python_agent_example("basics/tool_calling.py") - get specific example
+```
+
+### Version/Changelog
+```
+mcp__livekit-docs__get_changelog("pypi:livekit-agents") - check recent releases
+```
+
+### Key SDKs for This Project
+- Server API: `livekit-api` (Python), `livekit-server-sdk` (Node)
+- Java Server: `io.livekit:livekit-server` (used in this project)
+- Browser: `livekit-client` (JavaScript)
+
+### Local Patterns to Follow
+- `RoomServiceClient` calls must use `.execute()`
+- `AccessToken` uses immutable creation pattern
+- State managers must be injectable (via ManagerFactory)

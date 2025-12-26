@@ -56,36 +56,50 @@ public class AccessTokenStateManager {
     }
     
     public AccessToken createTokenWithDynamicGrants(String identity, String roomName, List<String> grantStrings, Map<String, String> customAttributes) {
-        return createTokenWithDynamicGrants(identity, roomName, grantStrings, customAttributes, null);
+        return createTokenWithDynamicGrants(identity, roomName, grantStrings, customAttributes, (String) null, (Long) null);
     }
-    
+
     public AccessToken createTokenWithDynamicGrants(String identity, String roomName, List<String> grantStrings, Map<String, String> customAttributes, Long ttlMillis) {
-        log.info("Creating access token for user: {} in room: {} with grants: {}, attributes: {}, and TTL: {} ms", 
-                identity, roomName, grantStrings, customAttributes, ttlMillis);
-        
+        return createTokenWithDynamicGrants(identity, roomName, grantStrings, customAttributes, (String) null, ttlMillis);
+    }
+
+    public AccessToken createTokenWithDynamicGrants(String identity, String roomName, List<String> grantStrings, Map<String, String> customAttributes, String metadata) {
+        return createTokenWithDynamicGrants(identity, roomName, grantStrings, customAttributes, metadata, (Long) null);
+    }
+
+    public AccessToken createTokenWithDynamicGrants(String identity, String roomName, List<String> grantStrings, Map<String, String> customAttributes, String metadata, Long ttlMillis) {
+        log.info("Creating access token for user: {} in room: {} with grants: {}, attributes: {}, metadata: {}, and TTL: {} ms",
+                identity, roomName, grantStrings, customAttributes,
+                metadata != null ? (metadata.length() > 50 ? metadata.substring(0, 50) + "..." : metadata) : null,
+                ttlMillis);
+
         AccessToken token = new AccessToken(apiKey, apiSecret);
         token.setIdentity(identity);
-        
+
         if (ttlMillis != null) {
             token.setTtl(ttlMillis);
         }
-        
+
+        if (metadata != null && !metadata.isEmpty()) {
+            token.setMetadata(metadata);
+        }
+
         if (customAttributes != null && !customAttributes.isEmpty()) {
             for (Map.Entry<String, String> entry : customAttributes.entrySet()) {
                 token.getAttributes().put(entry.getKey(), entry.getValue());
             }
         }
-        
+
         List<VideoGrant> grants = new ArrayList<>();
         grants.add(new RoomName(roomName));
         grants.add(new RoomJoin(true));
-        
+
         grants.addAll(parseGrants(grantStrings, roomName));
-        
+
         if (!grants.isEmpty()) {
             token.addGrants(grants.toArray(new VideoGrant[0]));
         }
-        
+
         tokens.computeIfAbsent(identity, k -> new HashMap<>()).put(roomName, token);
         return token;
     }

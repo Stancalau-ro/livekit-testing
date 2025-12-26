@@ -30,6 +30,7 @@ public class ManagerFactory {
         MeetSessionStateManager meetSessionStateManager = new MeetSessionStateManager(webDriverManager);
         VideoQualityStateManager videoQualityStateManager = new VideoQualityStateManager(meetSessionStateManager);
         DataChannelStateManager dataChannelStateManager = new DataChannelStateManager(meetSessionStateManager);
+        MetadataStateManager metadataStateManager = new MetadataStateManager(meetSessionStateManager, roomClientManager);
 
         return new ManagerSet(
             containerManager,
@@ -40,7 +41,8 @@ public class ManagerFactory {
             imageSnapshotStateManager,
             meetSessionStateManager,
             videoQualityStateManager,
-            dataChannelStateManager
+            dataChannelStateManager,
+            metadataStateManager
         );
     }
 
@@ -53,7 +55,8 @@ public class ManagerFactory {
             ImageSnapshotStateManager imageSnapshotStateManager,
             MeetSessionStateManager meetSessionStateManager,
             VideoQualityStateManager videoQualityStateManager,
-            DataChannelStateManager dataChannelStateManager) {
+            DataChannelStateManager dataChannelStateManager,
+            MetadataStateManager metadataStateManager) {
 
         public void cleanup() {
             log.debug("Cleaning up manager set");
@@ -62,6 +65,12 @@ public class ManagerFactory {
                 dataChannelStateManager.clearAll();
             } catch (Exception e) {
                 log.warn("Error cleaning up DataChannelStateManager", e);
+            }
+
+            try {
+                metadataStateManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up MetadataStateManager", e);
             }
 
             try {

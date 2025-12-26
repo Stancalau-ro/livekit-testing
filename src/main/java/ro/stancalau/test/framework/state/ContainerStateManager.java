@@ -53,6 +53,16 @@ public class ContainerStateManager {
         GenericContainer<?> container = containers.get(serviceName);
         return container != null && container.isRunning();
     }
+
+    @SuppressWarnings("unchecked")
+    public <T extends GenericContainer<T>> Map.Entry<String, T> getFirstContainerOfType(Class<T> containerType) {
+        for (Map.Entry<String, GenericContainer<?>> entry : containers.entrySet()) {
+            if (containerType.isInstance(entry.getValue())) {
+                return Map.entry(entry.getKey(), (T) entry.getValue());
+            }
+        }
+        return null;
+    }
     
     public void stopContainer(String serviceName) {
         GenericContainer<?> container = containers.get(serviceName);

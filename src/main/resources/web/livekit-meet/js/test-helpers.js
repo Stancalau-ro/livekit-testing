@@ -550,6 +550,95 @@ var LiveKitTestHelpers = {
             console.error('Failed to measure video bitrate:', e);
             return 0;
         }
+    },
+
+    startListeningForRoomMetadataEvents: function() {
+    },
+
+    startListeningForParticipantMetadataEvents: function() {
+    },
+
+    getRoomMetadataEvents: function() {
+        return window.roomMetadataEvents || [];
+    },
+
+    getParticipantMetadataEvents: function() {
+        return window.participantMetadataEvents || [];
+    },
+
+    getRoomMetadataEventCount: function() {
+        return window.roomMetadataEvents ? window.roomMetadataEvents.length : 0;
+    },
+
+    getParticipantMetadataEventCount: function() {
+        return window.participantMetadataEvents ? window.participantMetadataEvents.length : 0;
+    },
+
+    getCurrentRoomMetadata: function() {
+        if (!window.liveKitClient || !window.liveKitClient.room) return '';
+        return window.liveKitClient.room.metadata || '';
+    },
+
+    getParticipantMetadata: function(identity) {
+        if (!window.liveKitClient || !window.liveKitClient.room) return '';
+        var participant = null;
+        window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+            if (p.identity === identity) participant = p;
+        });
+        if (!participant) {
+            if (window.liveKitClient.room.localParticipant &&
+                window.liveKitClient.room.localParticipant.identity === identity) {
+                participant = window.liveKitClient.room.localParticipant;
+            }
+        }
+        return participant ? (participant.metadata || '') : '';
+    },
+
+    getLocalParticipantMetadata: function() {
+        if (!window.liveKitClient || !window.liveKitClient.room) return '';
+        var localParticipant = window.liveKitClient.room.localParticipant;
+        return localParticipant ? (localParticipant.metadata || '') : '';
+    },
+
+    waitForRoomMetadataEvent: function(expectedValue, timeoutSeconds) {
+        var events = window.roomMetadataEvents || [];
+        for (var i = 0; i < events.length; i++) {
+            if (events[i].metadata === expectedValue) return true;
+        }
+        return false;
+    },
+
+    waitForParticipantMetadataEvent: function(identity, expectedValue, timeoutSeconds) {
+        var events = window.participantMetadataEvents || [];
+        for (var i = 0; i < events.length; i++) {
+            if (events[i].participantIdentity === identity && events[i].metadata === expectedValue) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    hasRoomMetadataEventWithValue: function(expectedValue) {
+        var events = window.roomMetadataEvents || [];
+        for (var i = 0; i < events.length; i++) {
+            if (events[i].metadata === expectedValue) return true;
+        }
+        return false;
+    },
+
+    hasParticipantMetadataEventFor: function(identity, expectedValue) {
+        var events = window.participantMetadataEvents || [];
+        for (var i = 0; i < events.length; i++) {
+            if (events[i].participantIdentity === identity && events[i].metadata === expectedValue) {
+                return true;
+            }
+        }
+        return false;
+    },
+
+    clearMetadataEvents: function() {
+        window.roomMetadataEvents = [];
+        window.participantMetadataEvents = [];
     }
 };
 

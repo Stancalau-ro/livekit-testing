@@ -7,6 +7,7 @@ import ro.stancalau.test.framework.state.EgressStateManager;
 import ro.stancalau.test.framework.state.ImageSnapshotStateManager;
 import ro.stancalau.test.framework.state.ManagerFactory;
 import ro.stancalau.test.framework.state.MeetSessionStateManager;
+import ro.stancalau.test.framework.state.MetadataStateManager;
 import ro.stancalau.test.framework.state.RoomClientStateManager;
 import ro.stancalau.test.framework.state.VideoQualityStateManager;
 import ro.stancalau.test.framework.state.WebDriverStateManager;
@@ -165,5 +166,17 @@ public class ManagerProvider {
 
     public static DataChannelStateManager dataChannel() {
         return getDataChannelManager();
+    }
+
+    public static MetadataStateManager getMetadataManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.metadataStateManager();
+    }
+
+    public static MetadataStateManager metadata() {
+        return getMetadataManager();
     }
 }

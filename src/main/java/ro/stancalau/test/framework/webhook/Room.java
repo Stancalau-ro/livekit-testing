@@ -30,7 +30,10 @@ public class Room {
     
     @JsonProperty("turnPassword")
     private String turnPassword;
-    
+
     @JsonProperty("enabledCodecs")
     private List<Codec> enabledCodecs;
+
+    @JsonProperty("metadata")
+    private String metadata;
 }

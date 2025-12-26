@@ -10,6 +10,8 @@ import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.selenium.LiveKitMeet;
 import ro.stancalau.test.framework.util.BrowserPollingHelper;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 @Slf4j
@@ -17,11 +19,18 @@ public class RoomConnectionSteps {
 
     @When("{string} connects to room {string} using the access token")
     public void connectsToRoomUsingTheAccessToken(String participantName, String roomName) {
+        Map.Entry<String, LiveKitContainer> containerEntry = ManagerProvider.containers().getFirstContainerOfType(LiveKitContainer.class);
+        assertNotNull(containerEntry, "At least one LiveKit container should be running");
+        connectsToRoomUsingTheAccessTokenForService(participantName, roomName, containerEntry.getKey());
+    }
+
+    @When("{string} connects to room {string} using the access token for service {string}")
+    public void connectsToRoomUsingTheAccessTokenForService(String participantName, String roomName, String serviceName) {
         AccessToken token = ManagerProvider.tokens().getLastToken(participantName, roomName);
         assertNotNull(token, "Access token should exist for " + participantName + " in room " + roomName);
 
         WebDriver driver = ManagerProvider.meetSessions().getWebDriver(participantName);
-        String liveKitUrl = getLiveKitServerUrl();
+        String liveKitUrl = getLiveKitServerUrl(serviceName);
         String tokenString = token.toJwt();
 
         boolean simulcastEnabled = ManagerProvider.videoQuality().getSimulcastPreference(participantName);
@@ -107,10 +116,10 @@ public class RoomConnectionSteps {
                errorLower.contains("could not establish");
     }
 
-    private String getLiveKitServerUrl() {
-        LiveKitContainer container = ManagerProvider.containers().getContainer("livekit1", LiveKitContainer.class);
-        assertNotNull(container, "LiveKit container should be running");
-        assertTrue(container.isRunning(), "LiveKit container should be running");
+    private String getLiveKitServerUrl(String serviceName) {
+        LiveKitContainer container = ManagerProvider.containers().getContainer(serviceName, LiveKitContainer.class);
+        assertNotNull(container, "LiveKit container '" + serviceName + "' should be running");
+        assertTrue(container.isRunning(), "LiveKit container '" + serviceName + "' should be running");
         return container.getNetworkUrl();
     }
 }

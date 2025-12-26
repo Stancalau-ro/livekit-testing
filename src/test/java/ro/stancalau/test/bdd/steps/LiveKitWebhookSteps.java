@@ -449,7 +449,7 @@ public class LiveKitWebhookSteps {
         if (attributesString == null || attributesString.trim().isEmpty()) {
             return attributes;
         }
-        
+
         String[] pairs = attributesString.split(",");
         for (String pair : pairs) {
             String[] keyValue = pair.split("=", 2);
@@ -462,4 +462,71 @@ public class LiveKitWebhookSteps {
         return attributes;
     }
 
+    private MockServerClient getMockServerClient(String serviceName) {
+        MockHttpServerContainer mockServer = ManagerProvider.containers().getContainer(serviceName, MockHttpServerContainer.class);
+        if (mockServer == null) {
+            throw new RuntimeException("Mock server with service name " + serviceName + " not found");
+        }
+        return mockServer.getMockServerClient();
+    }
+
+    private WebhookEvent waitForParticipantEvent(String serviceName, String eventType, String participantIdentity, String roomName) {
+        MockServerClient client = getMockServerClient(serviceName);
+        Optional<WebhookEvent> foundEvent = webhookEventPoller.waitForEventByTypeParticipantAndRoom(client, eventType, participantIdentity, roomName);
+        if (foundEvent.isEmpty()) {
+            List<WebhookEvent> allEvents = webhookService.getWebhookEvents(client);
+            fail("Expected mock server to have received '" + eventType + "' event for participant '" + participantIdentity +
+                "' in room '" + roomName + "' but received events: " + allEvents.stream().map(e -> e.getEvent() +
+                (e.getParticipant() != null ? " (participant: " + e.getParticipant().getIdentity() + ")" : "") +
+                (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : "")).toList());
+        }
+        WebhookEvent event = foundEvent.get();
+        if (event.getParticipant() == null) {
+            fail("Webhook event for participant '" + participantIdentity + "' does not contain participant data");
+        }
+        return event;
+    }
+
+    @Then("{string} should have received a {string} event for participant {string} in room {string} with metadata {string}")
+    public void theMockServerShouldHaveReceivedAnEventForParticipantWithMetadata(String serviceName, String eventType, String participantIdentity, String roomName, String expectedMetadata) {
+        WebhookEvent event = waitForParticipantEvent(serviceName, eventType, participantIdentity, roomName);
+        String actualMetadata = event.getParticipant().getMetadata();
+        assertEquals(expectedMetadata, actualMetadata,
+            String.format("Expected participant '%s' metadata to be '%s' but was '%s'",
+                participantIdentity, expectedMetadata, actualMetadata));
+        log.info("Found {} event for participant {} in room {} with metadata: {}",
+            eventType, participantIdentity, roomName, actualMetadata);
+    }
+
+    @Then("{string} should have received a {string} event for room {string} with metadata {string}")
+    public void theMockServerShouldHaveReceivedAnEventForRoomWithMetadata(String serviceName, String eventType, String roomName, String expectedMetadata) {
+        MockServerClient client = getMockServerClient(serviceName);
+        Optional<WebhookEvent> foundEvent = webhookEventPoller.waitForEventByTypeAndRoom(client, eventType, roomName);
+        if (foundEvent.isEmpty()) {
+            List<WebhookEvent> allEvents = webhookService.getWebhookEvents(client);
+            fail("Expected mock server to have received '" + eventType + "' event for room '" + roomName +
+                "' but received events: " + allEvents.stream().map(e -> e.getEvent() +
+                (e.getRoom() != null ? " (room: " + e.getRoom().getName() + ")" : "")).toList());
+        }
+        WebhookEvent event = foundEvent.get();
+        if (event.getRoom() == null) {
+            fail("Webhook event for room '" + roomName + "' does not contain room data");
+        }
+        String actualMetadata = event.getRoom().getMetadata();
+        assertEquals(expectedMetadata, actualMetadata,
+            String.format("Expected room '%s' metadata to be '%s' but was '%s'",
+                roomName, expectedMetadata, actualMetadata));
+        log.info("Found {} event for room {} with metadata: {}", eventType, roomName, actualMetadata);
+    }
+
+    @Then("{string} should have received a {string} event for participant {string} in room {string} with empty metadata")
+    public void theMockServerShouldHaveReceivedAnEventForParticipantWithEmptyMetadata(String serviceName, String eventType, String participantIdentity, String roomName) {
+        WebhookEvent event = waitForParticipantEvent(serviceName, eventType, participantIdentity, roomName);
+        String actualMetadata = event.getParticipant().getMetadata();
+        assertTrue(actualMetadata == null || actualMetadata.isEmpty(),
+            String.format("Expected participant '%s' to have empty metadata but got: '%s'",
+                participantIdentity, actualMetadata));
+        log.info("Found {} event for participant {} in room {} with empty metadata",
+            eventType, participantIdentity, roomName);
+    }
 }

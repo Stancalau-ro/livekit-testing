@@ -45,3 +45,4 @@ bin/
 CLAUDE_INTEGRATION_GUIDE.md
 nul
 /dev/
+/.mcp.json
