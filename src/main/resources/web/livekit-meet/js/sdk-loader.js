@@ -73,6 +73,11 @@ async function onSdkLoaded() {
         await loadScript('js/helpers/MetadataHelpers.js');
         await loadScript('js/helpers/SubscriptionHelpers.js');
         await loadScript('js/helpers/BitrateHelpers.js');
+        await loadScript('js/handlers/ConnectionEventHandlers.js');
+        await loadScript('js/handlers/ParticipantEventHandlers.js');
+        await loadScript('js/handlers/TrackEventHandlers.js');
+        await loadScript('js/handlers/DataEventHandlers.js');
+        await loadScript('js/handlers/MetadataEventHandlers.js');
         await loadScript('js/livekit-client.js');
         await loadScript('js/test-helpers.js');
         await loadScript('js/app-init.js');

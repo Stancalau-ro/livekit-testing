@@ -319,298 +319,34 @@ class LiveKitMeetClient {
     setupRoomEventListeners() {
         console.log('=== SETTING UP ROOM EVENT LISTENERS ===');
         console.log('Room object for event setup:', this.room);
-        console.log('Setting up Connected event listener...');
-        
-        // Test if the event name exists
-        const connectedEvent = LiveKit.RoomEvent ? LiveKit.RoomEvent.Connected : 'connected';
-        console.log('Using Connected event:', connectedEvent);
-        addTechnicalDetail('Using Connected event: ' + connectedEvent);
-        
-        this.room.on(connectedEvent, async () => {
-            const connectionEndTime = Date.now();
-            window.connectionTime = connectionEndTime - (window.connectionStartTime || connectionEndTime);
-            
-            console.log('*** Connected event fired ***');
-            console.log('Connection time:', window.connectionTime, 'ms');
-            addTechnicalDetail(`📡 Connected event fired after ${window.connectionTime}ms`);
-        });
-        
-        this.room.on(LiveKit.RoomEvent ? LiveKit.RoomEvent.Disconnected : 'disconnected', () => {
-            console.log('*** DISCONNECTED from room ***');
-            addTechnicalDetail('⚠️ Disconnected from room');
-            this.handleDisconnection();
-        });
-        
-        this.room.on(LiveKit.RoomEvent.ConnectionQualityChanged, (quality, participant) => {
-            console.log('Connection quality changed:', quality, participant?.identity);
-            addTechnicalDetail(`Connection quality: ${quality} for ${participant?.identity || 'local'}`);
-        });
-        
-        this.room.on(LiveKit.RoomEvent.Reconnecting, () => {
-            console.log('*** RECONNECTING to room ***');
-            addTechnicalDetail('🔄 Reconnecting to room...');
-            updateStatus('Reconnecting...', 'info');
-        });
-        
-        this.room.on(LiveKit.RoomEvent.Reconnected, () => {
-            console.log('*** RECONNECTED to room ***');
-            addTechnicalDetail('✅ Reconnected to room');
-            updateStatus('Reconnected', 'success');
-        });
-        
-        // Listen for any connection errors
-        this.room.on('error', (error) => {
-            console.error('*** ROOM ERROR ***', error);
-            addTechnicalDetail(`❌ Room error: ${error.message || error}`);
-            markStepFailed('step-webrtc', `Error: ${error.message || error}`);
-        });
-        
-        // Listen for ICE connection state changes
-        this.room.engine?.on('connectionStateChanged', (state) => {
-            console.log('*** ENGINE CONNECTION STATE CHANGED ***', state);
-            addTechnicalDetail(`Engine connection state: ${state}`);
-        });
-        
-        // Listen for signaling state changes  
-        this.room.engine?.on('signalingStateChanged', (state) => {
-            console.log('*** ENGINE SIGNALING STATE CHANGED ***', state);
-            addTechnicalDetail(`Signaling state: ${state}`);
-        });
-        
-        // Listen for media errors
-        this.room.on('mediaDevicesError', (error) => {
-            console.error('*** MEDIA DEVICES ERROR ***', error);
-            addTechnicalDetail(`❌ Media devices error: ${error.message || error}`);
-        });
-        
-        this.room.on(LiveKit.RoomEvent.ParticipantConnected, (participant) => {
-            console.log('*** ParticipantConnected EVENT FIRED ***', participant.identity);
-            console.log('Participant details:', {
-                identity: participant.identity,
-                tracks: participant.trackPublications.size,
-                trackList: Array.from(participant.trackPublications.values()).map(pub => ({
-                    kind: pub.kind,
-                    sid: pub.trackSid,
-                    subscribed: pub.isSubscribed
-                }))
-            });
-            addTechnicalDetail(`👤 Participant connected: ${participant.identity}`);
-            this.handleParticipantConnected(participant);
-            
-            // Manually attempt to subscribe to tracks if they exist
-            setTimeout(() => {
-                console.log('*** MANUAL SUBSCRIPTION ATTEMPT ***', participant.identity);
-                participant.trackPublications.forEach(async (publication, trackSid) => {
-                    console.log('Checking publication:', {
-                        kind: publication.kind,
-                        sid: trackSid,
-                        subscribed: publication.isSubscribed,
-                        track: !!publication.track
-                    });
-                    
-                    if (!publication.isSubscribed && publication.kind === 'video') {
-                        console.log('Manually subscribing to video track:', trackSid);
-                        addTechnicalDetail(`🔔 Manually subscribing to video track from ${participant.identity}`);
-                        try {
-                            await publication.setSubscribed(true);
-                            console.log('Manual subscription successful for:', trackSid);
-                        } catch (error) {
-                            console.error('Manual subscription failed:', error);
-                            addTechnicalDetail(`❌ Manual subscription failed: ${error.message}`);
-                            this.handleSubscriptionError(error, trackSid, participant.identity, 'manual');
-                        }
-                    }
-                });
-            }, 1000); // Give some time for auto-subscription first
-        });
-        
-        this.room.on(LiveKit.RoomEvent.ParticipantDisconnected, (participant) => {
-            console.log('Participant disconnected:', participant.identity);
-            addTechnicalDetail(`👤 Participant disconnected: ${participant.identity}`);
-            this.handleParticipantDisconnected(participant);
-        });
-        
-        this.room.on(LiveKit.RoomEvent.TrackSubscribed, (track, publication, participant) => {
-            console.log('*** TrackSubscribed EVENT FIRED ***', track.kind, participant.identity);
-            console.log('Track details:', {
-                kind: track.kind,
-                sid: track.sid,
-                participant: participant.identity,
-                muted: track.isMuted,
-                enabled: track.isEnabled
-            });
-            addTechnicalDetail(`🎥 Track subscribed: ${track.kind} from ${participant.identity}`);
-            this.handleTrackSubscribed(track, participant);
-        });
-        
-        this.room.on(LiveKit.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
-            console.log('Track unsubscribed:', track.kind, participant.identity);
-            addTechnicalDetail(`🎥 Track unsubscribed: ${track.kind} from ${participant.identity}`);
-            this.handleTrackUnsubscribed(track, participant);
-        });
 
-        // Additional debugging events
-        this.room.on(LiveKit.RoomEvent.TrackPublished, (publication, participant) => {
-            console.log('*** TrackPublished EVENT ***', publication.kind, 'from', participant.identity);
-            addTechnicalDetail(`📤 Track published: ${publication.kind} from ${participant.identity}`);
-            
-            // Force subscription to video tracks immediately when they're published
-            if (publication.kind === 'video' && participant.identity !== this.room.localParticipant.identity) {
-                console.log('Forcing immediate subscription to video track:', publication.trackSid);
-                addTechnicalDetail(`🔔 Forcing subscription to video track from ${participant.identity}`);
-                setTimeout(async () => {
-                    try {
-                        await publication.setSubscribed(true);
-                        console.log('Forced subscription successful:', publication.trackSid);
-                        addTechnicalDetail(`✅ Forced subscription successful for ${participant.identity}`);
-                    } catch (error) {
-                        console.error('Forced subscription failed:', error);
-                        addTechnicalDetail(`❌ Forced subscription failed: ${error.message}`);
-                        this.handleSubscriptionError(error, publication.trackSid, participant.identity, 'forced');
-                    }
-                }, 100);
-            }
-        });
+        if (window.ConnectionEventHandlers) {
+            this.connectionHandlers = window.ConnectionEventHandlers.create(this);
+            this.connectionHandlers.attach(this.room);
+        }
 
-        this.room.on(LiveKit.RoomEvent.TrackUnpublished, (publication, participant) => {
-            console.log('*** TrackUnpublished EVENT ***', publication.kind, 'from', participant.identity);
-            addTechnicalDetail(`📤 Track unpublished: ${publication.kind} from ${participant.identity}`);
-        });
+        if (window.ParticipantEventHandlers) {
+            this.participantHandlers = window.ParticipantEventHandlers.create(this);
+            this.participantHandlers.attach(this.room);
+        }
 
-        this.room.on(LiveKit.RoomEvent.TrackSubscriptionFailed, (trackSid, participant, error) => {
-            console.error('*** TrackSubscriptionFailed EVENT ***', trackSid, participant.identity, error);
-            addTechnicalDetail(`❌ Track subscription failed: ${trackSid} from ${participant.identity}`);
-            this.handleSubscriptionError(error, trackSid, participant.identity, 'event');
-        });
+        if (window.TrackEventHandlers) {
+            this.trackHandlers = window.TrackEventHandlers.create(this);
+            this.trackHandlers.attach(this.room);
+        }
 
-        this.room.on(LiveKit.RoomEvent.TrackMuted, (publication, participant) => {
-            console.log('*** TrackMuted EVENT ***', publication.kind, participant.identity);
-            addTechnicalDetail(`🔇 Track muted: ${publication.kind} from ${participant.identity}`);
-            const muteEvent = {
-                type: 'muted',
-                trackKind: publication.kind,
-                participantIdentity: participant.identity,
-                trackSid: publication.trackSid,
-                timestamp: Date.now()
-            };
-            if (window.TestStateStore) {
-                window.TestStateStore.mute.addEvent(muteEvent);
-                window.TestStateStore.syncToWindow();
-            } else {
-                window.muteEvents.push(muteEvent);
-            }
-        });
+        if (window.DataEventHandlers) {
+            this.dataHandlers = window.DataEventHandlers.create(this);
+            this.dataHandlers.attach(this.room);
+        }
 
-        this.room.on(LiveKit.RoomEvent.TrackUnmuted, (publication, participant) => {
-            console.log('*** TrackUnmuted EVENT ***', publication.kind, participant.identity);
-            addTechnicalDetail(`🔊 Track unmuted: ${publication.kind} from ${participant.identity}`);
-            const unmuteEvent = {
-                type: 'unmuted',
-                trackKind: publication.kind,
-                participantIdentity: participant.identity,
-                trackSid: publication.trackSid,
-                timestamp: Date.now()
-            };
-            if (window.TestStateStore) {
-                window.TestStateStore.mute.addEvent(unmuteEvent);
-                window.TestStateStore.syncToWindow();
-            } else {
-                window.muteEvents.push(unmuteEvent);
-            }
-        });
-
-        this.room.on(LiveKit.RoomEvent.DataReceived, (payload, participant, kind, topic) => {
-            try {
-                const decoder = new TextDecoder();
-                const content = decoder.decode(payload);
-                const receiveTimestamp = Date.now();
-                const messageObj = {
-                    content: content,
-                    from: participant ? participant.identity : 'unknown',
-                    kind: kind,
-                    topic: topic,
-                    timestamp: receiveTimestamp,
-                    size: payload.length
-                };
-                try {
-                    const parsed = JSON.parse(content);
-                    if (parsed.timestamp) {
-                        messageObj.sentTimestamp = parsed.timestamp;
-                        messageObj.latency = receiveTimestamp - parsed.timestamp;
-                        messageObj.content = parsed.content;
-                    }
-                } catch (e) {
-                }
-                if (window.TestStateStore) {
-                    window.TestStateStore.dataChannel.addMessage(messageObj);
-                    window.TestStateStore.syncToWindow();
-                } else {
-                    window.dataChannelMessages.push(messageObj);
-                }
-                addTechnicalDetail('📨 Data received from ' + (participant ? participant.identity : 'unknown') +
-                    ': ' + content.substring(0, 50) + (content.length > 50 ? '...' : ''));
-            } catch (error) {
-                console.error('Error processing data message:', error);
-                addTechnicalDetail('❌ Data receive error: ' + error.message);
-            }
-        });
-
-        this.room.on(LiveKit.RoomEvent.TrackStreamStateChanged, (publication, streamState, participant) => {
-            console.log('*** TrackStreamStateChanged EVENT ***', publication.kind, streamState, participant.identity);
-            addTechnicalDetail(`🔄 Track stream state changed: ${publication.kind} from ${participant.identity} -> ${streamState}`);
-            const stateEvent = {
-                trackSid: publication.trackSid,
-                trackKind: publication.kind,
-                participantIdentity: participant.identity,
-                streamState: streamState,
-                timestamp: Date.now()
-            };
-            if (window.TestStateStore) {
-                window.TestStateStore.trackStream.addStateEvent(stateEvent);
-                window.TestStateStore.syncToWindow();
-            } else {
-                window.trackStreamStateEvents.push(stateEvent);
-            }
-        });
-
-        const roomMetadataEvent = LiveKit.RoomEvent?.RoomMetadataChanged ?? 'roomMetadataChanged';
-        console.log('Registering RoomMetadataChanged event listener with event:', roomMetadataEvent);
-        this.room.on(roomMetadataEvent, (metadata) => {
-            console.log('*** RoomMetadataChanged EVENT ***', metadata);
-            addTechnicalDetail(`📋 Room metadata changed: ${metadata ? metadata.substring(0, 50) : 'null'}`);
-            const roomEvent = {
-                metadata: metadata,
-                timestamp: Date.now()
-            };
-            if (window.TestStateStore) {
-                window.TestStateStore.metadata.addRoomEvent(roomEvent);
-                window.TestStateStore.syncToWindow();
-            } else {
-                window.roomMetadataEvents.push(roomEvent);
-            }
-        });
-
-        const participantMetadataEvent = LiveKit.RoomEvent?.ParticipantMetadataChanged ?? 'participantMetadataChanged';
-        console.log('Registering ParticipantMetadataChanged event listener with event:', participantMetadataEvent);
-        this.room.on(participantMetadataEvent, (prevMetadata, participant) => {
-            const newMetadata = participant.metadata || '';
-            console.log('*** ParticipantMetadataChanged EVENT ***', participant.identity, 'prev:', prevMetadata, 'new:', newMetadata);
-            addTechnicalDetail(`📋 Participant ${participant.identity} metadata changed: prev='${prevMetadata}' new='${newMetadata ? newMetadata.substring(0, 50) : 'null'}'`);
-            const participantEvent = {
-                participantIdentity: participant.identity,
-                metadata: newMetadata,
-                prevMetadata: prevMetadata,
-                timestamp: Date.now()
-            };
-            if (window.TestStateStore) {
-                window.TestStateStore.metadata.addParticipantEvent(participantEvent);
-                window.TestStateStore.syncToWindow();
-            } else {
-                window.participantMetadataEvents.push(participantEvent);
-            }
-        });
+        if (window.MetadataEventHandlers) {
+            this.metadataHandlers = window.MetadataEventHandlers.create(this);
+            this.metadataHandlers.attach(this.room);
+        }
 
         this.startSubscriptionCheck();
+        console.log('=== ROOM EVENT LISTENERS SETUP COMPLETE ===');
     }
 
     startSubscriptionCheck() {
