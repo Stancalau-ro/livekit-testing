@@ -5,6 +5,7 @@ import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.state.DataChannelStateManager;
 import ro.stancalau.test.framework.state.EgressStateManager;
 import ro.stancalau.test.framework.state.ImageSnapshotStateManager;
+import ro.stancalau.test.framework.state.IngressStateManager;
 import ro.stancalau.test.framework.state.ManagerFactory;
 import ro.stancalau.test.framework.state.MeetSessionStateManager;
 import ro.stancalau.test.framework.state.MetadataStateManager;
@@ -127,7 +128,19 @@ public class ManagerProvider {
     public static EgressStateManager egress() {
         return getEgressStateManager();
     }
-    
+
+    public static IngressStateManager getIngressStateManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.ingressStateManager();
+    }
+
+    public static IngressStateManager ingress() {
+        return getIngressStateManager();
+    }
+
     public static ImageSnapshotStateManager snapshots() {
         return getImageSnapshotStateManager();
     }

@@ -195,6 +195,16 @@ public class LiveKitRoomSteps {
         }
     }
 
+    @Then("participant {string} should appear in room {string} using service {string}")
+    public void participantShouldAppearInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
+        boolean success = BrowserPollingHelper.pollForCondition(
+            () -> findParticipant(serviceName, roomName, participantIdentity) != null,
+            DEFAULT_MAX_ATTEMPTS,
+            POLLING_INTERVAL_MS
+        );
+        assertTrue(success, "Participant '" + participantIdentity + "' should appear in room '" + roomName + "'");
+    }
+
     @Then("participant {string} should be publishing screen share in room {string} using service {string}")
     public void participantShouldBePublishingScreenShareInRoomUsingService(String participantIdentity, String roomName, String serviceName) {
         boolean success = BrowserPollingHelper.pollForCondition(() -> {

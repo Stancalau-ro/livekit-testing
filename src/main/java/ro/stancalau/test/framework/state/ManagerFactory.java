@@ -25,6 +25,7 @@ public class ManagerFactory {
 
         AccessTokenStateManager accessTokenManager = new AccessTokenStateManager();
         EgressStateManager egressStateManager = new EgressStateManager();
+        IngressStateManager ingressStateManager = new IngressStateManager();
         ImageSnapshotStateManager imageSnapshotStateManager = new ImageSnapshotStateManager();
 
         MeetSessionStateManager meetSessionStateManager = new MeetSessionStateManager(webDriverManager);
@@ -38,6 +39,7 @@ public class ManagerFactory {
             roomClientManager,
             accessTokenManager,
             egressStateManager,
+            ingressStateManager,
             imageSnapshotStateManager,
             meetSessionStateManager,
             videoQualityStateManager,
@@ -52,6 +54,7 @@ public class ManagerFactory {
             RoomClientStateManager roomClientManager,
             AccessTokenStateManager accessTokenManager,
             EgressStateManager egressStateManager,
+            IngressStateManager ingressStateManager,
             ImageSnapshotStateManager imageSnapshotStateManager,
             MeetSessionStateManager meetSessionStateManager,
             VideoQualityStateManager videoQualityStateManager,
@@ -107,6 +110,12 @@ public class ManagerFactory {
                 egressStateManager.clearAll();
             } catch (Exception e) {
                 log.warn("Error cleaning up EgressStateManager", e);
+            }
+
+            try {
+                ingressStateManager.clearAll();
+            } catch (Exception e) {
+                log.warn("Error cleaning up IngressStateManager", e);
             }
 
             try {

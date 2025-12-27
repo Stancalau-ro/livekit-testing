@@ -55,10 +55,7 @@ test {
     }
 
     systemProperty 'livekit.js.version', project.findProperty('livekit_js_version') ?: '2.6.4'
-
-    if (project.hasProperty('livekit_js_version')) {
-        systemProperty 'livekit.js.version', project.property('livekit_js_version')
-    }
+    systemProperty 'ingress.version', project.findProperty('ingress_docker_version') ?: 'v1.4.3'
 
     systemProperty "cucumber.filter.tags", System.getProperty("cucumber.filter.tags")
     systemProperty "cucumber.filter.name", System.getProperty("cucumber.filter.name")

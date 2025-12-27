@@ -20,6 +20,10 @@ public class TestConfig {
     private static final String EGRESS_VERSION_PROPERTY = "egress.version";
     private static final String EGRESS_VERSION_ENV = "EGRESS_VERSION";
 
+    private static final String DEFAULT_INGRESS_VERSION = "v1.4.3";
+    private static final String INGRESS_VERSION_PROPERTY = "ingress.version";
+    private static final String INGRESS_VERSION_ENV = "INGRESS_VERSION";
+
     private static final String DEFAULT_JS_VERSION = "2.6.4";
     private static final String JS_VERSION_PROPERTY = "livekit.js.version";
     private static final String JS_VERSION_ENV = "LIVEKIT_JS_VERSION";
@@ -99,6 +103,29 @@ public class TestConfig {
     
     public static String getDefaultEgressVersion() {
         return DEFAULT_EGRESS_VERSION;
+    }
+
+    public static String getIngressVersion() {
+        String version = System.getProperty(INGRESS_VERSION_PROPERTY);
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+
+        version = System.getenv(INGRESS_VERSION_ENV);
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+
+        version = System.getProperty("ingress_docker_version");
+        if (version != null && !version.trim().isEmpty()) {
+            return version.trim();
+        }
+
+        return DEFAULT_INGRESS_VERSION;
+    }
+
+    public static String getDefaultIngressVersion() {
+        return DEFAULT_INGRESS_VERSION;
     }
 
     public static String getJsVersion() {
