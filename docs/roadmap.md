@@ -257,7 +257,62 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.9: Test SIP Integration
+#### Story 1.1.9: Verify Ingress Stream Playback
+
+**As a** test developer
+**I want** to verify that browser participants can view ingress streams
+**So that** I can confirm ingress produces playable media in the room
+
+**Acceptance Criteria:**
+
+- Given an RTMP ingress is streaming to a room
+- When a browser participant joins and subscribes
+- Then the participant receives video from the ingress
+- And the video dimensions match the ingress configuration
+- Given the ingress stream stops
+- When the participant checks subscriptions
+- Then the ingress track is no longer available
+
+**Implementation Tasks:**
+- [ ] Create browser participant that joins room with ingress
+- [ ] Subscribe to ingress participant's video track
+- [ ] Verify video frames are being received
+- [ ] Validate video dimensions match expected resolution
+- [ ] Test subscription cleanup when ingress stops
+
+**Size:** M
+
+---
+
+#### Story 1.1.10: Record Ingress Stream via Egress
+
+**As a** test developer
+**I want** to record ingress streams to video files
+**So that** I can verify ingress output quality and egress integration
+
+**Acceptance Criteria:**
+
+- Given an RTMP ingress is streaming to a room
+- When a room composite egress is started
+- Then the recording captures the ingress video
+- Given the egress completes
+- When the output file is validated
+- Then it contains video matching the ingress duration
+- And the video is playable and not corrupted
+
+**Implementation Tasks:**
+- [ ] Start ingress stream to room
+- [ ] Configure and start room composite egress
+- [ ] Wait for egress to complete
+- [ ] Download recording from S3/MinIO
+- [ ] Validate video file integrity and duration
+- [ ] Verify video contains ingress content (not blank)
+
+**Size:** M
+
+---
+
+#### Story 1.1.11: Test SIP Integration
 
 **As a** test developer
 **I want** to test SIP bridge functionality
@@ -282,7 +337,7 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.10: Test Agents API Integration
+#### Story 1.1.12: Test Agents API Integration
 
 **As a** test developer
 **I want** to test the Agents API
@@ -448,6 +503,91 @@ The framework currently tests:
 - [ ] Include timeout diagnostics in failure messages
 
 **Size:** S
+
+---
+
+#### Story 2.1.6: Pre-Download Docker Images Before Test Execution
+
+**As a** test developer
+**I want** all required Docker images pre-pulled before tests start
+**So that** test execution is not delayed by image downloads
+
+**Acceptance Criteria:**
+
+- Given a test suite is starting
+- When the pre-download phase runs
+- Then all required Docker images are pulled before any test executes
+- Given an image fails to download
+- When the failure is detected
+- Then a clear error message identifies the missing image and tests fail fast
+- Given all images are already present locally
+- When pre-download runs
+- Then the phase completes quickly with no network activity
+
+**Required Images:**
+- LiveKit server (livekit/livekit-server)
+- Egress (livekit/egress)
+- Ingress (livekit/ingress)
+- MinIO (minio/minio)
+- Redis (redis)
+- Selenium Chrome (selenium/standalone-chrome)
+- Selenium Firefox (selenium/standalone-firefox)
+- Selenium Edge (selenium/standalone-edge)
+
+**Implementation Tasks:**
+- [ ] Create DockerImagePreloader utility class
+- [ ] Implement image existence check using Docker client
+- [ ] Add parallel image pulling with progress logging
+- [ ] Create Gradle task `preloadImages` for manual execution
+- [ ] Integrate into test lifecycle via JUnit 5 extension or @BeforeAll hook
+- [ ] Add timeout and retry for image pulls (configurable)
+- [ ] Log image pull duration and sizes
+- [ ] Support version-specific image tags from TestConfig
+- [ ] Skip pre-download when all images present (fast path)
+- [ ] Add `--skip-preload` flag for CI environments with pre-warmed caches
+
+**Size:** M
+
+---
+
+#### Story 2.1.7: Pre-Flight Docker Environment Health Check
+
+**As a** test developer
+**I want** the test suite to check Docker environment health before running tests
+**So that** I can detect and address environment issues before tests fail with obscure errors
+
+**Acceptance Criteria:**
+
+- Given the test suite is starting
+- When pre-flight checks run
+- Then Docker daemon connectivity is verified
+- Given orphaned Docker networks exist
+- When the threshold is exceeded
+- Then a warning is issued with cleanup suggestion
+- Given containers from previous runs are still running
+- When detected
+- Then a warning lists the stale containers
+- Given Docker resource usage is high
+- When limits are approached
+- Then a warning indicates potential resource constraints
+
+**Background:**
+This story addresses the "all predefined address pools have been fully subnetted" error caused by orphaned Docker networks accumulating from interrupted test runs or improper cleanup.
+
+**Implementation Tasks:**
+- [ ] Create DockerEnvironmentChecker utility class
+- [ ] Check Docker daemon is running and responsive
+- [ ] Count existing Docker networks and warn if > 20 (configurable threshold)
+- [ ] Detect orphaned networks by naming pattern (TestContainers GUID format)
+- [ ] List running containers that match test container patterns
+- [ ] Check available disk space on Docker volumes
+- [ ] Check available memory for container allocation
+- [ ] Log warnings with actionable remediation commands (e.g., `docker network prune -f`)
+- [ ] Add configurable check levels: `fail`, `warn`, `skip`
+- [ ] Integrate as JUnit 5 extension or Cucumber @BeforeAll hook
+- [ ] Add system property to skip checks: `-Ddocker.preflight.skip=true`
+
+**Size:** M
 
 ---
 
@@ -1918,7 +2058,9 @@ Phase 5 (Innovation)
 6. ~~Story 1.1.5 - Test Room Metadata Operations~~ [DONE]
 7. ~~Story 1.1.6 - Test Participant Metadata Operations~~ [DONE]
 8. Story 1.1.8 - Test Ingress Stream Input
-9. Story 1.1.9 - Test SIP Integration
+9. Story 1.1.9 - Verify Ingress Stream Playback
+10. Story 1.1.10 - Record Ingress Stream via Egress
+11. Story 1.1.11 - Test SIP Integration
 
 ### Short-term (Next Quarter)
 

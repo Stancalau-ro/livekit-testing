@@ -33,8 +33,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Control VNC recording for browser tests
 ./gradlew test -Drecording.mode=skip     # No recordings
-./gradlew test -Drecording.mode=all      # Record all tests (default)
-./gradlew test -Drecording.mode=failed   # Record only failed tests
+./gradlew test -Drecording.mode=all      # Record all tests
+./gradlew test -Drecording.mode=failed   # Record only failed tests (default)
 
 # Clean build artifacts
 ./gradlew clean
