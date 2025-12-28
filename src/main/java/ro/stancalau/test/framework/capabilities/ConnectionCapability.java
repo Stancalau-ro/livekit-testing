@@ -2,31 +2,31 @@ package ro.stancalau.test.framework.capabilities;
 
 public interface ConnectionCapability {
 
-    boolean isLiveKitLoaded();
+  boolean isLiveKitLoaded();
 
-    boolean isConnectionEstablished();
+  boolean isConnectionEstablished();
 
-    boolean isClientConnected();
+  boolean isClientConnected();
 
-    boolean isInMeetingRoom();
+  boolean isInMeetingRoom();
 
-    boolean isRealWebRTCConnectionVerified();
+  boolean isRealWebRTCConnectionVerified();
 
-    boolean isUsingMock();
+  boolean isUsingMock();
 
-    long getConnectionTime();
+  long getConnectionTime();
 
-    String getLastError();
+  String getLastError();
 
-    String getConsoleLogs();
+  String getConsoleLogs();
 
-    long getSubscriptionFailedEventCount();
+  long getSubscriptionFailedEventCount();
 
-    boolean isSubscriptionPermissionDenied();
+  boolean isSubscriptionPermissionDenied();
 
-    String getLastSubscriptionError();
+  String getLastSubscriptionError();
 
-    long getPlayingVideoElementCount();
+  long getPlayingVideoElementCount();
 
-    long getSubscribedVideoTrackCount();
+  long getSubscribedVideoTrackCount();
 }

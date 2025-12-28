@@ -1,16 +1,16 @@
 package ro.stancalau.test.bdd.steps.params;
 
 public enum MuteAction {
-    mutes(true),
-    unmutes(false);
+  mutes(true),
+  unmutes(false);
 
-    private final boolean shouldMute;
+  private final boolean shouldMute;
 
-    MuteAction(boolean shouldMute) {
-        this.shouldMute = shouldMute;
-    }
+  MuteAction(boolean shouldMute) {
+    this.shouldMute = shouldMute;
+  }
 
-    public boolean shouldMute() {
-        return shouldMute;
-    }
+  public boolean shouldMute() {
+    return shouldMute;
+  }
 }

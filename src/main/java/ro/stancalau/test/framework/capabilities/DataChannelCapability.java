@@ -5,25 +5,25 @@ import java.util.Map;
 
 public interface DataChannelCapability {
 
-    boolean sendDataMessage(String message, boolean reliable);
+  boolean sendDataMessage(String message, boolean reliable);
 
-    boolean sendDataMessageTo(String message, String recipientIdentity, boolean reliable);
+  boolean sendDataMessageTo(String message, String recipientIdentity, boolean reliable);
 
-    boolean sendDataMessageOfSize(int sizeBytes, boolean reliable);
+  boolean sendDataMessageOfSize(int sizeBytes, boolean reliable);
 
-    boolean sendTimestampedDataMessage(String message, boolean reliable);
+  boolean sendTimestampedDataMessage(String message, boolean reliable);
 
-    boolean hasReceivedDataMessage(String expectedContent, String fromIdentity);
+  boolean hasReceivedDataMessage(String expectedContent, String fromIdentity);
 
-    int getReceivedDataMessageCount();
+  int getReceivedDataMessageCount();
 
-    List<Map<String, Object>> getReceivedDataMessages();
+  List<Map<String, Object>> getReceivedDataMessages();
 
-    boolean isDataPublishingBlocked();
+  boolean isDataPublishingBlocked();
 
-    String getLastDataChannelError();
+  String getLastDataChannelError();
 
-    Map<String, Object> getDataChannelLatencyStats();
+  Map<String, Object> getDataChannelLatencyStats();
 
-    void clearDataChannelState();
+  void clearDataChannelState();
 }

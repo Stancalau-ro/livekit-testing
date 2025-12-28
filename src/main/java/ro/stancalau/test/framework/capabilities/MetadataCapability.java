@@ -5,27 +5,28 @@ import java.util.Map;
 
 public interface MetadataCapability {
 
-    void startListeningForRoomMetadataEvents();
+  void startListeningForRoomMetadataEvents();
 
-    void startListeningForParticipantMetadataEvents();
+  void startListeningForParticipantMetadataEvents();
 
-    List<Map<String, Object>> getRoomMetadataEvents();
+  List<Map<String, Object>> getRoomMetadataEvents();
 
-    List<Map<String, Object>> getParticipantMetadataEvents();
+  List<Map<String, Object>> getParticipantMetadataEvents();
 
-    String getCurrentRoomMetadata();
+  String getCurrentRoomMetadata();
 
-    String getParticipantMetadata(String identity);
+  String getParticipantMetadata(String identity);
 
-    String getLocalParticipantMetadata();
+  String getLocalParticipantMetadata();
 
-    boolean waitForRoomMetadataEvent(String expectedValue, int timeoutSeconds);
+  boolean waitForRoomMetadataEvent(String expectedValue, int timeoutSeconds);
 
-    boolean waitForParticipantMetadataEvent(String identity, String expectedValue, int timeoutSeconds);
+  boolean waitForParticipantMetadataEvent(
+      String identity, String expectedValue, int timeoutSeconds);
 
-    int getRoomMetadataEventCount();
+  int getRoomMetadataEventCount();
 
-    int getParticipantMetadataEventCount();
+  int getParticipantMetadataEventCount();
 
-    void clearMetadataEvents();
+  void clearMetadataEvents();
 }
