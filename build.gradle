@@ -1,5 +1,23 @@
 plugins {
     id 'java'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'checkstyle'
+}
+
+checkstyle {
+    toolVersion = '10.20.1'
+    configFile = file("${rootDir}/config/checkstyle/checkstyle.xml")
+    ignoreFailures = false
+    maxWarnings = 0
+}
+
+spotless {
+    java {
+        googleJavaFormat()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }
 
 group = 'ro.stancalau.livekit'
@@ -73,9 +91,12 @@ task bddTest(type: Test) {
 
     // Configure parallel execution - can be overridden via command line: -Dparallelism=2
     def parallelism = System.getProperty('parallelism', '2')
-    
+
     // Cucumber parallel execution
     systemProperty 'cucumber.execution.parallel.enabled', 'true'
+
+    // Per-scenario timeout (10 minutes) to prevent stuck scenarios holding containers
+    systemProperty 'cucumber.execution.timeout.default', '600000'
     systemProperty 'cucumber.execution.parallel.config.strategy', 'fixed'
     systemProperty 'cucumber.execution.parallel.config.fixed.parallelism', parallelism
     systemProperty 'cucumber.execution.parallel.config.fixed.max-pool-size', parallelism
