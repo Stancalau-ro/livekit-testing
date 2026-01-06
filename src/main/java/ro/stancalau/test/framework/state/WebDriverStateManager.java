@@ -28,7 +28,7 @@ public class WebDriverStateManager {
   private static final Duration CONTAINER_STARTUP_TIMEOUT = Duration.ofSeconds(180);
   private static final long RECORDING_FILE_TIMEOUT_MS = 10_000;
   private static final long RECORDING_FILE_POLL_DELAY_MS = 200;
-  private static final long WEBDRIVER_RETRY_TIMEOUT_MS = 60_000;
+  private static final long WEBDRIVER_RETRY_TIMEOUT_MS = 120_000;
   private static final long WEBDRIVER_RETRY_DELAY_MS = 5_000;
 
   private final Map<String, WebDriver> webDrivers = new HashMap<>();
