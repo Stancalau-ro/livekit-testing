@@ -6,50 +6,48 @@ Feature: LiveKit Ingress Stream Input
   Background:
     Given the LiveKit config is set to "with_ingress"
     And a Redis server is running in a container with service name "redis"
-    And a LiveKit server is running in a container with service name "livekit1"
-    And an Ingress service is running with service name "ingress1"
+    And a LiveKit server is running in a container with service name "livekit"
+    And an Ingress service "ingress" is running connected to "livekit" and "redis"
 
   Scenario: Create RTMP ingress for a room
-    Given room "IngressRoom" is created using service "livekit1"
-    When an RTMP ingress "studio" is created for room "IngressRoom" with identity "Alice"
-    Then the ingress "studio" should have input type "RTMP_INPUT"
-    And the ingress "studio" should have a valid RTMP URL
-    And the ingress "studio" should have a stream key
-    And the ingress "studio" should be in state inactive
+    Given room "IngressRoom" is created using service "livekit"
+    When "Alice" creates an RTMP ingress to room "IngressRoom" on "livekit"
+    Then the ingress for "Alice" on "livekit" should have input type "RTMP_INPUT"
+    And the ingress for "Alice" on "livekit" should have a valid RTMP URL
+    And the ingress for "Alice" on "livekit" should have a stream key
+    And the ingress for "Alice" on "livekit" should be inactive
 
-  Scenario: Create RTMP ingress with custom participant name
-    Given room "CustomNameRoom" is created using service "livekit1"
-    When an RTMP ingress "broadcast" is created for room "CustomNameRoom" with identity "Bob" and name "Live Broadcast"
-    Then the ingress "broadcast" should have participant name "Live Broadcast"
+  Scenario: Create RTMP ingress with custom display name
+    Given room "CustomNameRoom" is created using service "livekit"
+    When "Bob" creates an RTMP ingress to room "CustomNameRoom" on "livekit" with display name "Live Broadcast"
+    Then the ingress for "Bob" on "livekit" should have participant name "Live Broadcast"
 
   Scenario: RTMP stream appears as participant in room
-    Given room "StreamRoom" is created using service "livekit1"
-    And an RTMP ingress "primary" is created for room "StreamRoom" with identity "Charlie"
-    When an RTMP stream is sent to ingress "primary"
-    Then the ingress "primary" should be in state publishing within 30 seconds
-    And participant "Charlie" should appear in room "StreamRoom" using service "livekit1"
-    When the RTMP stream is stopped
-    Then the ingress "primary" should be in state inactive within 15 seconds
+    Given room "StreamRoom" is created using service "livekit"
+    And "Charlie" creates an RTMP ingress to room "StreamRoom" on "livekit"
+    When "Charlie" starts streaming via RTMP to "ingress"
+    Then the ingress for "Charlie" on "livekit" should be publishing within 30 seconds
+    And participant "Charlie" should appear in room "StreamRoom" using service "livekit"
+    When "Charlie" stops streaming to "ingress"
+    Then the ingress for "Charlie" on "livekit" should be inactive within 15 seconds
 
   Scenario: Delete ingress removes participant
-    Given room "DeleteRoom" is created using service "livekit1"
-    And an RTMP ingress "camera" is created for room "DeleteRoom" with identity "David"
-    And an RTMP stream is sent to ingress "camera"
-    And the ingress "camera" is in state publishing
-    And participant "David" should appear in room "DeleteRoom" using service "livekit1"
-    When ingress "camera" is deleted
-    Then the ingress "camera" should not exist
+    Given room "DeleteRoom" is created using service "livekit"
+    And "David" creates an RTMP ingress to room "DeleteRoom" on "livekit"
+    And "David" starts streaming via RTMP to "ingress"
+    And the ingress for "David" on "livekit" is publishing
+    And participant "David" should appear in room "DeleteRoom" using service "livekit"
+    When the ingress for "David" on "livekit" is deleted
+    Then the ingress for "David" on "livekit" should not exist
 
   Scenario: List ingresses returns created ingresses
-    Given room "ListRoom" is created using service "livekit1"
-    And an RTMP ingress "alpha" is created for room "ListRoom" with identity "Emily"
-    And an RTMP ingress "beta" is created for room "ListRoom" with identity "Frank"
-    When ingresses are listed for room "ListRoom"
-    Then the ingress list should contain "alpha"
-    And the ingress list should contain "beta"
-    And the ingress list should have 2 items
+    Given room "ListRoom" is created using service "livekit"
+    And "Emily" creates an RTMP ingress to room "ListRoom" on "livekit"
+    And "Frank" creates an RTMP ingress to room "ListRoom" on "livekit"
+    Then room "ListRoom" on "livekit" should have 2 ingresses
+    And room "ListRoom" on "livekit" should have ingresses for "Emily, Frank"
 
-  Scenario: Ingress can be configured before room creation
-    When an RTMP ingress "early" is created for room "FutureRoom" with identity "Grace"
-    Then the ingress "early" should be created successfully
-    And the ingress "early" should have room name "FutureRoom"
+  Scenario: Ingress can be created before room exists
+    When "Grace" creates an RTMP ingress to room "FutureRoom" on "livekit"
+    Then the ingress for "Grace" on "livekit" should be created successfully
+    And the ingress for "Grace" on "livekit" should have room name "FutureRoom"

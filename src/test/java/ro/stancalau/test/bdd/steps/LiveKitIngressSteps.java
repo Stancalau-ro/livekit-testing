@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
-import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -59,11 +58,13 @@ public class LiveKitIngressSteps {
     cleanupFfmpegContainers();
   }
 
-  @Given("an Ingress service is running with service name {string}")
-  public void ingressServiceRunning(String serviceName) {
+  @Given("an Ingress service {string} is running connected to {string} and {string}")
+  public void ingressServiceRunning(
+      String serviceName, String livekitServiceName, String redisServiceName) {
     ContainerStateManager containerManager = ManagerProvider.containers();
-    LiveKitContainer livekit = containerManager.getContainer("livekit1", LiveKitContainer.class);
-    RedisContainer redis = containerManager.getContainer("redis", RedisContainer.class);
+    LiveKitContainer livekit =
+        containerManager.getContainer(livekitServiceName, LiveKitContainer.class);
+    RedisContainer redis = containerManager.getContainer(redisServiceName, RedisContainer.class);
     Network network = containerManager.getOrCreateNetwork();
 
     String serviceLogPath =
@@ -96,22 +97,21 @@ public class LiveKitIngressSteps {
     }
   }
 
-  @When("an RTMP ingress {string} is created for room {string} with identity {string}")
-  public void createRtmpIngress(String ingressName, String roomName, String identity)
+  @When("{string} creates an RTMP ingress to room {string} on {string}")
+  public void createRtmpIngress(String identity, String roomName, String serviceName)
       throws Exception {
-    createRtmpIngressWithName(ingressName, roomName, identity, identity);
+    createRtmpIngressWithDisplayName(identity, roomName, serviceName, identity);
   }
 
-  @When(
-      "an RTMP ingress {string} is created for room {string} with identity {string} and name {string}")
-  public void createRtmpIngressWithName(
-      String ingressName, String roomName, String identity, String displayName) throws Exception {
-    IngressServiceClient client = getIngressClient();
+  @When("{string} creates an RTMP ingress to room {string} on {string} with display name {string}")
+  public void createRtmpIngressWithDisplayName(
+      String identity, String roomName, String serviceName, String displayName) throws Exception {
+    IngressServiceClient client = getIngressClient(serviceName);
 
     IngressInfo info =
         client
             .createIngress(
-                ingressName,
+                identity,
                 roomName,
                 identity,
                 displayName,
@@ -125,21 +125,21 @@ public class LiveKitIngressSteps {
             .body();
 
     assertNotNull(info, "Ingress creation should return IngressInfo");
-    ManagerProvider.ingress().registerIngress(ingressName, info);
+    ManagerProvider.ingress().registerIngress(identity, info);
 
     log.info(
-        "Created RTMP ingress {} for room {} with URL: {} and stream key: {}",
-        ingressName,
+        "Created RTMP ingress for {} in room {} on {} with URL: {} and stream key: {}",
+        identity,
         roomName,
+        serviceName,
         info.getUrl(),
         info.getStreamKey());
   }
 
-  @When(
-      "an RTMP ingress {string} is created for room {string} with identity {string} and video preset {string}")
+  @When("{string} creates an RTMP ingress to room {string} on {string} with video preset {string}")
   public void createRtmpIngressWithPreset(
-      String ingressName, String roomName, String identity, String preset) throws Exception {
-    IngressServiceClient client = getIngressClient();
+      String identity, String roomName, String serviceName, String preset) throws Exception {
+    IngressServiceClient client = getIngressClient(serviceName);
 
     LivekitIngress.IngressVideoEncodingPreset videoPreset =
         LivekitIngress.IngressVideoEncodingPreset.valueOf(preset);
@@ -149,7 +149,7 @@ public class LiveKitIngressSteps {
     IngressInfo info =
         client
             .createIngress(
-                ingressName,
+                identity,
                 roomName,
                 identity,
                 identity,
@@ -163,21 +163,20 @@ public class LiveKitIngressSteps {
             .body();
 
     assertNotNull(info, "Ingress creation should return IngressInfo");
-    ManagerProvider.ingress().registerIngress(ingressName, info);
+    ManagerProvider.ingress().registerIngress(identity, info);
 
-    log.info("Created RTMP ingress {} with video preset {}", ingressName, preset);
+    log.info("Created RTMP ingress for {} with video preset {}", identity, preset);
   }
 
-  @When(
-      "a URL ingress {string} is created for room {string} with URL {string} and identity {string}")
-  public void createUrlIngress(String ingressName, String roomName, String url, String identity)
+  @When("{string} creates a URL ingress to room {string} on {string} with URL {string}")
+  public void createUrlIngress(String identity, String roomName, String serviceName, String url)
       throws Exception {
-    IngressServiceClient client = getIngressClient();
+    IngressServiceClient client = getIngressClient(serviceName);
 
     IngressInfo info =
         client
             .createIngress(
-                ingressName,
+                identity,
                 roomName,
                 identity,
                 identity,
@@ -191,26 +190,27 @@ public class LiveKitIngressSteps {
             .body();
 
     assertNotNull(info, "Ingress creation should return IngressInfo");
-    ManagerProvider.ingress().registerIngress(ingressName, info);
+    ManagerProvider.ingress().registerIngress(identity, info);
 
-    log.info("Created URL ingress {} for room {} with URL: {}", ingressName, roomName, url);
+    log.info("Created URL ingress for {} in room {} with URL: {}", identity, roomName, url);
   }
 
-  @When("an RTMP stream is sent to ingress {string}")
-  public void sendRtmpStream(String ingressName) {
-    sendRtmpStreamWithDuration(ingressName, DEFAULT_STREAM_DURATION_SECONDS);
+  @When("{string} starts streaming via RTMP to {string}")
+  public void startStreaming(String identity, String ingressServiceName) {
+    startStreamingWithDuration(identity, ingressServiceName, DEFAULT_STREAM_DURATION_SECONDS);
   }
 
-  @When("an RTMP stream is sent to ingress {string} with duration {int} seconds")
-  public void sendRtmpStreamWithDuration(String ingressName, int durationSeconds) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @When("{string} starts streaming via RTMP to {string} with duration {int} seconds")
+  public void startStreamingWithDuration(
+      String identity, String ingressServiceName, int durationSeconds) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
 
     ContainerStateManager containerManager = ManagerProvider.containers();
     IngressContainer ingressContainer =
-        containerManager.getContainer("ingress1", IngressContainer.class);
+        containerManager.getContainer(ingressServiceName, IngressContainer.class);
 
-    String containerAlias = "ffmpeg-" + ingressName;
+    String containerAlias = "ffmpeg-" + identity;
     String logPath =
         PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", containerAlias);
 
@@ -227,82 +227,26 @@ public class LiveKitIngressSteps {
 
     ffmpeg.start();
     containerManager.registerContainer(containerAlias, ffmpeg);
-    ManagerProvider.ingress().registerActiveStream(ingressName, containerAlias);
-
-    waitForIngressPublishing(ingressName, info.getIngressId(), 30);
+    ManagerProvider.ingress().registerActiveStream(identity, containerAlias);
 
     log.info(
-        "Started RTMP stream to ingress {} at {} for {} seconds",
-        ingressName,
-        rtmpUrl,
+        "Started RTMP stream for {} to {} for {} seconds",
+        identity,
+        ingressServiceName,
         durationSeconds);
   }
 
-  private void waitForIngressPublishing(String ingressName, String ingressId, int timeoutSeconds) {
-    IngressServiceClient client = getIngressClient();
-    long startTime = System.currentTimeMillis();
-    long timeoutMs = timeoutSeconds * 1000L;
-    IngressState targetState = IngressState.publishing;
-
-    while (System.currentTimeMillis() - startTime < timeoutMs) {
-      try {
-        List<IngressInfo> ingresses = client.listIngress(null, ingressId).execute().body();
-        if (ingresses != null && !ingresses.isEmpty()) {
-          IngressInfo current = ingresses.get(0);
-          String currentSdkState = current.getState().getStatus().name();
-
-          String errorMsg = current.getState().getError();
-          if (errorMsg != null && !errorMsg.isEmpty()) {
-            log.error("Ingress {} has error: {}", ingressName, errorMsg);
-          }
-
-          if (targetState.toSdkState().equals(currentSdkState)) {
-            log.info(
-                "Ingress {} reached {} after {}ms",
-                ingressName,
-                targetState.name(),
-                System.currentTimeMillis() - startTime);
-            return;
-          }
-
-          log.info(
-              "Ingress {} current state: {}, waiting for {}",
-              ingressName,
-              IngressState.fromSdkState(currentSdkState).name(),
-              targetState.name());
-        }
-        TimeUnit.MILLISECONDS.sleep(500);
-      } catch (Exception e) {
-        log.warn("Error checking ingress state: {}", e.getMessage());
-        try {
-          TimeUnit.MILLISECONDS.sleep(500);
-        } catch (InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          return;
-        }
-      }
-    }
-
-    fail(
-        "Ingress "
-            + ingressName
-            + " did not reach state "
-            + targetState.name()
-            + " within "
-            + timeoutSeconds
-            + " seconds");
-  }
-
-  @When("an RTMP stream is sent to ingress {string} with resolution {string}")
-  public void sendRtmpStreamWithResolution(String ingressName, String resolution) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @When("{string} starts streaming via RTMP to {string} with resolution {string}")
+  public void startStreamingWithResolution(
+      String identity, String ingressServiceName, String resolution) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
 
     ContainerStateManager containerManager = ManagerProvider.containers();
     IngressContainer ingressContainer =
-        containerManager.getContainer("ingress1", IngressContainer.class);
+        containerManager.getContainer(ingressServiceName, IngressContainer.class);
 
-    String containerAlias = "ffmpeg-" + ingressName;
+    String containerAlias = "ffmpeg-" + identity;
     String logPath =
         PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", containerAlias);
 
@@ -321,24 +265,22 @@ public class LiveKitIngressSteps {
 
     ffmpeg.start();
     containerManager.registerContainer(containerAlias, ffmpeg);
-    ManagerProvider.ingress().registerActiveStream(ingressName, containerAlias);
-
-    waitForIngressPublishing(ingressName, info.getIngressId(), 30);
+    ManagerProvider.ingress().registerActiveStream(identity, containerAlias);
 
     log.info(
-        "Started RTMP stream to ingress {} at {} with resolution {}",
-        ingressName,
-        rtmpUrl,
+        "Started RTMP stream for {} to {} with resolution {}",
+        identity,
+        ingressServiceName,
         resolution);
   }
 
-  @When("an RTMP stream is sent to ingress {string} with wrong stream key")
-  public void sendRtmpStreamWithWrongKey(String ingressName) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @When("{string} starts streaming via RTMP to {string} with wrong stream key")
+  public void startStreamingWithWrongKey(String identity, String ingressServiceName) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
 
     ContainerStateManager containerManager = ManagerProvider.containers();
-    String containerAlias = "ffmpeg-wrong-" + ingressName;
+    String containerAlias = "ffmpeg-wrong-" + identity;
     String logPath =
         PathUtils.containerLogPath(getCurrentScenarioLogPath(), "docker", containerAlias);
 
@@ -357,79 +299,101 @@ public class LiveKitIngressSteps {
     }
   }
 
-  @When("the RTMP stream is stopped")
-  public void stopRtmpStream() {
+  @When("{string} stops streaming to {string}")
+  public void stopStreaming(String identity, String ingressServiceName) {
     IngressStateManager ingressManager = ManagerProvider.ingress();
     ContainerStateManager containerManager = ManagerProvider.containers();
 
-    for (String ingressName : ingressManager.getAllIngresses().keySet()) {
-      String containerAlias = ingressManager.getActiveStreamContainer(ingressName);
-      if (containerAlias != null) {
-        try {
-          FFmpegContainer ffmpeg =
-              containerManager.getContainer(containerAlias, FFmpegContainer.class);
-          if (ffmpeg != null && ffmpeg.isRunning()) {
-            ffmpeg.stop();
-            log.info("Stopped RTMP stream container: {}", containerAlias);
-          }
-        } catch (Exception e) {
-          log.warn("Failed to stop FFmpeg container {}: {}", containerAlias, e.getMessage());
+    String containerAlias = ingressManager.getActiveStreamContainer(identity);
+    if (containerAlias != null) {
+      try {
+        FFmpegContainer ffmpeg =
+            containerManager.getContainer(containerAlias, FFmpegContainer.class);
+        if (ffmpeg != null && ffmpeg.isRunning()) {
+          ffmpeg.stop();
+          log.info("Stopped RTMP stream for {} to {}", identity, ingressServiceName);
         }
-        ingressManager.removeActiveStream(ingressName);
+      } catch (Exception e) {
+        log.warn("Failed to stop FFmpeg container for {}: {}", identity, e.getMessage());
       }
+      ingressManager.removeActiveStream(identity);
     }
   }
 
-  @When("ingress {string} is deleted")
-  public void deleteIngress(String ingressName) throws Exception {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @When("the ingress for {string} on {string} is deleted")
+  public void deleteIngress(String identity, String serviceName) throws Exception {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
 
-    IngressServiceClient client = getIngressClient();
+    IngressServiceClient client = getIngressClient(serviceName);
     client.deleteIngress(info.getIngressId()).execute();
 
-    ManagerProvider.ingress().removeIngress(ingressName);
-    log.info("Deleted ingress {} with ID {}", ingressName, info.getIngressId());
+    ManagerProvider.ingress().removeIngress(identity);
+    log.info("Deleted ingress for {} with ID {}", identity, info.getIngressId());
   }
 
-  @When("ingresses are listed for room {string}")
-  public void listIngressesForRoom(String roomName) throws Exception {
-    IngressServiceClient client = getIngressClient();
+  @Then("room {string} on {string} should have {int} ingresses")
+  public void verifyRoomIngressCount(String roomName, String serviceName, int expectedCount)
+      throws Exception {
+    IngressServiceClient client = getIngressClient(serviceName);
     List<IngressInfo> ingresses = client.listIngress(roomName, null).execute().body();
-    ManagerProvider.ingress().setLastListResult(ingresses);
-    log.info("Listed {} ingresses for room {}", ingresses != null ? ingresses.size() : 0, roomName);
+    assertNotNull(ingresses, "Ingress list should not be null");
+    assertEquals(
+        expectedCount,
+        ingresses.size(),
+        "Room " + roomName + " should have " + expectedCount + " ingresses");
   }
 
-  @Then("the ingress {string} should have input type {string}")
-  public void verifyIngressInputType(String ingressName, String inputType) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @Then("room {string} on {string} should have ingresses for {string}")
+  public void verifyRoomIngressIdentities(
+      String roomName, String serviceName, String expectedIdentities) throws Exception {
+    IngressServiceClient client = getIngressClient(serviceName);
+    List<IngressInfo> ingresses = client.listIngress(roomName, null).execute().body();
+    assertNotNull(ingresses, "Ingress list should not be null");
+
+    String[] identities = expectedIdentities.split(",\\s*");
+    for (String identity : identities) {
+      boolean found =
+          ingresses.stream()
+              .anyMatch(
+                  info ->
+                      info.getParticipantIdentity().equals(identity)
+                          || info.getName().equals(identity));
+      assertTrue(found, "Room " + roomName + " should have ingress for " + identity);
+    }
+  }
+
+  @Then("the ingress for {string} on {string} should have input type {string}")
+  public void verifyIngressInputType(String identity, String serviceName, String inputType) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
     assertEquals(inputType, info.getInputType().name(), "Ingress input type mismatch");
   }
 
-  @Then("the ingress {string} should have a valid RTMP URL")
-  public void verifyIngressRtmpUrl(String ingressName) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @Then("the ingress for {string} on {string} should have a valid RTMP URL")
+  public void verifyIngressRtmpUrl(String identity, String serviceName) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
     assertNotNull(info.getUrl(), "Ingress URL should not be null");
     assertTrue(
         info.getUrl().startsWith("rtmp://"), "Ingress URL should be an RTMP URL: " + info.getUrl());
   }
 
-  @Then("the ingress {string} should have a stream key")
-  public void verifyIngressStreamKey(String ingressName) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @Then("the ingress for {string} on {string} should have a stream key")
+  public void verifyIngressStreamKey(String identity, String serviceName) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
     assertNotNull(info.getStreamKey(), "Ingress stream key should not be null");
     assertFalse(info.getStreamKey().isEmpty(), "Ingress stream key should not be empty");
   }
 
-  @Then("the ingress {string} should be in state {ingressState}")
-  public void verifyIngressState(String ingressName, IngressState expectedState) throws Exception {
-    IngressInfo storedInfo = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(storedInfo, "Ingress " + ingressName + " not found");
+  @Then("the ingress for {string} on {string} should be {ingressState}")
+  public void verifyIngressState(String identity, String serviceName, IngressState expectedState)
+      throws Exception {
+    IngressInfo storedInfo = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(storedInfo, "Ingress for " + identity + " not found");
 
-    IngressServiceClient client = getIngressClient();
+    IngressServiceClient client = getIngressClient(serviceName);
     List<IngressInfo> ingresses =
         client.listIngress(null, storedInfo.getIngressId()).execute().body();
 
@@ -447,13 +411,14 @@ public class LiveKitIngressSteps {
             + IngressState.fromSdkState(actualSdkState).name());
   }
 
-  @Then("the ingress {string} should be in state {ingressState} within {int} seconds")
+  @Then("the ingress for {string} on {string} should be {ingressState} within {int} seconds")
   public void verifyIngressStateWithTimeout(
-      String ingressName, IngressState expectedState, int timeoutSeconds) throws Exception {
-    IngressInfo storedInfo = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(storedInfo, "Ingress " + ingressName + " not found");
+      String identity, String serviceName, IngressState expectedState, int timeoutSeconds)
+      throws Exception {
+    IngressInfo storedInfo = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(storedInfo, "Ingress for " + identity + " not found");
 
-    IngressServiceClient client = getIngressClient();
+    IngressServiceClient client = getIngressClient(serviceName);
     long startTime = System.currentTimeMillis();
     long timeoutMs = timeoutSeconds * 1000L;
 
@@ -467,16 +432,16 @@ public class LiveKitIngressSteps {
 
         if (currentSdkState.equals(expectedState.toSdkState())) {
           log.info(
-              "Ingress {} reached state {} after {}ms",
-              ingressName,
+              "Ingress for {} reached state {} after {}ms",
+              identity,
               expectedState.name(),
               System.currentTimeMillis() - startTime);
           return;
         }
 
         log.debug(
-            "Ingress {} current state: {}, waiting for: {}",
-            ingressName,
+            "Ingress for {} current state: {}, waiting for: {}",
+            identity,
             IngressState.fromSdkState(currentSdkState).name(),
             expectedState.name());
       }
@@ -485,8 +450,8 @@ public class LiveKitIngressSteps {
     }
 
     fail(
-        "Ingress "
-            + ingressName
+        "Ingress for "
+            + identity
             + " did not reach state "
             + expectedState.name()
             + " within "
@@ -494,61 +459,46 @@ public class LiveKitIngressSteps {
             + " seconds");
   }
 
-  @Then("the ingress {string} should have participant name {string}")
-  public void verifyIngressParticipantName(String ingressName, String expectedName) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @Then("the ingress for {string} on {string} should have participant name {string}")
+  public void verifyIngressParticipantName(
+      String identity, String serviceName, String expectedName) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
     assertEquals(expectedName, info.getParticipantName(), "Ingress participant name mismatch");
   }
 
-  @Then("the ingress {string} should have room name {string}")
-  public void verifyIngressRoomName(String ingressName, String expectedRoomName) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " not found");
+  @Then("the ingress for {string} on {string} should have room name {string}")
+  public void verifyIngressRoomName(String identity, String serviceName, String expectedRoomName) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " not found");
     assertEquals(expectedRoomName, info.getRoomName(), "Ingress room name mismatch");
   }
 
-  @Then("the ingress {string} should be created successfully")
-  public void verifyIngressCreatedSuccessfully(String ingressName) {
-    IngressInfo info = ManagerProvider.ingress().getIngress(ingressName);
-    assertNotNull(info, "Ingress " + ingressName + " should have been created");
+  @Then("the ingress for {string} on {string} should be created successfully")
+  public void verifyIngressCreatedSuccessfully(String identity, String serviceName) {
+    IngressInfo info = ManagerProvider.ingress().getIngress(identity);
+    assertNotNull(info, "Ingress for " + identity + " should have been created");
     assertNotNull(info.getIngressId(), "Ingress ID should not be null");
   }
 
-  @Then("the ingress {string} should not exist")
-  public void verifyIngressNotExist(String ingressName) throws Exception {
-    IngressInfo storedInfo = ManagerProvider.ingress().getIngress(ingressName);
+  @Then("the ingress for {string} on {string} should not exist")
+  public void verifyIngressNotExist(String identity, String serviceName) throws Exception {
+    IngressInfo storedInfo = ManagerProvider.ingress().getIngress(identity);
 
     if (storedInfo != null) {
-      IngressServiceClient client = getIngressClient();
+      IngressServiceClient client = getIngressClient(serviceName);
       List<IngressInfo> ingresses =
           client.listIngress(null, storedInfo.getIngressId()).execute().body();
       assertTrue(
           ingresses == null || ingresses.isEmpty(),
-          "Ingress " + ingressName + " should not exist but was found");
+          "Ingress for " + identity + " should not exist but was found");
     }
   }
 
-  @Then("the ingress {string} should remain in state {ingressState}")
-  public void verifyIngressRemainsInState(String ingressName, IngressState expectedState)
-      throws Exception {
-    verifyIngressState(ingressName, expectedState);
-  }
-
-  @Then("the ingress list should contain {string}")
-  public void verifyIngressListContains(String ingressName) {
-    List<IngressInfo> ingresses = ManagerProvider.ingress().getLastListResult();
-    assertNotNull(ingresses, "Ingress list should not be null");
-
-    boolean found = ingresses.stream().anyMatch(info -> info.getName().equals(ingressName));
-    assertTrue(found, "Ingress list should contain " + ingressName);
-  }
-
-  @Then("the ingress list should have {int} items")
-  public void verifyIngressListSize(int count) {
-    List<IngressInfo> ingresses = ManagerProvider.ingress().getLastListResult();
-    assertNotNull(ingresses, "Ingress list should not be null");
-    assertEquals(count, ingresses.size(), "Ingress list size mismatch");
+  @Then("the ingress for {string} on {string} should remain {ingressState}")
+  public void verifyIngressRemainsInState(
+      String identity, String serviceName, IngressState expectedState) throws Exception {
+    verifyIngressState(identity, serviceName, expectedState);
   }
 
   @Then("the RTMP stream should fail to connect")
@@ -556,29 +506,41 @@ public class LiveKitIngressSteps {
     assertTrue(streamFailed, "RTMP stream should have failed to connect");
   }
 
-  @And("the ingress {string} is in state {ingressState}")
-  public void ingressIsInState(String ingressName, IngressState expectedState) throws Exception {
-    verifyIngressStateWithTimeout(ingressName, expectedState, 30);
+  @Given("the ingress for {string} on {string} is {ingressState}")
+  public void ingressIsInState(String identity, String serviceName, IngressState expectedState)
+      throws Exception {
+    verifyIngressStateWithTimeout(identity, serviceName, expectedState, 30);
   }
 
-  private IngressServiceClient getIngressClient() {
+  private IngressServiceClient getIngressClient(String serviceName) {
     LiveKitContainer livekit =
-        ManagerProvider.containers().getContainer("livekit1", LiveKitContainer.class);
+        ManagerProvider.containers().getContainer(serviceName, LiveKitContainer.class);
     return IngressServiceClient.createClient(
         livekit.getHttpUrl(), LiveKitContainer.API_KEY, LiveKitContainer.SECRET);
   }
 
   private void cleanupIngresses() {
     try {
-      IngressServiceClient client = getIngressClient();
+      ContainerStateManager containerManager = ManagerProvider.containers();
       IngressStateManager ingressManager = ManagerProvider.ingress();
+
+      var livekitEntry = containerManager.getFirstContainerOfType(LiveKitContainer.class);
+      if (livekitEntry == null) {
+        log.warn("No LiveKit container found for cleanup");
+        return;
+      }
+
+      LiveKitContainer livekit = livekitEntry.getValue();
+      IngressServiceClient client =
+          IngressServiceClient.createClient(
+              livekit.getHttpUrl(), LiveKitContainer.API_KEY, LiveKitContainer.SECRET);
 
       for (var entry : ingressManager.getAllIngresses().entrySet()) {
         try {
           client.deleteIngress(entry.getValue().getIngressId()).execute();
-          log.info("Cleaned up ingress: {}", entry.getKey());
+          log.info("Cleaned up ingress for: {}", entry.getKey());
         } catch (Exception e) {
-          log.warn("Failed to cleanup ingress {}: {}", entry.getKey(), e.getMessage());
+          log.warn("Failed to cleanup ingress for {}: {}", entry.getKey(), e.getMessage());
         }
       }
     } catch (Exception e) {
@@ -590,8 +552,8 @@ public class LiveKitIngressSteps {
     ContainerStateManager containerManager = ManagerProvider.containers();
     IngressStateManager ingressManager = ManagerProvider.ingress();
 
-    for (String ingressName : ingressManager.getAllIngresses().keySet()) {
-      String containerAlias = ingressManager.getActiveStreamContainer(ingressName);
+    for (String identity : ingressManager.getAllIngresses().keySet()) {
+      String containerAlias = ingressManager.getActiveStreamContainer(identity);
       if (containerAlias != null) {
         try {
           containerManager.stopContainer(containerAlias);
