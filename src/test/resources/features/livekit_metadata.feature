@@ -12,6 +12,7 @@ Feature: LiveKit Room and Participant Metadata
     Given an access token is created with identity "Alice" and room "MetadataRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "MetadataRoom" using the access token
+    And connection is established successfully for "Alice"
     Then room "MetadataRoom" should have empty metadata in service "livekit1"
     When room metadata for "MetadataRoom" is set to "initial-metadata" using service "livekit1"
     Then room "MetadataRoom" should have metadata "initial-metadata" in service "livekit1"
@@ -41,6 +42,7 @@ Feature: LiveKit Room and Participant Metadata
     Given an access token is created with identity "Alice" and room "LateJoinRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "LateJoinRoom" using the access token
+    And connection is established successfully for "Alice"
     And room metadata for "LateJoinRoom" is set to "existing-metadata" using service "livekit1"
     Then room "LateJoinRoom" should have metadata "existing-metadata" in service "livekit1"
     Given an access token is created with identity "Bob" and room "LateJoinRoom" with grants "CanPublish, CanSubscribe"
@@ -105,6 +107,7 @@ Feature: LiveKit Room and Participant Metadata
     Given an access token is created with identity "Alice" and room "JsonMetaRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "JsonMetaRoom" using the access token
+    And connection is established successfully for "Alice"
     When room metadata for "JsonMetaRoom" is set to "{\"type\":\"meeting\",\"host\":\"Alice\",\"settings\":{\"recording\":true}}" using service "livekit1"
     Then room "JsonMetaRoom" should have metadata "{\"type\":\"meeting\",\"host\":\"Alice\",\"settings\":{\"recording\":true}}" in service "livekit1"
 
@@ -121,6 +124,7 @@ Feature: LiveKit Room and Participant Metadata
     Given an access token is created with identity "Alice" and room "SizeRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "SizeRoom" using the access token
+    And connection is established successfully for "Alice"
     When room metadata for "SizeRoom" is set to a string of 100 bytes using service "livekit1"
     Then room "SizeRoom" should have metadata of length 100 bytes in service "livekit1"
     When room metadata for "SizeRoom" is set to a string of 1000 bytes using service "livekit1"
