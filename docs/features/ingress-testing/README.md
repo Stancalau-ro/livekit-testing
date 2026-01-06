@@ -1,9 +1,20 @@
 # Feature: Ingress Stream Input Testing
 
 ## Status
-**Planned** | Story 1.1.8 | Size: L (Large)
+**Partial** | Story 1.1.8 | Size: L (Large)
 
-**Implementation Status:** Not started - requires infrastructure setup and API integration
+**Implementation Status:** Infrastructure complete, playback verification pending
+
+| Component | Status |
+|-----------|--------|
+| Ingress Container | DONE |
+| FFmpeg RTMP Simulator | DONE |
+| Ingress API Steps | DONE |
+| State Management | DONE |
+| Feature File (server-side) | DONE |
+| **Playback Verification** | **GAP** |
+
+**CRITICAL GAP:** See [Playback Verification Gap Analysis](./playback-verification-gap.md) for details on the missing end-to-end media delivery verification.
 
 ## Problem Statement
 
@@ -34,14 +45,22 @@ Test developers need to verify ingress functionality to ensure their LiveKit int
 
 ## Success Metrics
 
-- Ingress container starts and registers with LiveKit server
-- Ingress can be created via API with RTMP/WHIP/URL input types
-- Simulated RTMP stream successfully connects to ingress endpoint
-- Ingress participant appears in room with expected identity and name
-- Other participants can subscribe to ingress tracks
-- Ingress tracks have expected audio/video codecs
-- Ingress deletion properly cleans up participant
-- Stream reconnection works after disconnect
+### Currently Verified (Server-Side)
+
+- [x] Ingress container starts and registers with LiveKit server
+- [x] Ingress can be created via API with RTMP input type
+- [x] Simulated RTMP stream successfully connects to ingress endpoint
+- [x] Ingress participant appears in room with expected identity and name
+- [x] Ingress deletion properly cleans up participant
+- [x] Ingress state transitions (inactive -> publishing -> inactive)
+
+### Not Yet Verified (Client-Side Playback) - THE GAP
+
+- [ ] Other participants can subscribe to and receive ingress tracks
+- [ ] Ingress video is playable in subscriber browser
+- [ ] Ingress tracks have expected audio/video codecs
+- [ ] Video dimensions match configured transcoding preset
+- [ ] Stream reconnection works after disconnect
 
 ## Scope
 

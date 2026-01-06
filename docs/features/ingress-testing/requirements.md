@@ -766,5 +766,34 @@ IngressServiceClient client = IngressServiceClient.createClient(
 
 - **Story 1.1.1** (Screen Sharing) - Completed; similar track verification patterns
 - **Story 1.1.2** (Simulcast) - Completed; relevant for layer verification
-- **Story 1.1.9** (SIP Integration) - Future; similar external input pattern
-- **Story 1.1.10** (Agents API) - Future; similar participant injection pattern
+- **Story 1.1.9** (Verify Ingress Stream Playback) - **Critical gap identified**; see [playback-verification-gap.md](./playback-verification-gap.md)
+- **Story 1.1.10** (Record Ingress Stream via Egress) - Future; requires playback verification first
+- **Story 1.1.11** (SIP Integration) - Future; similar external input pattern
+- **Story 1.1.12** (Agents API) - Future; similar participant injection pattern
+
+---
+
+## Implementation Status
+
+### Completed Stories (Story 1.1.8)
+
+| Story | Description | Status |
+|-------|-------------|--------|
+| 1.1.8.1 | Ingress Container Infrastructure | DONE |
+| 1.1.8.2 | Ingress Service Client | DONE |
+| 1.1.8.3 | RTMP Stream Simulator (FFmpeg) | DONE |
+| 1.1.8.4 | Create RTMP Ingress via API | DONE |
+| 1.1.8.5 | Verify Ingress Participant Appears | DONE |
+| 1.1.8.7 | Ingress Lifecycle (Delete/Cleanup) | DONE |
+
+### Critical Gap: Story 1.1.8.6 - Track Subscription Verification
+
+**Status:** NOT IMPLEMENTED
+
+Story 1.1.8.6 (Verify Ingress Track Subscription) was defined in the requirements but **has not been implemented**. The current feature file tests server-side state only, without verifying that browser subscribers can actually receive and play the ingested media.
+
+See [Playback Verification Gap Analysis](./playback-verification-gap.md) for:
+- Detailed gap analysis
+- Technical implementation approach
+- Proposed Gherkin scenarios
+- Required infrastructure changes
