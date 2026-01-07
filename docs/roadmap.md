@@ -232,7 +232,7 @@ The framework currently tests:
 
 ---
 
-#### Story 1.1.8: Test Ingress Stream Input
+#### Story 1.1.8: Test Ingress Stream Input [DONE]
 
 **As a** test developer
 **I want** to test ingress functionality
@@ -247,17 +247,19 @@ The framework currently tests:
 - When the stream ends
 - Then the track is unpublished
 
-- [ ] Add Ingress container to infrastructure
-- [ ] Create ingress configuration via API
-- [ ] Simulate external RTMP/WHIP stream
-- [ ] Verify ingress track appears in room
-- [ ] Test ingress stop/cleanup
+- [x] Add Ingress container to infrastructure
+- [x] Create ingress configuration via API
+- [x] Simulate external RTMP/WHIP stream
+- [x] Verify ingress track appears in room
+- [x] Test ingress stop/cleanup
 
 **Size:** L
 
+**Implementation:** `src/test/resources/features/livekit_ingress.feature`
+
 ---
 
-#### Story 1.1.9: Verify Ingress Stream Playback
+#### Story 1.1.9: Verify Ingress Stream Playback [DONE]
 
 **As a** test developer
 **I want** to verify that browser participants can view ingress streams
@@ -274,13 +276,17 @@ The framework currently tests:
 - Then the ingress track is no longer available
 
 **Implementation Tasks:**
-- [ ] Create browser participant that joins room with ingress
-- [ ] Subscribe to ingress participant's video track
-- [ ] Verify video frames are being received
-- [ ] Validate video dimensions match expected resolution
-- [ ] Test subscription cleanup when ingress stops
+- [x] Create browser participant that joins room with ingress
+- [x] Subscribe to ingress participant's video track
+- [x] Verify video frames are being received (isReceivingVideoFrom assertion)
+- [x] Validate video dimensions match expected resolution
+- [x] Test subscription cleanup when ingress stops
 
 **Size:** M
+
+**Implementation:** `src/test/resources/features/livekit_ingress.feature` (scenarios 55-144)
+
+**Note:** Firefox excluded from RTMP ingress tests due to H264 codec licensing - Linux Selenium containers lack H264 support.
 
 ---
 
@@ -2057,8 +2063,8 @@ Phase 5 (Innovation)
 5. ~~Story 1.1.3 - Test Dynacast Bandwidth Adaptation~~ [DONE]
 6. ~~Story 1.1.5 - Test Room Metadata Operations~~ [DONE]
 7. ~~Story 1.1.6 - Test Participant Metadata Operations~~ [DONE]
-8. Story 1.1.8 - Test Ingress Stream Input
-9. Story 1.1.9 - Verify Ingress Stream Playback
+8. ~~Story 1.1.8 - Test Ingress Stream Input~~ [DONE]
+9. ~~Story 1.1.9 - Verify Ingress Stream Playback~~ [DONE]
 10. Story 1.1.10 - Record Ingress Stream via Egress
 11. Story 1.1.11 - Test SIP Integration
 
