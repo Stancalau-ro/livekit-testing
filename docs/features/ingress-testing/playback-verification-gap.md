@@ -1,11 +1,30 @@
 # Ingress Playback Verification Gap Analysis
 
 ## Status
-**Gap Identified** | Story 1.1.9 | Priority: High
+**GAP CLOSED** | Story 1.1.9 | Completed: 2026-01-07
 
-## Executive Summary
+## Resolution Summary
 
-The current ingress testing implementation (`livekit_ingress.feature`) validates RTMP ingress creation, state transitions, and API operations but does **not verify end-to-end media delivery**. This document identifies the gap and proposes the technical approach to implement playback verification.
+The playback verification gap has been fully addressed. The `livekit_ingress.feature` now includes comprehensive end-to-end media delivery verification using the `isReceivingVideoFrom` assertion.
+
+### Implementation Highlights:
+- **Video reception verification**: Uses `isReceivingVideoFrom` assertion that checks subscription status, track availability, frame dimensions, and stream state
+- **Browser subscriber tests**: Multiple scenarios verify Chrome browsers can receive ingress video tracks
+- **Dimension validation**: Tests confirm video dimensions match ingress presets (720p, simulcast layers)
+- **Multi-subscriber testing**: Verified multiple browser subscribers can receive the same ingress stream
+
+### Note on Browser Support:
+Firefox is excluded from RTMP ingress tests due to H264 codec licensing limitations in Linux Selenium containers. Chrome works correctly because it has built-in H264 support.
+
+---
+
+## Original Gap Analysis (Historical)
+
+This section is preserved for reference.
+
+### Executive Summary (Original)
+
+The original ingress testing implementation validated RTMP ingress creation, state transitions, and API operations but did **not verify end-to-end media delivery**.
 
 ---
 
@@ -390,3 +409,4 @@ Scenario: Multiple subscribers receive same ingress stream
 | Date | Author | Change |
 |------|--------|--------|
 | 2026-01-06 | Documentation Architect | Initial gap analysis |
+| 2026-01-07 | Claude | Gap closed - implemented isReceivingVideoFrom assertion, added browser subscriber scenarios, documented Firefox H264 limitation |

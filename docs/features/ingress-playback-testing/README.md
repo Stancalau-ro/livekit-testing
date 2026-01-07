@@ -1,9 +1,19 @@
 # Feature: Ingress Stream Playback Testing
 
 ## Status
-**Planned** | Story 1.1.9 | Size: M (Medium)
+**COMPLETE** | Story 1.1.9 | Size: M (Medium)
 
-**Implementation Status:** Not started - requires browser subscriber integration with existing ingress infrastructure
+**Implementation Status:** Fully implemented in `livekit_ingress.feature` (scenarios 55-144)
+
+### What Was Implemented:
+- **`isReceivingVideoFrom` assertion**: Verifies subscription status, track availability, frame dimensions, and stream state
+- **Browser subscriber scenarios**: Chrome can subscribe to ingress video tracks
+- **Dimension validation**: Tests confirm video dimensions match ingress presets
+- **Multi-subscriber testing**: Multiple browsers can receive the same ingress stream
+- **Track lifecycle testing**: Subscription cleanup verified when ingress stops
+
+### Browser Support Note:
+Firefox is excluded from RTMP ingress tests due to H264 codec licensing limitations in Linux Selenium containers. Chrome has built-in H264 support and is the primary testing browser for ingress scenarios.
 
 ## Implementation Approach
 

@@ -489,41 +489,41 @@ Feature: LiveKit Ingress Stream Input
 ## Definition of Done
 
 ### Infrastructure Implementation
-- [ ] `IngressContainer` class created and tested
-- [ ] Ingress container integrates with Docker network
-- [ ] Redis connection configured correctly
-- [ ] Health checks implemented and working
-- [ ] Version configuration supported via system properties
+- [x] `IngressContainer` class created and tested
+- [x] Ingress container integrates with Docker network
+- [x] Redis connection configured correctly
+- [x] Health checks implemented and working
+- [x] Version configuration supported via system properties
 
 ### API Implementation
-- [ ] `IngressServiceClient` wrapper implemented
-- [ ] All CRUD operations (create, list, update, delete) working
-- [ ] State manager tracks created ingresses
-- [ ] Proper cleanup in test hooks
+- [x] `IngressServiceClient` wrapper implemented
+- [x] All CRUD operations (create, list, update, delete) working
+- [x] State manager tracks created ingresses
+- [x] Proper cleanup in test hooks
 
 ### Stream Simulation
-- [ ] FFmpeg-based RTMP stream simulator working
-- [ ] Stream can be started and stopped programmatically
-- [ ] Stream uses configurable test patterns
-- [ ] Stream runs in Docker container with network access
+- [x] FFmpeg-based RTMP stream simulator working
+- [x] Stream can be started and stopped programmatically
+- [x] Stream uses configurable test patterns
+- [x] Stream runs in Docker container with network access
 
 ### BDD Scenarios
-- [ ] Feature file `livekit_ingress.feature` created
-- [ ] All step definitions implemented
-- [ ] All scenarios pass on Chrome browser
-- [ ] Cleanup hooks properly remove ingresses
+- [x] Feature file `livekit_ingress.feature` created
+- [x] All step definitions implemented
+- [x] All scenarios pass on Chrome browser
+- [x] Cleanup hooks properly remove ingresses
 
 ### Documentation
-- [ ] Feature documentation complete in `docs/features/ingress-testing/`
-- [ ] Step definitions documented
-- [ ] Technical notes cover implementation details
-- [ ] Configuration requirements documented
+- [x] Feature documentation complete in `docs/features/ingress-testing/`
+- [x] Step definitions documented
+- [x] Technical notes cover implementation details
+- [x] Configuration requirements documented
 
 ### Testing
-- [ ] All unit tests pass
-- [ ] All BDD scenarios pass
-- [ ] Tests pass against default LiveKit/Ingress version
-- [ ] Resource cleanup verified (no orphaned containers)
+- [x] All unit tests pass
+- [x] All BDD scenarios pass (Chrome only for H264 ingress)
+- [x] Tests pass against default LiveKit/Ingress version
+- [x] Resource cleanup verified (no orphaned containers)
 
 ---
 
@@ -784,16 +784,25 @@ IngressServiceClient client = IngressServiceClient.createClient(
 | 1.1.8.3 | RTMP Stream Simulator (FFmpeg) | DONE |
 | 1.1.8.4 | Create RTMP Ingress via API | DONE |
 | 1.1.8.5 | Verify Ingress Participant Appears | DONE |
+| 1.1.8.6 | Verify Ingress Track Subscription | DONE |
 | 1.1.8.7 | Ingress Lifecycle (Delete/Cleanup) | DONE |
+| 1.1.8.9 | Test Transcoding Presets | DONE |
 
-### Critical Gap: Story 1.1.8.6 - Track Subscription Verification
+### Story 1.1.9: Verify Ingress Stream Playback - COMPLETE
 
-**Status:** NOT IMPLEMENTED
+**Status:** DONE
 
-Story 1.1.8.6 (Verify Ingress Track Subscription) was defined in the requirements but **has not been implemented**. The current feature file tests server-side state only, without verifying that browser subscribers can actually receive and play the ingested media.
+Browser playback verification is now fully implemented using the `isReceivingVideoFrom` assertion which verifies:
+- Track subscription status
+- Track availability
+- Frame dimensions or playing state
+- Stream state (active/paused)
 
-See [Playback Verification Gap Analysis](./playback-verification-gap.md) for:
-- Detailed gap analysis
-- Technical implementation approach
-- Proposed Gherkin scenarios
-- Required infrastructure changes
+**Note:** Firefox is excluded from RTMP ingress tests due to H264 codec licensing limitations in Linux Selenium containers.
+
+### Remaining Stories
+
+| Story | Description | Status |
+|-------|-------------|--------|
+| 1.1.8.8 | Test URL Input Ingress | NOT STARTED |
+| 1.1.8.10 | Test WHIP Ingress | NOT STARTED |
