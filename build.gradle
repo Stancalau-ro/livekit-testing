@@ -59,6 +59,8 @@ dependencies {
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
 
+    implementation "org.awaitility:awaitility:$awaitility_version"
+
     implementation platform("software.amazon.awssdk:bom:$aws_sdk_version")
     implementation "software.amazon.awssdk:s3"
 }

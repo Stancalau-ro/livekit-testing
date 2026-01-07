@@ -1,9 +1,15 @@
 package ro.stancalau.test.framework.util;
 
+import static org.awaitility.Awaitility.await;
+
+import java.time.Duration;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.awaitility.core.ConditionTimeoutException;
 
 @Slf4j
 @UtilityClass
@@ -13,19 +19,24 @@ public class BrowserPollingHelper {
     public static final long DEFAULT_TIMEOUT_MS = 30_000;
 
     public <T> T pollUntil(Supplier<T> supplier, Predicate<T> condition, long timeoutMs, long delayMs) {
-        long timeoutAtMs = System.currentTimeMillis() + timeoutMs;
-        T lastResult = null;
-        int attempt = 0;
-        while (System.currentTimeMillis() < timeoutAtMs) {
-            attempt++;
-            lastResult = supplier.get();
-            if (condition.test(lastResult)) {
-                return lastResult;
-            }
-            sleepUntilNextPoll(timeoutAtMs, delayMs);
+        AtomicReference<T> lastResult = new AtomicReference<>();
+        AtomicInteger attempt = new AtomicInteger(0);
+
+        try {
+            await().atMost(Duration.ofMillis(timeoutMs))
+                    .pollInterval(Duration.ofMillis(delayMs))
+                    .pollInSameThread()
+                    .until(() -> {
+                        attempt.incrementAndGet();
+                        T result = supplier.get();
+                        lastResult.set(result);
+                        return condition.test(result);
+                    });
+            return lastResult.get();
+        } catch (ConditionTimeoutException e) {
+            log.warn("pollUntil timed out after {}ms ({} attempts)", timeoutMs, attempt.get());
+            return lastResult.get();
         }
-        log.warn("pollUntil timed out after {}ms ({} attempts)", timeoutMs, attempt);
-        return lastResult;
     }
 
     public <T> T pollUntil(Supplier<T> supplier, Predicate<T> condition) {
@@ -40,26 +51,35 @@ public class BrowserPollingHelper {
             String operation,
             String context) {
         long startTimeMs = System.currentTimeMillis();
-        long timeoutAtMs = startTimeMs + timeoutMs;
-        int attempt = 0;
-        while (System.currentTimeMillis() < timeoutAtMs) {
-            attempt++;
-            try {
-                T result = supplier.get();
-                if (condition.test(result)) {
-                    return result;
-                }
-            } catch (Exception e) {
-                log.warn("Poll attempt {} failed for {}: {}", attempt, operation, e.getMessage());
+        AtomicReference<T> lastResult = new AtomicReference<>();
+        AtomicReference<Exception> lastException = new AtomicReference<>();
+
+        try {
+            await().atMost(Duration.ofMillis(timeoutMs))
+                    .pollInterval(Duration.ofMillis(delayMs))
+                    .pollInSameThread()
+                    .until(() -> {
+                        try {
+                            T result = supplier.get();
+                            lastResult.set(result);
+                            return condition.test(result);
+                        } catch (Exception e) {
+                            lastException.set(e);
+                            throw e;
+                        }
+                    });
+            return lastResult.get();
+        } catch (ConditionTimeoutException e) {
+            Exception cause = lastException.get();
+            if (cause != null) {
                 throw new TestTimeoutException(
                         operation,
-                        context + " (exception: " + e.getMessage() + ")",
+                        context + " (exception: " + cause.getMessage() + ")",
                         System.currentTimeMillis() - startTimeMs,
-                        e);
+                        cause);
             }
-            sleepUntilNextPoll(timeoutAtMs, delayMs);
+            throw new TestTimeoutException(operation, context, System.currentTimeMillis() - startTimeMs);
         }
-        throw new TestTimeoutException(operation, context, System.currentTimeMillis() - startTimeMs);
     }
 
     public <T> T pollUntilOrThrow(Supplier<T> supplier, Predicate<T> condition, String operation, String context) {
@@ -82,15 +102,6 @@ public class BrowserPollingHelper {
 
     public void pollForConditionOrThrow(Supplier<Boolean> condition, String operation, String context) {
         pollForConditionOrThrow(condition, DEFAULT_TIMEOUT_MS, DEFAULT_DELAY_MS, operation, context);
-    }
-
-    private void sleepUntilNextPoll(long timeoutAtMs, long delayMs) {
-        long remainingMs = timeoutAtMs - System.currentTimeMillis();
-        if (remainingMs > delayMs) {
-            safeSleep(delayMs);
-        } else if (remainingMs > 0) {
-            safeSleep(remainingMs);
-        }
     }
 
     public void safeSleep(long millis) {
