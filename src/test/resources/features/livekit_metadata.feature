@@ -6,19 +6,19 @@ Feature: LiveKit Room and Participant Metadata
   Background:
     Given the LiveKit config is set to "webhook"
     And a mock HTTP server is running in a container with service name "mockserver"
-    And a LiveKit server is running in a container with service name "livekit1"
+    And a LiveKit server is running in a container with service name "livekit"
 
   Scenario: Room metadata CRUD operations
     Given an access token is created with identity "Alice" and room "MetadataRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "MetadataRoom" using the access token
     And connection is established successfully for "Alice"
-    Then room "MetadataRoom" should have empty metadata in service "livekit1"
-    When room metadata for "MetadataRoom" is set to "initial-metadata" using service "livekit1"
-    Then room "MetadataRoom" should have metadata "initial-metadata" in service "livekit1"
-    When room metadata for "MetadataRoom" is set to "updated-metadata" using service "livekit1"
-    Then room "MetadataRoom" should have metadata "updated-metadata" in service "livekit1"
-    When room info for "MetadataRoom" is retrieved using service "livekit1"
+    Then room "MetadataRoom" should have empty metadata in service "livekit"
+    When room metadata for "MetadataRoom" is set to "initial-metadata" using service "livekit"
+    Then room "MetadataRoom" should have metadata "initial-metadata" in service "livekit"
+    When room metadata for "MetadataRoom" is set to "updated-metadata" using service "livekit"
+    Then room "MetadataRoom" should have metadata "updated-metadata" in service "livekit"
+    When room info for "MetadataRoom" is retrieved using service "livekit"
     Then the retrieved room info should have metadata "updated-metadata"
 
   Scenario: Room metadata events with multiple participants
@@ -32,7 +32,7 @@ Feature: LiveKit Room and Participant Metadata
     And connection is established successfully for "Bob"
     And "Alice" starts listening for room metadata events
     And "Bob" starts listening for room metadata events
-    When room metadata for "EventRoom" is set to "shared-data" using service "livekit1"
+    When room metadata for "EventRoom" is set to "shared-data" using service "livekit"
     Then "Alice" should receive a room metadata update event with value "shared-data"
     And "Bob" should receive a room metadata update event with value "shared-data"
     And "Alice" should see room metadata "shared-data"
@@ -43,8 +43,8 @@ Feature: LiveKit Room and Participant Metadata
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "LateJoinRoom" using the access token
     And connection is established successfully for "Alice"
-    And room metadata for "LateJoinRoom" is set to "existing-metadata" using service "livekit1"
-    Then room "LateJoinRoom" should have metadata "existing-metadata" in service "livekit1"
+    And room metadata for "LateJoinRoom" is set to "existing-metadata" using service "livekit"
+    Then room "LateJoinRoom" should have metadata "existing-metadata" in service "livekit"
     Given an access token is created with identity "Bob" and room "LateJoinRoom" with grants "CanPublish, CanSubscribe"
     When "Bob" opens a "Chrome" browser with LiveKit Meet page
     And "Bob" connects to room "LateJoinRoom" using the access token
@@ -59,18 +59,18 @@ Feature: LiveKit Room and Participant Metadata
     Then "mockserver" should have received a "participant_joined" event for participant "Alice" in room "TokenMetaRoom" with metadata "alice-token-meta"
     When "Bob" connects to room "TokenMetaRoom" using the access token
     Then "mockserver" should have received a "participant_joined" event for participant "Bob" in room "TokenMetaRoom" with empty metadata
-    And participant "Alice" should have metadata "alice-token-meta" in room "TokenMetaRoom" using service "livekit1"
+    And participant "Alice" should have metadata "alice-token-meta" in room "TokenMetaRoom" using service "livekit"
     And "Bob" should see participant "Alice" with metadata "alice-token-meta"
 
   Scenario: Update participant metadata via API
     Given an access token is created with identity "Alice" and room "ApiMetaRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "ApiMetaRoom" using the access token
-    Then participant "Alice" should have empty metadata in room "ApiMetaRoom" using service "livekit1"
-    When participant "Alice" metadata is updated to "api-set-metadata" in room "ApiMetaRoom" using service "livekit1"
-    Then participant "Alice" should have metadata "api-set-metadata" in room "ApiMetaRoom" using service "livekit1"
-    When participant "Alice" metadata is updated to "updated-again" in room "ApiMetaRoom" using service "livekit1"
-    Then participant "Alice" should have metadata "updated-again" in room "ApiMetaRoom" using service "livekit1"
+    Then participant "Alice" should have empty metadata in room "ApiMetaRoom" using service "livekit"
+    When participant "Alice" metadata is updated to "api-set-metadata" in room "ApiMetaRoom" using service "livekit"
+    Then participant "Alice" should have metadata "api-set-metadata" in room "ApiMetaRoom" using service "livekit"
+    When participant "Alice" metadata is updated to "updated-again" in room "ApiMetaRoom" using service "livekit"
+    Then participant "Alice" should have metadata "updated-again" in room "ApiMetaRoom" using service "livekit"
 
   Scenario: Participant metadata events with multiple observers
     Given an access token is created with identity "Alice" and room "ParticipantEventRoom" with grants "CanPublish, CanSubscribe"
@@ -88,7 +88,7 @@ Feature: LiveKit Room and Participant Metadata
     And "Alice" starts listening for participant metadata events
     And "Bob" starts listening for participant metadata events
     And "Charlie" starts listening for participant metadata events
-    When participant "Alice" metadata is updated to "alice-updated" in room "ParticipantEventRoom" using service "livekit1"
+    When participant "Alice" metadata is updated to "alice-updated" in room "ParticipantEventRoom" using service "livekit"
     Then "Alice" should receive a participant metadata update event for "Alice" with value "alice-updated"
     And "Bob" should receive a participant metadata update event for "Alice" with value "alice-updated"
     And "Charlie" should receive a participant metadata update event for "Alice" with value "alice-updated"
@@ -97,7 +97,7 @@ Feature: LiveKit Room and Participant Metadata
     Given an access token is created with identity "Alice" and room "LateParticipantRoom" with grants "CanPublish, CanSubscribe" and metadata "early-bird-meta"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "LateParticipantRoom" using the access token
-    Then participant "Alice" should have metadata "early-bird-meta" in room "LateParticipantRoom" using service "livekit1"
+    Then participant "Alice" should have metadata "early-bird-meta" in room "LateParticipantRoom" using service "livekit"
     Given an access token is created with identity "Bob" and room "LateParticipantRoom" with grants "CanPublish, CanSubscribe"
     When "Bob" opens a "Chrome" browser with LiveKit Meet page
     And "Bob" connects to room "LateParticipantRoom" using the access token
@@ -108,24 +108,24 @@ Feature: LiveKit Room and Participant Metadata
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "JsonMetaRoom" using the access token
     And connection is established successfully for "Alice"
-    When room metadata for "JsonMetaRoom" is set to "{\"type\":\"meeting\",\"host\":\"Alice\",\"settings\":{\"recording\":true}}" using service "livekit1"
-    Then room "JsonMetaRoom" should have metadata "{\"type\":\"meeting\",\"host\":\"Alice\",\"settings\":{\"recording\":true}}" in service "livekit1"
+    When room metadata for "JsonMetaRoom" is set to "{\"type\":\"meeting\",\"host\":\"Alice\",\"settings\":{\"recording\":true}}" using service "livekit"
+    Then room "JsonMetaRoom" should have metadata "{\"type\":\"meeting\",\"host\":\"Alice\",\"settings\":{\"recording\":true}}" in service "livekit"
 
   Scenario: Participant metadata edge cases - special characters, JSON and Unicode
     Given an access token is created with identity "Alice" and room "EdgeCaseRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "EdgeCaseRoom" using the access token
-    When participant "Alice" metadata is updated to "hello=world&foo=bar" in room "EdgeCaseRoom" using service "livekit1"
-    Then participant "Alice" should have metadata containing "hello=world" in room "EdgeCaseRoom" using service "livekit1"
-    When participant "Alice" metadata is updated to "{\"name\":\"Test\",\"value\":42}" in room "EdgeCaseRoom" using service "livekit1"
-    Then participant "Alice" metadata should be valid JSON in room "EdgeCaseRoom" using service "livekit1"
+    When participant "Alice" metadata is updated to "hello=world&foo=bar" in room "EdgeCaseRoom" using service "livekit"
+    Then participant "Alice" should have metadata containing "hello=world" in room "EdgeCaseRoom" using service "livekit"
+    When participant "Alice" metadata is updated to "{\"name\":\"Test\",\"value\":42}" in room "EdgeCaseRoom" using service "livekit"
+    Then participant "Alice" metadata should be valid JSON in room "EdgeCaseRoom" using service "livekit"
 
   Scenario: Room metadata size limits
     Given an access token is created with identity "Alice" and room "SizeRoom" with grants "CanPublish, CanSubscribe"
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "SizeRoom" using the access token
     And connection is established successfully for "Alice"
-    When room metadata for "SizeRoom" is set to a string of 100 bytes using service "livekit1"
-    Then room "SizeRoom" should have metadata of length 100 bytes in service "livekit1"
-    When room metadata for "SizeRoom" is set to a string of 1000 bytes using service "livekit1"
-    Then room "SizeRoom" should have metadata of length 1000 bytes in service "livekit1"
+    When room metadata for "SizeRoom" is set to a string of 100 bytes using service "livekit"
+    Then room "SizeRoom" should have metadata of length 100 bytes in service "livekit"
+    When room metadata for "SizeRoom" is set to a string of 1000 bytes using service "livekit"
+    Then room "SizeRoom" should have metadata of length 1000 bytes in service "livekit"

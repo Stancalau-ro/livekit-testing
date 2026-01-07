@@ -5,7 +5,7 @@ Feature: LiveKit Data Channel Communication
 
   Background:
     Given the LiveKit config is set to "basic"
-    And a LiveKit server is running in a container with service name "livekit1"
+    And a LiveKit server is running in a container with service name "livekit"
 
   Scenario Outline: Generate access token with data publishing permission settings
     When the system creates an access token with identity "<identity>" and room "<room>" with grants "canPublish:true,canPublishData:<canPublishData>"
@@ -24,7 +24,7 @@ Feature: LiveKit Data Channel Communication
   Scenario: Participant can send and receive data message via reliable channel
     Given an access token is created with identity "Alice" and room "DataTestRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Bob" and room "DataTestRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "DataTestRoom" is created using service "livekit1"
+    And room "DataTestRoom" is created using service "livekit"
 
     When "Alice" opens a "Chrome" browser with LiveKit Meet page
     And "Alice" connects to room "DataTestRoom" using the access token
@@ -34,7 +34,7 @@ Feature: LiveKit Data Channel Communication
     And "Bob" connects to room "DataTestRoom" using the access token
     And connection is established successfully for "Bob"
 
-    Then room "DataTestRoom" should have 2 active participants in service "livekit1"
+    Then room "DataTestRoom" should have 2 active participants in service "livekit"
 
     When "Alice" sends a data message "Hello from Alice" via reliable channel
 
@@ -45,7 +45,7 @@ Feature: LiveKit Data Channel Communication
   Scenario: Multiple messages maintain order via reliable channel
     Given an access token is created with identity "Oliver" and room "OrderRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Emma" and room "OrderRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "OrderRoom" is created using service "livekit1"
+    And room "OrderRoom" is created using service "livekit"
 
     When "Oliver" opens a "Chrome" browser with LiveKit Meet page
     And "Oliver" connects to room "OrderRoom" using the access token
@@ -55,7 +55,7 @@ Feature: LiveKit Data Channel Communication
     And "Emma" connects to room "OrderRoom" using the access token
     And connection is established successfully for "Emma"
 
-    Then room "OrderRoom" should have 2 active participants in service "livekit1"
+    Then room "OrderRoom" should have 2 active participants in service "livekit"
 
     When "Oliver" sends a data message "Message 1" via reliable channel
     And "Oliver" sends a data message "Message 2" via reliable channel
@@ -72,7 +72,7 @@ Feature: LiveKit Data Channel Communication
   Scenario: Participant can send data message via unreliable channel
     Given an access token is created with identity "James" and room "UnreliableRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Sophia" and room "UnreliableRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "UnreliableRoom" is created using service "livekit1"
+    And room "UnreliableRoom" is created using service "livekit"
 
     When "James" opens a "Chrome" browser with LiveKit Meet page
     And "James" connects to room "UnreliableRoom" using the access token
@@ -82,7 +82,7 @@ Feature: LiveKit Data Channel Communication
     And "Sophia" connects to room "UnreliableRoom" using the access token
     And connection is established successfully for "Sophia"
 
-    Then room "UnreliableRoom" should have 2 active participants in service "livekit1"
+    Then room "UnreliableRoom" should have 2 active participants in service "livekit"
 
     When "James" sends 10 data messages via unreliable channel
 
@@ -94,7 +94,7 @@ Feature: LiveKit Data Channel Communication
   Scenario: Data channel latency is within acceptable bounds
     Given an access token is created with identity "Henry" and room "LatencyRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Grace" and room "LatencyRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "LatencyRoom" is created using service "livekit1"
+    And room "LatencyRoom" is created using service "livekit"
 
     When "Henry" opens a "Chrome" browser with LiveKit Meet page
     And "Henry" connects to room "LatencyRoom" using the access token
@@ -104,7 +104,7 @@ Feature: LiveKit Data Channel Communication
     And "Grace" connects to room "LatencyRoom" using the access token
     And connection is established successfully for "Grace"
 
-    Then room "LatencyRoom" should have 2 active participants in service "livekit1"
+    Then room "LatencyRoom" should have 2 active participants in service "livekit"
 
     When "Henry" sends 10 timestamped data messages via reliable channel
 
@@ -116,7 +116,7 @@ Feature: LiveKit Data Channel Communication
   Scenario Outline: Data message of varying sizes is delivered successfully
     Given an access token is created with identity "Thomas" and room "SizeTestRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Charlotte" and room "SizeTestRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "SizeTestRoom" is created using service "livekit1"
+    And room "SizeTestRoom" is created using service "livekit"
 
     When "Thomas" opens a "Chrome" browser with LiveKit Meet page
     And "Thomas" connects to room "SizeTestRoom" using the access token
@@ -126,7 +126,7 @@ Feature: LiveKit Data Channel Communication
     And "Charlotte" connects to room "SizeTestRoom" using the access token
     And connection is established successfully for "Charlotte"
 
-    Then room "SizeTestRoom" should have 2 active participants in service "livekit1"
+    Then room "SizeTestRoom" should have 2 active participants in service "livekit"
 
     When "Thomas" sends a data message of size <size> bytes via reliable channel
 
@@ -143,7 +143,7 @@ Feature: LiveKit Data Channel Communication
   Scenario: Participant without data permission cannot send messages
     Given an access token is created with identity "Michael" and room "PermDeniedRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:false"
     And an access token is created with identity "Isabella" and room "PermDeniedRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "PermDeniedRoom" is created using service "livekit1"
+    And room "PermDeniedRoom" is created using service "livekit"
 
     When "Michael" opens a "Chrome" browser with LiveKit Meet page
     And "Michael" connects to room "PermDeniedRoom" using the access token
@@ -153,7 +153,7 @@ Feature: LiveKit Data Channel Communication
     And "Isabella" connects to room "PermDeniedRoom" using the access token
     And connection is established successfully for "Isabella"
 
-    Then room "PermDeniedRoom" should have 2 active participants in service "livekit1"
+    Then room "PermDeniedRoom" should have 2 active participants in service "livekit"
 
     When "Michael" attempts to send a data message "Unauthorized message"
 
@@ -165,7 +165,7 @@ Feature: LiveKit Data Channel Communication
   Scenario Outline: Participant can send data messages with different browsers
     Given an access token is created with identity "David" and room "BrowserDataRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Mia" and room "BrowserDataRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "BrowserDataRoom" is created using service "livekit1"
+    And room "BrowserDataRoom" is created using service "livekit"
 
     When "David" opens a <browser> browser with LiveKit Meet page
     And "David" connects to room "BrowserDataRoom" using the access token
@@ -175,7 +175,7 @@ Feature: LiveKit Data Channel Communication
     And "Mia" connects to room "BrowserDataRoom" using the access token
     And connection is established successfully for "Mia"
 
-    Then room "BrowserDataRoom" should have 2 active participants in service "livekit1"
+    Then room "BrowserDataRoom" should have 2 active participants in service "livekit"
 
     When "David" sends a data message "Browser test message" via reliable channel
 
@@ -192,7 +192,7 @@ Feature: LiveKit Data Channel Communication
   Scenario: Cross-browser data channel communication
     Given an access token is created with identity "Benjamin" and room "CrossBrowserDataRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Victoria" and room "CrossBrowserDataRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "CrossBrowserDataRoom" is created using service "livekit1"
+    And room "CrossBrowserDataRoom" is created using service "livekit"
 
     When "Benjamin" opens a "Chrome" browser with LiveKit Meet page
     And "Benjamin" connects to room "CrossBrowserDataRoom" using the access token
@@ -202,7 +202,7 @@ Feature: LiveKit Data Channel Communication
     And "Victoria" connects to room "CrossBrowserDataRoom" using the access token
     And connection is established successfully for "Victoria"
 
-    Then room "CrossBrowserDataRoom" should have 2 active participants in service "livekit1"
+    Then room "CrossBrowserDataRoom" should have 2 active participants in service "livekit"
 
     When "Benjamin" sends a data message "Cross browser test" via reliable channel
 
@@ -214,7 +214,7 @@ Feature: LiveKit Data Channel Communication
     Given an access token is created with identity "Nathan" and room "BroadcastRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Eleanor" and room "BroadcastRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Hannah" and room "BroadcastRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "BroadcastRoom" is created using service "livekit1"
+    And room "BroadcastRoom" is created using service "livekit"
 
     When "Nathan" opens a "Chrome" browser with LiveKit Meet page
     And "Nathan" connects to room "BroadcastRoom" using the access token
@@ -228,7 +228,7 @@ Feature: LiveKit Data Channel Communication
     And "Hannah" connects to room "BroadcastRoom" using the access token
     And connection is established successfully for "Hannah"
 
-    Then room "BroadcastRoom" should have 3 active participants in service "livekit1"
+    Then room "BroadcastRoom" should have 3 active participants in service "livekit"
 
     When "Nathan" sends a broadcast data message "Hello everyone" via reliable channel
 
@@ -242,7 +242,7 @@ Feature: LiveKit Data Channel Communication
     Given an access token is created with identity "Matthew" and room "TargetedRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Chloe" and room "TargetedRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
     And an access token is created with identity "Sophie" and room "TargetedRoom" with grants "canPublish:true,canSubscribe:true,canPublishData:true"
-    And room "TargetedRoom" is created using service "livekit1"
+    And room "TargetedRoom" is created using service "livekit"
 
     When "Matthew" opens a "Chrome" browser with LiveKit Meet page
     And "Matthew" connects to room "TargetedRoom" using the access token
@@ -256,7 +256,7 @@ Feature: LiveKit Data Channel Communication
     And "Sophie" connects to room "TargetedRoom" using the access token
     And connection is established successfully for "Sophie"
 
-    Then room "TargetedRoom" should have 3 active participants in service "livekit1"
+    Then room "TargetedRoom" should have 3 active participants in service "livekit"
 
     When "Matthew" sends a data message "Private message" to "Chloe" via reliable channel
 

@@ -5,7 +5,7 @@ Feature: LiveKit Screen Sharing
 
   Background:
     Given the LiveKit config is set to "basic"
-    And a LiveKit server is running in a container with service name "livekit1"
+    And a LiveKit server is running in a container with service name "livekit"
 
   Scenario: Generate access token with screen share permission
     When the system creates an access token with identity "Oliver" and room "ScreenRoom" with grants "canPublish:true,canPublishSources:screen_share"
@@ -27,16 +27,16 @@ Feature: LiveKit Screen Sharing
 
   Scenario Outline: Participant can publish screen share track
     Given an access token is created with identity "Quinn" and room "ScreenShareRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone\,screen_share"
-    And room "ScreenShareRoom" is created using service "livekit1"
+    And room "ScreenShareRoom" is created using service "livekit"
 
     When "Quinn" opens a <browser> browser with LiveKit Meet page
     And "Quinn" connects to room "ScreenShareRoom" using the access token
     And connection is established successfully for "Quinn"
     And "Quinn" starts screen sharing
 
-    Then room "ScreenShareRoom" should have 1 active participants in service "livekit1"
-    And participant "Quinn" should be publishing screen share in room "ScreenShareRoom" using service "livekit1"
-    And participant "Quinn" should have 3 published tracks in room "ScreenShareRoom" using service "livekit1"
+    Then room "ScreenShareRoom" should have 1 active participants in service "livekit"
+    And participant "Quinn" should be publishing screen share in room "ScreenShareRoom" using service "livekit"
+    And participant "Quinn" should have 3 published tracks in room "ScreenShareRoom" using service "livekit"
 
     Examples:
       | browser  |
@@ -47,14 +47,14 @@ Feature: LiveKit Screen Sharing
     Given an access token is created with identity "Sam" and room "MultiSubRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone\,screen_share"
     And an access token is created with identity "Tina" and room "MultiSubRoom" with grants "canPublish:false,canSubscribe:true"
     And an access token is created with identity "Uma" and room "MultiSubRoom" with grants "canPublish:false,canSubscribe:true"
-    And room "MultiSubRoom" is created using service "livekit1"
+    And room "MultiSubRoom" is created using service "livekit"
 
     When "Sam" opens a "Chrome" browser with LiveKit Meet page
     And "Sam" connects to room "MultiSubRoom" using the access token
     And connection is established successfully for "Sam"
     And "Sam" starts screen sharing
 
-    Then participant "Sam" should be publishing screen share in room "MultiSubRoom" using service "livekit1"
+    Then participant "Sam" should be publishing screen share in room "MultiSubRoom" using service "livekit"
 
     When "Tina" opens a "Chrome" browser with LiveKit Meet page
     And "Tina" connects to room "MultiSubRoom" using the access token
@@ -64,50 +64,50 @@ Feature: LiveKit Screen Sharing
     And "Uma" connects to room "MultiSubRoom" using the access token
     And connection is established successfully for "Uma"
 
-    Then room "MultiSubRoom" should have 3 active participants in service "livekit1"
-    And participant "Tina" should have 1 remote screen share tracks available in room "MultiSubRoom" using service "livekit1"
-    And participant "Uma" should have 1 remote screen share tracks available in room "MultiSubRoom" using service "livekit1"
+    Then room "MultiSubRoom" should have 3 active participants in service "livekit"
+    And participant "Tina" should have 1 remote screen share tracks available in room "MultiSubRoom" using service "livekit"
+    And participant "Uma" should have 1 remote screen share tracks available in room "MultiSubRoom" using service "livekit"
 
   Scenario: Screen share can be stopped and restarted
     Given an access token is created with identity "Victor" and room "StopRestartRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone\,screen_share"
     And an access token is created with identity "Wendy" and room "StopRestartRoom" with grants "canPublish:false,canSubscribe:true"
-    And room "StopRestartRoom" is created using service "livekit1"
+    And room "StopRestartRoom" is created using service "livekit"
 
     When "Victor" opens a "Chrome" browser with LiveKit Meet page
     And "Victor" connects to room "StopRestartRoom" using the access token
     And connection is established successfully for "Victor"
     And "Victor" starts screen sharing
 
-    Then participant "Victor" should be publishing screen share in room "StopRestartRoom" using service "livekit1"
+    Then participant "Victor" should be publishing screen share in room "StopRestartRoom" using service "livekit"
 
     When "Wendy" opens a "Chrome" browser with LiveKit Meet page
     And "Wendy" connects to room "StopRestartRoom" using the access token
     And connection is established successfully for "Wendy"
 
-    Then participant "Wendy" should have 1 remote screen share tracks available in room "StopRestartRoom" using service "livekit1"
+    Then participant "Wendy" should have 1 remote screen share tracks available in room "StopRestartRoom" using service "livekit"
 
     When "Victor" stops screen sharing
 
-    Then participant "Victor" should not be publishing screen share in room "StopRestartRoom" using service "livekit1"
-    And participant "Wendy" should have 0 remote screen share tracks available in room "StopRestartRoom" using service "livekit1"
+    Then participant "Victor" should not be publishing screen share in room "StopRestartRoom" using service "livekit"
+    And participant "Wendy" should have 0 remote screen share tracks available in room "StopRestartRoom" using service "livekit"
 
     When "Victor" starts screen sharing
 
-    Then participant "Victor" should be publishing screen share in room "StopRestartRoom" using service "livekit1"
-    And participant "Wendy" should have 1 remote screen share tracks available in room "StopRestartRoom" using service "livekit1"
+    Then participant "Victor" should be publishing screen share in room "StopRestartRoom" using service "livekit"
+    And participant "Wendy" should have 1 remote screen share tracks available in room "StopRestartRoom" using service "livekit"
 
   Scenario: Camera works but screen share is blocked without screen share permission
     Given an access token is created with identity "Xavier" and room "PermissionRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
-    And room "PermissionRoom" is created using service "livekit1"
+    And room "PermissionRoom" is created using service "livekit"
 
     When "Xavier" opens a "Chrome" browser with LiveKit Meet page
     And "Xavier" connects to room "PermissionRoom" using the access token
     And connection is established successfully for "Xavier"
 
-    Then participant "Xavier" should be publishing video in room "PermissionRoom" using service "livekit1"
-    And participant "Xavier" should not be publishing screen share in room "PermissionRoom" using service "livekit1"
+    Then participant "Xavier" should be publishing video in room "PermissionRoom" using service "livekit"
+    And participant "Xavier" should not be publishing screen share in room "PermissionRoom" using service "livekit"
 
     When "Xavier" attempts to start screen sharing
 
     Then participant "Xavier" should not be able to share screen due to permissions
-    And participant "Xavier" should not be publishing screen share in room "PermissionRoom" using service "livekit1"
+    And participant "Xavier" should not be publishing screen share in room "PermissionRoom" using service "livekit"

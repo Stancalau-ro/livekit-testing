@@ -5,12 +5,12 @@ Feature: Dynacast Bandwidth Adaptation
 
   Background:
     Given the LiveKit config is set to "basic"
-    And a LiveKit server is running in a container with service name "livekit1"
+    And a LiveKit server is running in a container with service name "livekit"
 
   Scenario: Video track pauses when unsubscribed and resumes when resubscribed
     Given an access token is created with identity "Oscar" and room "DynacastRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
     And an access token is created with identity "Patricia" and room "DynacastRoom" with grants "canPublish:false,canSubscribe:true"
-    And room "DynacastRoom" is created using service "livekit1"
+    And room "DynacastRoom" is created using service "livekit"
 
     When "Oscar" opens a "Chrome" browser with LiveKit Meet page
     And "Oscar" enables simulcast for video publishing
@@ -21,7 +21,7 @@ Feature: Dynacast Bandwidth Adaptation
     And "Patricia" connects to room "DynacastRoom" using the access token
     And connection is established successfully for "Patricia"
 
-    Then room "DynacastRoom" should have 2 active participants in service "livekit1"
+    Then room "DynacastRoom" should have 2 active participants in service "livekit"
     And dynacast should be enabled in the room for "Patricia"
     And "Oscar"'s video track should be active for "Patricia"
     And "Patricia" should be receiving video from "Oscar"
@@ -39,7 +39,7 @@ Feature: Dynacast Bandwidth Adaptation
   Scenario: Quality preference change triggers layer adaptation
     Given an access token is created with identity "Victor" and room "QualityRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
     And an access token is created with identity "Wendy" and room "QualityRoom" with grants "canPublish:false,canSubscribe:true"
-    And room "QualityRoom" is created using service "livekit1"
+    And room "QualityRoom" is created using service "livekit"
 
     When "Victor" opens a "Chrome" browser with LiveKit Meet page
     And "Victor" enables simulcast for video publishing
@@ -50,8 +50,8 @@ Feature: Dynacast Bandwidth Adaptation
     And "Wendy" connects to room "QualityRoom" using the access token
     And connection is established successfully for "Wendy"
 
-    Then room "QualityRoom" should have 2 active participants in service "livekit1"
-    And participant "Victor" should have simulcast enabled for video in room "QualityRoom" using service "livekit1"
+    Then room "QualityRoom" should have 2 active participants in service "livekit"
+    And participant "Victor" should have simulcast enabled for video in room "QualityRoom" using service "livekit"
     And "Wendy" should be receiving video from "Victor"
 
     When "Victor" measures their video publish bitrate over 3 seconds
@@ -65,7 +65,7 @@ Feature: Dynacast Bandwidth Adaptation
   Scenario Outline: Dynacast subscription control works across browsers
     Given an access token is created with identity "Xavier" and room "CrossBrowserRoom" with grants "canPublish:true,canSubscribe:true,canPublishSources:camera\,microphone"
     And an access token is created with identity "Yvonne" and room "CrossBrowserRoom" with grants "canPublish:false,canSubscribe:true"
-    And room "CrossBrowserRoom" is created using service "livekit1"
+    And room "CrossBrowserRoom" is created using service "livekit"
 
     When "Xavier" opens a <publisher_browser> browser with LiveKit Meet page
     And "Xavier" enables simulcast for video publishing
@@ -76,7 +76,7 @@ Feature: Dynacast Bandwidth Adaptation
     And "Yvonne" connects to room "CrossBrowserRoom" using the access token
     And connection is established successfully for "Yvonne"
 
-    Then room "CrossBrowserRoom" should have 2 active participants in service "livekit1"
+    Then room "CrossBrowserRoom" should have 2 active participants in service "livekit"
     And "Yvonne" should be receiving video from "Xavier"
 
     When "Yvonne" unsubscribes from "Xavier"'s video
