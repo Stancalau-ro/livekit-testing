@@ -50,4 +50,4 @@ room:
 webhook:
   api_key: devkey
   urls:
-    - http://mockserver1:1080/webhook
+    - http://mockserver:1080/webhook

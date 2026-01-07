@@ -5,7 +5,7 @@ Feature: LiveKit Egress Recording
 
   Background:
     Given the LiveKit config is set to "with_egress_hook"
-    And a mock HTTP server is running in a container with service name "mockserver1"
+    And a mock HTTP server is running in a container with service name "mockserver"
     And a Redis server is running in a container with service name "redis"
     And a LiveKit server is running in a container with service name "livekit"
     And a LiveKit egress service is running in a container with service name "egress" connected to LiveKit service "livekit"
@@ -27,11 +27,11 @@ Feature: LiveKit Egress Recording
     And participant "Rachel" should have 1 remote video tracks available in room "EgressRecordingRoom" using service "livekit"
     
     When the system starts room composite recording for room "EgressRecordingRoom" using LiveKit service "livekit"
-    Then "mockserver1" should have received an "egress_started" event for room "EgressRecordingRoom"
+    Then "mockserver" should have received an "egress_started" event for room "EgressRecordingRoom"
     
     When the recording runs for 6 seconds
     And the system stops room composite recording for room "EgressRecordingRoom" using LiveKit service "livekit"
-    Then "mockserver1" should have received an "egress_ended" event for room "EgressRecordingRoom"
+    Then "mockserver" should have received an "egress_ended" event for room "EgressRecordingRoom"
     
     And the recording file should exist in the output directory for room "EgressRecordingRoom"
     And the recording file should contain actual video content
@@ -54,11 +54,11 @@ Feature: LiveKit Egress Recording
     
     When track IDs are captured for participant "Thomas" in room "TrackCompositeRoom" using LiveKit service "livekit"
     And the system starts track composite recording for participant "Thomas" in room "TrackCompositeRoom" using LiveKit service "livekit"
-    Then "mockserver1" should have received an "egress_started" event for room "TrackCompositeRoom"
+    Then "mockserver" should have received an "egress_started" event for room "TrackCompositeRoom"
     
     When the recording runs for 6 seconds
     And the system stops track composite recording for participant "Thomas" using LiveKit service "livekit"
-    Then "mockserver1" should have received an "egress_ended" event for room "TrackCompositeRoom"
+    Then "mockserver" should have received an "egress_ended" event for room "TrackCompositeRoom"
     
     And the track composite recording file should exist for participant "Thomas"
     And the recording file should contain actual video content
@@ -79,11 +79,11 @@ Feature: LiveKit Egress Recording
     Then room "MultiParticipantRecording" should have 2 active participants in service "livekit"
     
     When the system starts room composite recording for room "MultiParticipantRecording" using LiveKit service "livekit"
-    Then "mockserver1" should have received an "egress_started" event for room "MultiParticipantRecording"
+    Then "mockserver" should have received an "egress_started" event for room "MultiParticipantRecording"
     
     When the recording runs for 6 seconds
     And the system stops room composite recording for room "MultiParticipantRecording" using LiveKit service "livekit"
-    Then "mockserver1" should have received an "egress_ended" event for room "MultiParticipantRecording"
+    Then "mockserver" should have received an "egress_ended" event for room "MultiParticipantRecording"
     
     And the recording file should exist in the output directory for room "MultiParticipantRecording"
     And the recording file should contain actual video content from multiple participants
@@ -106,16 +106,16 @@ Feature: LiveKit Egress Recording
     When track IDs are captured for participant "Alice" in room "MultiTrackCompositeRoom" using LiveKit service "livekit"
     And track IDs are captured for participant "Bob" in room "MultiTrackCompositeRoom" using LiveKit service "livekit"
     And the system starts track composite recording for participant "Alice" in room "MultiTrackCompositeRoom" using LiveKit service "livekit"
-    Then "mockserver1" should have received an "egress_started" event for room "MultiTrackCompositeRoom"
+    Then "mockserver" should have received an "egress_started" event for room "MultiTrackCompositeRoom"
     
     When the system starts track composite recording for participant "Bob" in room "MultiTrackCompositeRoom" using LiveKit service "livekit"
-    Then "mockserver1" should have received 2 "egress_started" events for room "MultiTrackCompositeRoom"
+    Then "mockserver" should have received 2 "egress_started" events for room "MultiTrackCompositeRoom"
     
     When the recording runs for 6 seconds
     And the system stops track composite recording for participant "Alice" using LiveKit service "livekit"
     And the system stops track composite recording for participant "Bob" using LiveKit service "livekit"
     
-    Then "mockserver1" should have received an "egress_ended" event for room "MultiTrackCompositeRoom"
+    Then "mockserver" should have received an "egress_ended" event for room "MultiTrackCompositeRoom"
     
     And the track composite recording file should exist for participant "Alice"
     And the track composite recording file should exist for participant "Bob"

@@ -39,7 +39,7 @@ Feature: LiveKit WebRTC Video Publishing
 
     Then "Sarah" should be disconnected from the room
     And "Sarah" should see the join form again
-    And room "Sarah" should have 0 active participants in service "livekit"
+    And room "TempRoom" should have 0 active participants in service "livekit"
 
   Scenario: Participant without publish permission can join but cannot publish video
     Given an access token is created with identity "Emily" and room "RestrictedRoom" with grants "canPublish:false,canSubscribe:true"

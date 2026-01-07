@@ -718,7 +718,7 @@ LiveKit Server                MockServer                  Test Code
 ### Webhook Validation Flow
 
 ```
-Gherkin Step: "Then 'mockserver1' should have received a 'room_started'
+Gherkin Step: "Then 'mockserver' should have received a 'room_started'
                event for room 'TestRoom'"
                               |
                               v

@@ -97,7 +97,7 @@ The Egress container enables video recording and streaming capabilities through 
 #### Setup Egress Infrastructure
 ```gherkin
 Given the LiveKit config is set to "with_egress_hook"
-And a mock HTTP server is running in a container with service name "mockserver1"
+And a mock HTTP server is running in a container with service name "mockserver"
 And a Redis server is running in a container with service name "redis"
 And a LiveKit server is running in a container with service name "livekit1"
 And a LiveKit egress service is running in a container with service name "egress1" connected to LiveKit service "livekit1"
@@ -560,50 +560,50 @@ Webhook testing validates that LiveKit properly sends HTTP webhook notifications
 #### Setup Webhook Infrastructure
 ```gherkin
 Given the LiveKit config is set to "basic_hook"
-And a mock HTTP server is running in a container with service name "mockserver1"
+And a mock HTTP server is running in a container with service name "mockserver"
 And a LiveKit server is running in a container with service name "livekit1"
 ```
 
 #### Verifying Room Events
 ```gherkin
 When room "WebhookTestRoom" is created using service "livekit1"
-Then "mockserver1" should have received a "room_started" event for room "WebhookTestRoom"
+Then "mockserver" should have received a "room_started" event for room "WebhookTestRoom"
 
 When room "WebhookTestRoom" is deleted using service "livekit1"
-Then "mockserver1" should have received a "room_finished" event for room "WebhookTestRoom"
+Then "mockserver" should have received a "room_finished" event for room "WebhookTestRoom"
 ```
 
 #### Verifying Participant Events
 ```gherkin
 When "George" connects to room "WebhookTestRoom" using the access token
 And connection is established successfully for "George"
-Then "mockserver1" should have received a "participant_joined" event for participant "George" in room "WebhookTestRoom"
+Then "mockserver" should have received a "participant_joined" event for participant "George" in room "WebhookTestRoom"
 ```
 
 #### Verifying Track Events
 ```gherkin
-Then "mockserver1" should have received a "track_published" event for track type "VIDEO" in room "WebhookTestRoom"
+Then "mockserver" should have received a "track_published" event for track type "VIDEO" in room "WebhookTestRoom"
 ```
 
 #### Verifying Participant Attributes in Events
 ```gherkin
-Then "mockserver1" should have received a "participant_joined" event for participant "Elizabeth" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
+Then "mockserver" should have received a "participant_joined" event for participant "Elizabeth" in room "AttributesTestRoom" with attributes "role=admin,department=engineering,project=livekit-testing"
 ```
 
 #### Event Isolation (Clearing)
 ```gherkin
-When "mockserver1" webhook events are cleared
+When "mockserver" webhook events are cleared
 
 When room "RoomB" is created using service "livekit1"
-Then "mockserver1" should have received a "room_started" event for room "RoomB"
-And "mockserver1" should have received exactly 1 webhook event
-And "mockserver1" should not have received a "room_started" event for room "RoomA"
+Then "mockserver" should have received a "room_started" event for room "RoomB"
+And "mockserver" should have received exactly 1 webhook event
+And "mockserver" should not have received a "room_started" event for room "RoomA"
 ```
 
 #### Event Count Verification
 ```gherkin
-And "mockserver1" should have received exactly 8 webhook events
-And "mockserver1" should have received 2 "egress_started" events for room "MultiTrackCompositeRoom"
+And "mockserver" should have received exactly 8 webhook events
+And "mockserver" should have received 2 "egress_started" events for room "MultiTrackCompositeRoom"
 ```
 
 ---

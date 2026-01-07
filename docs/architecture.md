@@ -440,22 +440,22 @@ All containers share a common Docker network created by ContainerStateManager:
 ```
 Docker Network (Bridge Mode)
      |
-     +-- livekit1 (LiveKitContainer)
+     +-- livekit (LiveKitContainer)
      |      Port: 7880
      |
-     +-- egress1 (EgressContainer)
+     +-- egress (EgressContainer)
      |      Port: 7980
      |
      +-- redis (RedisContainer)
      |      Port: 6379
      |
-     +-- minio1 (MinIOContainer)
+     +-- minio (MinIOContainer)
      |      Ports: 9000, 9001
      |
      +-- webserver (WebServerContainer)
      |      Port: 80
      |
-     +-- mockserver1 (MockHttpServerContainer)
+     +-- mockserver (MockHttpServerContainer)
      |      Port: 1080
      |
      +-- browser-* (BrowserWebDriverContainer)

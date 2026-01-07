@@ -199,7 +199,7 @@ webhook:
     api_key: devkey
 #   # list of URLs to be notified of room events
     urls:
-        - http://mockserver1:1080/webhook
+        - http://mockserver:1080/webhook
 
 # Signal Relay
 # since v1.4.0, a more reliable, psrpc based signal relay is available
