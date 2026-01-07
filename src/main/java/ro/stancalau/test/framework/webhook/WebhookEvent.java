@@ -8,24 +8,24 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class WebhookEvent {
 
-  @JsonProperty("event")
-  private String event;
+    @JsonProperty("event")
+    private String event;
 
-  @JsonProperty("room")
-  private Room room;
+    @JsonProperty("room")
+    private Room room;
 
-  @JsonProperty("participant")
-  private Participant participant;
+    @JsonProperty("participant")
+    private Participant participant;
 
-  @JsonProperty("track")
-  private Track track;
+    @JsonProperty("track")
+    private Track track;
 
-  @JsonProperty("egressInfo")
-  private EgressInfo egressInfo;
+    @JsonProperty("egressInfo")
+    private EgressInfo egressInfo;
 
-  @JsonProperty("id")
-  private String id;
+    @JsonProperty("id")
+    private String id;
 
-  @JsonProperty("createdAt")
-  private String createdAt;
+    @JsonProperty("createdAt")
+    private String createdAt;
 }

@@ -24,12 +24,14 @@ Feature: Dynacast Bandwidth Adaptation
     Then room "DynacastRoom" should have 2 active participants in service "livekit1"
     And dynacast should be enabled in the room for "Patricia"
     And "Oscar"'s video track should be active for "Patricia"
+    And "Patricia" should be receiving video from "Oscar"
 
     When "Patricia" unsubscribes from "Oscar"'s video
     Then "Oscar"'s video track should be paused for "Patricia"
 
     When "Patricia" subscribes to "Oscar"'s video
     Then "Oscar"'s video track should be active for "Patricia"
+    And "Patricia" should be receiving video from "Oscar"
 
     And "Oscar" closes the browser
     And "Patricia" closes the browser
@@ -50,6 +52,7 @@ Feature: Dynacast Bandwidth Adaptation
 
     Then room "QualityRoom" should have 2 active participants in service "livekit1"
     And participant "Victor" should have simulcast enabled for video in room "QualityRoom" using service "livekit1"
+    And "Wendy" should be receiving video from "Victor"
 
     When "Victor" measures their video publish bitrate over 3 seconds
     And "Wendy" sets video quality preference to "LOW"
@@ -74,6 +77,7 @@ Feature: Dynacast Bandwidth Adaptation
     And connection is established successfully for "Yvonne"
 
     Then room "CrossBrowserRoom" should have 2 active participants in service "livekit1"
+    And "Yvonne" should be receiving video from "Xavier"
 
     When "Yvonne" unsubscribes from "Xavier"'s video
     Then "Xavier"'s video track should be paused for "Yvonne"

@@ -11,162 +11,149 @@ import org.mockserver.client.MockServerClient;
 @Slf4j
 public class WebhookEventPoller {
 
-  private final WebhookService webhookService;
-  private final Duration timeout;
-  private final Duration pollInterval;
+    private final WebhookService webhookService;
+    private final Duration timeout;
+    private final Duration pollInterval;
 
-  public WebhookEventPoller(WebhookService webhookService) {
-    this(webhookService, Duration.ofSeconds(15), Duration.ofMillis(200));
-  }
-
-  public WebhookEventPoller(
-      WebhookService webhookService, Duration timeout, Duration pollInterval) {
-    this.webhookService = webhookService;
-    this.timeout = timeout;
-    this.pollInterval = pollInterval;
-  }
-
-  public Optional<WebhookEvent> waitForEvent(
-      MockServerClient mockServerClient, Predicate<WebhookEvent> eventMatcher) {
-    Instant startTime = Instant.now();
-    Instant endTime = startTime.plus(timeout);
-
-    while (Instant.now().isBefore(endTime)) {
-      try {
-        List<WebhookEvent> webhookEvents = webhookService.getWebhookEvents(mockServerClient);
-
-        Optional<WebhookEvent> matchingEvent =
-            webhookEvents.stream().filter(eventMatcher).findFirst();
-
-        if (matchingEvent.isPresent()) {
-          Duration elapsed = Duration.between(startTime, Instant.now());
-          log.debug("Found matching webhook event after {}ms", elapsed.toMillis());
-          return matchingEvent;
-        }
-
-        Thread.sleep(pollInterval.toMillis());
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        log.warn("Webhook event polling interrupted", e);
-        break;
-      } catch (Exception e) {
-        log.warn("Error during webhook event polling", e);
-        try {
-          Thread.sleep(pollInterval.toMillis());
-        } catch (InterruptedException ie) {
-          Thread.currentThread().interrupt();
-          break;
-        }
-      }
+    public WebhookEventPoller(WebhookService webhookService) {
+        this(webhookService, Duration.ofSeconds(15), Duration.ofMillis(200));
     }
 
-    Duration elapsed = Duration.between(startTime, Instant.now());
-    log.warn("No matching webhook event found after {}ms timeout", elapsed.toMillis());
-    return Optional.empty();
-  }
+    public WebhookEventPoller(WebhookService webhookService, Duration timeout, Duration pollInterval) {
+        this.webhookService = webhookService;
+        this.timeout = timeout;
+        this.pollInterval = pollInterval;
+    }
 
-  public Optional<WebhookEvent> waitForEventByType(
-      MockServerClient mockServerClient, String eventType) {
-    return waitForEvent(mockServerClient, event -> eventType.equals(event.getEvent()));
-  }
+    public Optional<WebhookEvent> waitForEvent(
+            MockServerClient mockServerClient, Predicate<WebhookEvent> eventMatcher) {
+        Instant startTime = Instant.now();
+        Instant endTime = startTime.plus(timeout);
 
-  public Optional<WebhookEvent> waitForEventByTypeAndRoom(
-      MockServerClient mockServerClient, String eventType, String roomName) {
-    return waitForEvent(
-        mockServerClient,
-        event -> {
-          if (!eventType.equals(event.getEvent())) {
+        while (Instant.now().isBefore(endTime)) {
+            try {
+                List<WebhookEvent> webhookEvents = webhookService.getWebhookEvents(mockServerClient);
+
+                Optional<WebhookEvent> matchingEvent =
+                        webhookEvents.stream().filter(eventMatcher).findFirst();
+
+                if (matchingEvent.isPresent()) {
+                    Duration elapsed = Duration.between(startTime, Instant.now());
+                    log.debug("Found matching webhook event after {}ms", elapsed.toMillis());
+                    return matchingEvent;
+                }
+
+                Thread.sleep(pollInterval.toMillis());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Webhook event polling interrupted", e);
+                break;
+            } catch (Exception e) {
+                log.warn("Error during webhook event polling", e);
+                try {
+                    Thread.sleep(pollInterval.toMillis());
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        Duration elapsed = Duration.between(startTime, Instant.now());
+        log.warn("No matching webhook event found after {}ms timeout", elapsed.toMillis());
+        return Optional.empty();
+    }
+
+    public Optional<WebhookEvent> waitForEventByType(MockServerClient mockServerClient, String eventType) {
+        return waitForEvent(mockServerClient, event -> eventType.equals(event.getEvent()));
+    }
+
+    public Optional<WebhookEvent> waitForEventByTypeAndRoom(
+            MockServerClient mockServerClient, String eventType, String roomName) {
+        return waitForEvent(mockServerClient, event -> {
+            if (!eventType.equals(event.getEvent())) {
+                return false;
+            }
+
+            // Check room-based events
+            if (event.getRoom() != null && roomName.equals(event.getRoom().getName())) {
+                return true;
+            }
+
+            // Check egress-based events
+            if (event.getEgressInfo() != null
+                    && roomName.equals(event.getEgressInfo().getRoomName())) {
+                return true;
+            }
+
             return false;
-          }
-
-          // Check room-based events
-          if (event.getRoom() != null && roomName.equals(event.getRoom().getName())) {
-            return true;
-          }
-
-          // Check egress-based events
-          if (event.getEgressInfo() != null
-              && roomName.equals(event.getEgressInfo().getRoomName())) {
-            return true;
-          }
-
-          return false;
         });
-  }
+    }
 
-  public Optional<WebhookEvent> waitForEventByTypeAndParticipant(
-      MockServerClient mockServerClient, String eventType, String participantIdentity) {
-    return waitForEvent(
-        mockServerClient,
-        event ->
-            eventType.equals(event.getEvent())
-                && event.getParticipant() != null
-                && participantIdentity.equals(event.getParticipant().getIdentity()));
-  }
+    public Optional<WebhookEvent> waitForEventByTypeAndParticipant(
+            MockServerClient mockServerClient, String eventType, String participantIdentity) {
+        return waitForEvent(
+                mockServerClient,
+                event -> eventType.equals(event.getEvent())
+                        && event.getParticipant() != null
+                        && participantIdentity.equals(event.getParticipant().getIdentity()));
+    }
 
-  public Optional<WebhookEvent> waitForEventByTypeParticipantAndRoom(
-      MockServerClient mockServerClient,
-      String eventType,
-      String participantIdentity,
-      String roomName) {
-    return waitForEvent(
-        mockServerClient,
-        event ->
-            eventType.equals(event.getEvent())
-                && event.getParticipant() != null
-                && participantIdentity.equals(event.getParticipant().getIdentity())
-                && event.getRoom() != null
-                && roomName.equals(event.getRoom().getName()));
-  }
+    public Optional<WebhookEvent> waitForEventByTypeParticipantAndRoom(
+            MockServerClient mockServerClient, String eventType, String participantIdentity, String roomName) {
+        return waitForEvent(
+                mockServerClient,
+                event -> eventType.equals(event.getEvent())
+                        && event.getParticipant() != null
+                        && participantIdentity.equals(event.getParticipant().getIdentity())
+                        && event.getRoom() != null
+                        && roomName.equals(event.getRoom().getName()));
+    }
 
-  public Optional<WebhookEvent> waitForEventByTypeAndTrackType(
-      MockServerClient mockServerClient, String eventType, String trackType) {
-    return waitForEvent(
-        mockServerClient,
-        event ->
-            eventType.equals(event.getEvent())
-                && event.getTrack() != null
-                && trackType.equals(event.getTrack().getType()));
-  }
+    public Optional<WebhookEvent> waitForEventByTypeAndTrackType(
+            MockServerClient mockServerClient, String eventType, String trackType) {
+        return waitForEvent(
+                mockServerClient,
+                event -> eventType.equals(event.getEvent())
+                        && event.getTrack() != null
+                        && trackType.equals(event.getTrack().getType()));
+    }
 
-  public Optional<WebhookEvent> waitForEventByTypeTrackTypeAndRoom(
-      MockServerClient mockServerClient, String eventType, String trackType, String roomName) {
-    return waitForEvent(
-        mockServerClient,
-        event ->
-            eventType.equals(event.getEvent())
-                && event.getTrack() != null
-                && trackType.equals(event.getTrack().getEffectiveType())
-                && event.getRoom() != null
-                && roomName.equals(event.getRoom().getName()));
-  }
+    public Optional<WebhookEvent> waitForEventByTypeTrackTypeAndRoom(
+            MockServerClient mockServerClient, String eventType, String trackType, String roomName) {
+        return waitForEvent(
+                mockServerClient,
+                event -> eventType.equals(event.getEvent())
+                        && event.getTrack() != null
+                        && trackType.equals(event.getTrack().getEffectiveType())
+                        && event.getRoom() != null
+                        && roomName.equals(event.getRoom().getName()));
+    }
 
-  public Optional<WebhookEvent> waitForEventByTypeTrackSourceAndRoom(
-      MockServerClient mockServerClient, String eventType, String trackSource, String roomName) {
-    return waitForEvent(
-        mockServerClient,
-        event ->
-            eventType.equals(event.getEvent())
-                && event.getTrack() != null
-                && trackSource.equals(event.getTrack().getSource())
-                && event.getRoom() != null
-                && roomName.equals(event.getRoom().getName()));
-  }
+    public Optional<WebhookEvent> waitForEventByTypeTrackSourceAndRoom(
+            MockServerClient mockServerClient, String eventType, String trackSource, String roomName) {
+        return waitForEvent(
+                mockServerClient,
+                event -> eventType.equals(event.getEvent())
+                        && event.getTrack() != null
+                        && trackSource.equals(event.getTrack().getSource())
+                        && event.getRoom() != null
+                        && roomName.equals(event.getRoom().getName()));
+    }
 
-  public Optional<WebhookEvent> waitForEventByTypeTrackTypeSourceAndRoom(
-      MockServerClient mockServerClient,
-      String eventType,
-      String trackType,
-      String trackSource,
-      String roomName) {
-    return waitForEvent(
-        mockServerClient,
-        event ->
-            eventType.equals(event.getEvent())
-                && event.getTrack() != null
-                && trackType.equals(event.getTrack().getEffectiveType())
-                && trackSource.equals(event.getTrack().getSource())
-                && event.getRoom() != null
-                && roomName.equals(event.getRoom().getName()));
-  }
+    public Optional<WebhookEvent> waitForEventByTypeTrackTypeSourceAndRoom(
+            MockServerClient mockServerClient,
+            String eventType,
+            String trackType,
+            String trackSource,
+            String roomName) {
+        return waitForEvent(
+                mockServerClient,
+                event -> eventType.equals(event.getEvent())
+                        && event.getTrack() != null
+                        && trackType.equals(event.getTrack().getEffectiveType())
+                        && trackSource.equals(event.getTrack().getSource())
+                        && event.getRoom() != null
+                        && roomName.equals(event.getRoom().getName()));
+    }
 }

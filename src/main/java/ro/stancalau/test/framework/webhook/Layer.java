@@ -8,18 +8,18 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Layer {
 
-  @JsonProperty("quality")
-  private String quality;
+    @JsonProperty("quality")
+    private String quality;
 
-  @JsonProperty("width")
-  private Integer width;
+    @JsonProperty("width")
+    private Integer width;
 
-  @JsonProperty("height")
-  private Integer height;
+    @JsonProperty("height")
+    private Integer height;
 
-  @JsonProperty("bitrate")
-  private Integer bitrate;
+    @JsonProperty("bitrate")
+    private Integer bitrate;
 
-  @JsonProperty("ssrc")
-  private Long ssrc;
+    @JsonProperty("ssrc")
+    private Long ssrc;
 }

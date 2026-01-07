@@ -11,51 +11,48 @@ import org.testcontainers.containers.wait.strategy.Wait;
 @Slf4j
 public class RedisContainer extends GenericContainer<RedisContainer> {
 
-  public static final int REDIS_PORT = 6379;
+    public static final int REDIS_PORT = 6379;
 
-  @Getter private final Network network;
-  private String alias;
+    @Getter
+    private final Network network;
 
-  private RedisContainer(String imageName, Network network) {
-    super(imageName);
-    this.network = network;
-  }
+    private String alias;
 
-  public static RedisContainer createContainer(
-      String alias, Network network, String logDestinationPath) {
-    String logDirPath =
-        logDestinationPath != null
-            ? logDestinationPath
-            : "out/bdd/scenarios/current/docker/" + alias;
+    private RedisContainer(String imageName, Network network) {
+        super(imageName);
+        this.network = network;
+    }
 
-    File logDirRoot = new File(logDirPath);
-    logDirRoot.mkdirs();
+    public static RedisContainer createContainer(String alias, Network network, String logDestinationPath) {
+        String logDirPath =
+                logDestinationPath != null ? logDestinationPath : "out/bdd/scenarios/current/docker/" + alias;
 
-    RedisContainer container =
-        new RedisContainer("redis:7-alpine", network)
-            .withExposedPorts(REDIS_PORT)
-            .withNetwork(network)
-            .withNetworkAliases(alias)
-            .waitingFor(
-                Wait.forLogMessage(".*Ready to accept connections.*", 1)
-                    .withStartupTimeout(Duration.ofSeconds(30)));
+        File logDirRoot = new File(logDirPath);
+        logDirRoot.mkdirs();
 
-    container = ContainerLogUtils.withLogCapture(container, logDirRoot, "redis.log");
+        RedisContainer container = new RedisContainer("redis:7-alpine", network)
+                .withExposedPorts(REDIS_PORT)
+                .withNetwork(network)
+                .withNetworkAliases(alias)
+                .waitingFor(Wait.forLogMessage(".*Ready to accept connections.*", 1)
+                        .withStartupTimeout(Duration.ofSeconds(30)));
 
-    container.alias = alias;
+        container = ContainerLogUtils.withLogCapture(container, logDirRoot, "redis.log");
 
-    return container;
-  }
+        container.alias = alias;
 
-  public String getRedisUrl() {
-    return getContainerIpAddress() + ":" + getMappedPort(REDIS_PORT);
-  }
+        return container;
+    }
 
-  public String getNetworkRedisUrl() {
-    return getAlias() + ":" + REDIS_PORT;
-  }
+    public String getRedisUrl() {
+        return getContainerIpAddress() + ":" + getMappedPort(REDIS_PORT);
+    }
 
-  public String getAlias() {
-    return alias != null ? alias : getNetworkAliases().getFirst();
-  }
+    public String getNetworkRedisUrl() {
+        return getAlias() + ":" + REDIS_PORT;
+    }
+
+    public String getAlias() {
+        return alias != null ? alias : getNetworkAliases().getFirst();
+    }
 }

@@ -9,15 +9,15 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TrackCodec {
 
-  @JsonProperty("mimeType")
-  private String mimeType;
+    @JsonProperty("mimeType")
+    private String mimeType;
 
-  @JsonProperty("mid")
-  private String mid;
+    @JsonProperty("mid")
+    private String mid;
 
-  @JsonProperty("cid")
-  private String cid;
+    @JsonProperty("cid")
+    private String cid;
 
-  @JsonProperty("layers")
-  private List<Layer> layers;
+    @JsonProperty("layers")
+    private List<Layer> layers;
 }

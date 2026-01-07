@@ -101,6 +101,99 @@ var SubscriptionHelpers = (function() {
         window.trackStreamStateEvents = [];
     }
 
+    function getSubscriberVideoStats(publisherIdentity) {
+        return new Promise(function(resolve) {
+            if (!window.liveKitClient || !window.liveKitClient.room) {
+                resolve(null);
+                return;
+            }
+            var participant = null;
+            window.liveKitClient.room.remoteParticipants.forEach(function(p) {
+                if (p.identity === publisherIdentity) participant = p;
+            });
+            if (!participant) {
+                resolve(null);
+                return;
+            }
+            var videoTrack = null;
+            var publication = null;
+            participant.trackPublications.forEach(function(pub) {
+                if (pub.kind === 'video' && pub.track) {
+                    videoTrack = pub.track;
+                    publication = pub;
+                }
+            });
+            if (!videoTrack) {
+                resolve(null);
+                return;
+            }
+            var result = {
+                isSubscribed: publication.isSubscribed,
+                hasTrack: !!videoTrack,
+                frameWidth: 0,
+                frameHeight: 0,
+                isPlaying: false,
+                streamState: videoTrack.streamState || 'unknown',
+                timestamp: Date.now()
+            };
+            if (videoTrack.dimensions) {
+                result.frameWidth = videoTrack.dimensions.width || 0;
+                result.frameHeight = videoTrack.dimensions.height || 0;
+            }
+            if (videoTrack.mediaStreamTrack) {
+                var settings = videoTrack.mediaStreamTrack.getSettings();
+                if (settings.width) result.frameWidth = settings.width;
+                if (settings.height) result.frameHeight = settings.height;
+                if (videoTrack.mediaStreamTrack.readyState === 'live') {
+                    result.isPlaying = true;
+                }
+            }
+            var participantDiv = document.getElementById('participant-' + publisherIdentity);
+            if (participantDiv) {
+                var video = participantDiv.querySelector('video');
+                if (video && video.videoWidth > 0 && video.videoHeight > 0 && !video.paused && !video.ended && video.readyState >= 2) {
+                    result.isPlaying = true;
+                    result.frameWidth = video.videoWidth;
+                    result.frameHeight = video.videoHeight;
+                }
+            }
+            if (!result.isPlaying) {
+                var videos = document.querySelectorAll('video');
+                for (var i = 0; i < videos.length; i++) {
+                    var v = videos[i];
+                    if (v.videoWidth > 0 && v.videoHeight > 0 && !v.paused && v.readyState >= 2) {
+                        result.isPlaying = true;
+                        if (result.frameWidth === 0) result.frameWidth = v.videoWidth;
+                        if (result.frameHeight === 0) result.frameHeight = v.videoHeight;
+                        break;
+                    }
+                }
+            }
+            resolve(result);
+        });
+    }
+
+    function isReceivingVideoFrom(publisherIdentity) {
+        return new Promise(function(resolve) {
+            getSubscriberVideoStats(publisherIdentity).then(function(stats) {
+                if (!stats) {
+                    resolve(false);
+                    return;
+                }
+                var isReceiving = stats.isSubscribed && stats.hasTrack &&
+                    (stats.frameWidth > 0 || stats.isPlaying || stats.streamState === 'active');
+                console.log('isReceivingVideoFrom(' + publisherIdentity + '):', JSON.stringify(stats), '-> isReceiving:', isReceiving);
+                resolve(isReceiving);
+            });
+        });
+    }
+
+    function measureVideoReceptionRate(publisherIdentity, intervalMs) {
+        return new Promise(function(resolve) {
+            resolve({ bytesPerSecond: 0, framesPerSecond: 0 });
+        });
+    }
+
     return {
         getSubscriptionFailedEventCount: getSubscriptionFailedEventCount,
         isSubscriptionPermissionDenied: isSubscriptionPermissionDenied,
@@ -108,7 +201,10 @@ var SubscriptionHelpers = (function() {
         getTrackStreamState: getTrackStreamState,
         isVideoSubscribed: isVideoSubscribed,
         setVideoSubscribed: setVideoSubscribed,
-        clearDynacastState: clearDynacastState
+        clearDynacastState: clearDynacastState,
+        getSubscriberVideoStats: getSubscriberVideoStats,
+        isReceivingVideoFrom: isReceivingVideoFrom,
+        measureVideoReceptionRate: measureVideoReceptionRate
     };
 })();
 

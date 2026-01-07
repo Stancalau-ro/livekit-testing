@@ -58,7 +58,8 @@ Feature: LiveKit CLI Publisher Integration
     And participant "Alice" should be publishing video in room "MixedRoom" using service "livekit1"
     And the CLI publisher "CLIBot" should be connected to room "MixedRoom"
     And participant "Alice" should have 1 remote video tracks available in room "MixedRoom" using service "livekit1"
-    
+    And "Alice" should be receiving video from "CLIBot"
+
     # Capture snapshot to see browser and CLI publisher together
     When an on-demand snapshot is captured to local filesystem for room "MixedRoom" using LiveKit service "livekit1"
     Then the local snapshot image file exists for room "MixedRoom"

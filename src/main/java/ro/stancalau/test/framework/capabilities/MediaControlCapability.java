@@ -2,21 +2,21 @@ package ro.stancalau.test.framework.capabilities;
 
 public interface MediaControlCapability {
 
-  void muteAudio();
+    void muteAudio();
 
-  void unmuteAudio();
+    void unmuteAudio();
 
-  void muteVideo();
+    void muteVideo();
 
-  void unmuteVideo();
+    void unmuteVideo();
 
-  boolean isAudioMuted();
+    boolean isAudioMuted();
 
-  boolean isVideoMuted();
+    boolean isVideoMuted();
 
-  boolean isScreenSharing();
+    boolean isScreenSharing();
 
-  boolean isScreenShareBlocked();
+    boolean isScreenShareBlocked();
 
-  String getLastScreenShareError();
+    String getLastScreenShareError();
 }

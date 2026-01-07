@@ -8,6 +8,6 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Version {
 
-  @JsonProperty("unixMicro")
-  private String unixMicro;
+    @JsonProperty("unixMicro")
+    private String unixMicro;
 }

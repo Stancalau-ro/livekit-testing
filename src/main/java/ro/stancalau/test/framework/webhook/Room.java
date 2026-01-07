@@ -9,30 +9,30 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Room {
 
-  @JsonProperty("sid")
-  private String sid;
+    @JsonProperty("sid")
+    private String sid;
 
-  @JsonProperty("name")
-  private String name;
+    @JsonProperty("name")
+    private String name;
 
-  @JsonProperty("emptyTimeout")
-  private Integer emptyTimeout;
+    @JsonProperty("emptyTimeout")
+    private Integer emptyTimeout;
 
-  @JsonProperty("departureTimeout")
-  private Integer departureTimeout;
+    @JsonProperty("departureTimeout")
+    private Integer departureTimeout;
 
-  @JsonProperty("creationTime")
-  private String creationTime;
+    @JsonProperty("creationTime")
+    private String creationTime;
 
-  @JsonProperty("creationTimeMs")
-  private String creationTimeMs;
+    @JsonProperty("creationTimeMs")
+    private String creationTimeMs;
 
-  @JsonProperty("turnPassword")
-  private String turnPassword;
+    @JsonProperty("turnPassword")
+    private String turnPassword;
 
-  @JsonProperty("enabledCodecs")
-  private List<Codec> enabledCodecs;
+    @JsonProperty("enabledCodecs")
+    private List<Codec> enabledCodecs;
 
-  @JsonProperty("metadata")
-  private String metadata;
+    @JsonProperty("metadata")
+    private String metadata;
 }

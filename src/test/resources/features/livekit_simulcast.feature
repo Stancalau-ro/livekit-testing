@@ -58,6 +58,7 @@ Feature: Simulcast Video Publishing
     And connection is established successfully for "Grace"
 
     Then room "SubQualityRoom" should have 2 active participants in service "livekit1"
+    And "Grace" should be receiving video from "Frank"
 
     When "Frank" measures their video publish bitrate over 3 seconds
     And "Grace" sets video quality preference to "LOW"
@@ -85,6 +86,7 @@ Feature: Simulcast Video Publishing
     And connection is established successfully for "Ivy"
 
     Then room "HighQualityRoom" should have 2 active participants in service "livekit1"
+    And "Ivy" should be receiving video from "Henry"
 
     When "Ivy" sets video quality preference to "HIGH"
 
@@ -111,6 +113,7 @@ Feature: Simulcast Video Publishing
     And connection is established successfully for "Laura"
 
     Then room "BandwidthRoom" should have 2 active participants in service "livekit1"
+    And "Laura" should be receiving video from "Kevin"
 
     When "Kevin" measures their video publish bitrate over 3 seconds
     And "Laura" sets maximum receive bandwidth to 100 kbps

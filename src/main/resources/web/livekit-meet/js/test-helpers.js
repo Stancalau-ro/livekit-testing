@@ -639,6 +639,27 @@ var LiveKitTestHelpers = {
     clearMetadataEvents: function() {
         window.roomMetadataEvents = [];
         window.participantMetadataEvents = [];
+    },
+
+    getSubscriberVideoStats: function(publisherIdentity) {
+        if (window.SubscriptionHelpers) {
+            return window.SubscriptionHelpers.getSubscriberVideoStats(publisherIdentity);
+        }
+        return Promise.resolve(null);
+    },
+
+    isReceivingVideoFrom: function(publisherIdentity) {
+        if (window.SubscriptionHelpers) {
+            return window.SubscriptionHelpers.isReceivingVideoFrom(publisherIdentity);
+        }
+        return Promise.resolve(false);
+    },
+
+    measureVideoReceptionRate: function(publisherIdentity, intervalMs) {
+        if (window.SubscriptionHelpers) {
+            return window.SubscriptionHelpers.measureVideoReceptionRate(publisherIdentity, intervalMs);
+        }
+        return Promise.resolve({ bytesPerSecond: 0, framesPerSecond: 0 });
     }
 };
 

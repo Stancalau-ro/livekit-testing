@@ -1,16 +1,16 @@
 package ro.stancalau.test.bdd.steps.params;
 
 public enum MuteState {
-  muted(true),
-  unmuted(false);
+    muted(true),
+    unmuted(false);
 
-  private final boolean isMuted;
+    private final boolean isMuted;
 
-  MuteState(boolean isMuted) {
-    this.isMuted = isMuted;
-  }
+    MuteState(boolean isMuted) {
+        this.isMuted = isMuted;
+    }
 
-  public boolean isMuted() {
-    return isMuted;
-  }
+    public boolean isMuted() {
+        return isMuted;
+    }
 }

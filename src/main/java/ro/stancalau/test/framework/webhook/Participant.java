@@ -9,24 +9,24 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Participant {
 
-  @JsonProperty("sid")
-  private String sid;
+    @JsonProperty("sid")
+    private String sid;
 
-  @JsonProperty("identity")
-  private String identity;
+    @JsonProperty("identity")
+    private String identity;
 
-  @JsonProperty("name")
-  private String name;
+    @JsonProperty("name")
+    private String name;
 
-  @JsonProperty("state")
-  private String state;
+    @JsonProperty("state")
+    private String state;
 
-  @JsonProperty("joinedAt")
-  private String joinedAt;
+    @JsonProperty("joinedAt")
+    private String joinedAt;
 
-  @JsonProperty("metadata")
-  private String metadata;
+    @JsonProperty("metadata")
+    private String metadata;
 
-  @JsonProperty("attributes")
-  private Map<String, String> attributes;
+    @JsonProperty("attributes")
+    private Map<String, String> attributes;
 }

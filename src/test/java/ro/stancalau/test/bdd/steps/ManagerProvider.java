@@ -19,172 +19,161 @@ import ro.stancalau.test.framework.state.WebDriverStateManager;
  */
 public class ManagerProvider {
 
-  private static final ThreadLocal<ManagerFactory.ManagerSet> managerSet = new ThreadLocal<>();
+    private static final ThreadLocal<ManagerFactory.ManagerSet> managerSet = new ThreadLocal<>();
 
-  /** Initialize managers for the current scenario thread */
-  public static void initializeManagers() {
-    if (managerSet.get() == null) {
-      ManagerFactory.ManagerSet managers = ManagerFactory.createManagerSet();
-      managerSet.set(managers);
+    /** Initialize managers for the current scenario thread */
+    public static void initializeManagers() {
+        if (managerSet.get() == null) {
+            ManagerFactory.ManagerSet managers = ManagerFactory.createManagerSet();
+            managerSet.set(managers);
+        }
     }
-  }
 
-  /** Clean up managers for the current scenario thread */
-  public static void cleanupManagers() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers != null) {
-      managers.cleanup();
-      managerSet.remove();
+    /** Clean up managers for the current scenario thread */
+    public static void cleanupManagers() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers != null) {
+            managers.cleanup();
+            managerSet.remove();
+        }
     }
-  }
 
-  /** Get the container manager for the current scenario */
-  public static ContainerStateManager getContainerManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    /** Get the container manager for the current scenario */
+    public static ContainerStateManager getContainerManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.containerManager();
     }
-    return managers.containerManager();
-  }
 
-  /** Get the WebDriver manager for the current scenario */
-  public static WebDriverStateManager getWebDriverManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    /** Get the WebDriver manager for the current scenario */
+    public static WebDriverStateManager getWebDriverManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.webDriverManager();
     }
-    return managers.webDriverManager();
-  }
 
-  /** Get the room client manager for the current scenario */
-  public static RoomClientStateManager getRoomClientManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    /** Get the room client manager for the current scenario */
+    public static RoomClientStateManager getRoomClientManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.roomClientManager();
     }
-    return managers.roomClientManager();
-  }
 
-  /** Get the access token manager for the current scenario */
-  public static AccessTokenStateManager getAccessTokenManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    /** Get the access token manager for the current scenario */
+    public static AccessTokenStateManager getAccessTokenManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.accessTokenManager();
     }
-    return managers.accessTokenManager();
-  }
 
-  /** Get the egress state manager for the current scenario */
-  public static EgressStateManager getEgressStateManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    /** Get the egress state manager for the current scenario */
+    public static EgressStateManager getEgressStateManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.egressStateManager();
     }
-    return managers.egressStateManager();
-  }
 
-  /** Get the image snapshot state manager for the current scenario */
-  public static ImageSnapshotStateManager getImageSnapshotStateManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    /** Get the image snapshot state manager for the current scenario */
+    public static ImageSnapshotStateManager getImageSnapshotStateManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.imageSnapshotStateManager();
     }
-    return managers.imageSnapshotStateManager();
-  }
 
-  // Convenient shorter aliases for common operations
-  public static ContainerStateManager containers() {
-    return getContainerManager();
-  }
-
-  public static WebDriverStateManager webDrivers() {
-    return getWebDriverManager();
-  }
-
-  public static RoomClientStateManager rooms() {
-    return getRoomClientManager();
-  }
-
-  public static AccessTokenStateManager tokens() {
-    return getAccessTokenManager();
-  }
-
-  public static EgressStateManager egress() {
-    return getEgressStateManager();
-  }
-
-  public static IngressStateManager getIngressStateManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    // Convenient shorter aliases for common operations
+    public static ContainerStateManager containers() {
+        return getContainerManager();
     }
-    return managers.ingressStateManager();
-  }
 
-  public static IngressStateManager ingress() {
-    return getIngressStateManager();
-  }
-
-  public static ImageSnapshotStateManager snapshots() {
-    return getImageSnapshotStateManager();
-  }
-
-  public static MeetSessionStateManager getMeetSessionManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    public static WebDriverStateManager webDrivers() {
+        return getWebDriverManager();
     }
-    return managers.meetSessionStateManager();
-  }
 
-  public static VideoQualityStateManager getVideoQualityManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    public static RoomClientStateManager rooms() {
+        return getRoomClientManager();
     }
-    return managers.videoQualityStateManager();
-  }
 
-  public static DataChannelStateManager getDataChannelManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    public static AccessTokenStateManager tokens() {
+        return getAccessTokenManager();
     }
-    return managers.dataChannelStateManager();
-  }
 
-  public static MeetSessionStateManager meetSessions() {
-    return getMeetSessionManager();
-  }
-
-  public static VideoQualityStateManager videoQuality() {
-    return getVideoQualityManager();
-  }
-
-  public static DataChannelStateManager dataChannel() {
-    return getDataChannelManager();
-  }
-
-  public static MetadataStateManager getMetadataManager() {
-    ManagerFactory.ManagerSet managers = managerSet.get();
-    if (managers == null) {
-      throw new IllegalStateException(
-          "Managers not initialized. Ensure BaseSteps @Before hook ran.");
+    public static EgressStateManager egress() {
+        return getEgressStateManager();
     }
-    return managers.metadataStateManager();
-  }
 
-  public static MetadataStateManager metadata() {
-    return getMetadataManager();
-  }
+    public static IngressStateManager getIngressStateManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.ingressStateManager();
+    }
+
+    public static IngressStateManager ingress() {
+        return getIngressStateManager();
+    }
+
+    public static ImageSnapshotStateManager snapshots() {
+        return getImageSnapshotStateManager();
+    }
+
+    public static MeetSessionStateManager getMeetSessionManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.meetSessionStateManager();
+    }
+
+    public static VideoQualityStateManager getVideoQualityManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.videoQualityStateManager();
+    }
+
+    public static DataChannelStateManager getDataChannelManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.dataChannelStateManager();
+    }
+
+    public static MeetSessionStateManager meetSessions() {
+        return getMeetSessionManager();
+    }
+
+    public static VideoQualityStateManager videoQuality() {
+        return getVideoQualityManager();
+    }
+
+    public static DataChannelStateManager dataChannel() {
+        return getDataChannelManager();
+    }
+
+    public static MetadataStateManager getMetadataManager() {
+        ManagerFactory.ManagerSet managers = managerSet.get();
+        if (managers == null) {
+            throw new IllegalStateException("Managers not initialized. Ensure BaseSteps @Before hook ran.");
+        }
+        return managers.metadataStateManager();
+    }
+
+    public static MetadataStateManager metadata() {
+        return getMetadataManager();
+    }
 }

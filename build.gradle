@@ -13,7 +13,7 @@ checkstyle {
 
 spotless {
     java {
-        googleJavaFormat()
+        palantirJavaFormat()
         removeUnusedImports()
         trimTrailingWhitespace()
         endWithNewline()
@@ -52,13 +52,13 @@ dependencies {
 
     implementation "io.livekit:livekit-server:$livekit_server_version"
     testImplementation "com.auth0:java-jwt:$auth0_jwt_version"
-    
+
     implementation "org.mock-server:mockserver-client-java:$mockserver_client_version"
-    
+
     implementation "com.fasterxml.jackson.core:jackson-core:$jackson_version"
     implementation "com.fasterxml.jackson.core:jackson-databind:$jackson_version"
     implementation "com.fasterxml.jackson.core:jackson-annotations:$jackson_version"
-    
+
     implementation platform("software.amazon.awssdk:bom:$aws_sdk_version")
     implementation "software.amazon.awssdk:s3"
 }
@@ -85,24 +85,19 @@ task bddTest(type: Test) {
     classpath = sourceSets.test.runtimeClasspath
 
     include '**/RunCucumberTests.class'
-    
-    // Run in a single JVM to allow thread pool sharing for concurrent scenarios
+
     maxParallelForks = 1
 
-    // Configure parallel execution - can be overridden via command line: -Dparallelism=2
     def parallelism = System.getProperty('parallelism', '2')
 
-    // Cucumber parallel execution
     systemProperty 'cucumber.execution.parallel.enabled', 'true'
 
-    // Per-scenario timeout (10 minutes) to prevent stuck scenarios holding containers
     systemProperty 'cucumber.execution.timeout.default', '600000'
     systemProperty 'cucumber.execution.parallel.config.strategy', 'fixed'
     systemProperty 'cucumber.execution.parallel.config.fixed.parallelism', parallelism
     systemProperty 'cucumber.execution.parallel.config.fixed.max-pool-size', parallelism
-    
-    // JUnit 5 parallel execution (for non-Cucumber tests if any)
-    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true' 
+
+    systemProperty 'junit.jupiter.execution.parallel.enabled', 'true'
     systemProperty 'junit.jupiter.execution.parallel.mode.default', 'concurrent'
     systemProperty 'junit.jupiter.execution.parallel.config.strategy', 'fixed'
     systemProperty 'junit.jupiter.execution.parallel.config.fixed.parallelism', parallelism

@@ -13,13 +13,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class BaseSteps {
 
-  @Before(order = 0)
-  public void setUpManagers(Scenario scenario) {
-    ManagerProvider.initializeManagers();
-  }
+    @Before(order = 0)
+    public void setUpManagers(Scenario scenario) {
+        ManagerProvider.initializeManagers();
+    }
 
-  @After(order = 1000)
-  public void cleanupManagers(Scenario scenario) {
-    ManagerProvider.cleanupManagers();
-  }
+    @After(order = 1000)
+    public void cleanupManagers(Scenario scenario) {
+        ManagerProvider.cleanupManagers();
+    }
 }

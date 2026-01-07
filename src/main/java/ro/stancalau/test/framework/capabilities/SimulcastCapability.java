@@ -2,27 +2,27 @@ package ro.stancalau.test.framework.capabilities;
 
 public interface SimulcastCapability {
 
-  void enableSimulcast();
+    void enableSimulcast();
 
-  void disableSimulcast();
+    void disableSimulcast();
 
-  boolean isSimulcastEnabled();
+    boolean isSimulcastEnabled();
 
-  void setVideoQualityPreference(String quality);
+    void setVideoQualityPreference(String quality);
 
-  String getVideoQualityPreference();
+    String getVideoQualityPreference();
 
-  void setMaxReceiveBandwidth(int kbps);
+    void setMaxReceiveBandwidth(int kbps);
 
-  boolean isDynacastEnabled();
+    boolean isDynacastEnabled();
 
-  String getTrackStreamState(String publisherIdentity);
+    String getTrackStreamState(String publisherIdentity);
 
-  boolean setVideoSubscribed(String publisherIdentity, boolean subscribed);
+    boolean setVideoSubscribed(String publisherIdentity, boolean subscribed);
 
-  Long getRemoteVideoTrackWidthByPublisher(String publisherIdentity);
+    Long getRemoteVideoTrackWidthByPublisher(String publisherIdentity);
 
-  long measureVideoBitrateOverInterval(int milliseconds);
+    long measureVideoBitrateOverInterval(int milliseconds);
 
-  void clearDynacastState();
+    void clearDynacastState();
 }

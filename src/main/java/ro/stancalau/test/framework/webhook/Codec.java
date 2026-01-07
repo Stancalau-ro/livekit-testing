@@ -8,6 +8,6 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Codec {
 
-  @JsonProperty("mime")
-  private String mime;
+    @JsonProperty("mime")
+    private String mime;
 }
