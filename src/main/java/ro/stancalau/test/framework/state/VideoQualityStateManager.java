@@ -17,6 +17,8 @@ public class VideoQualityStateManager {
     private static final int BITRATE_MEASUREMENT_MS = 3_000;
     private static final long BITRATE_READY_TIMEOUT_MS = 15_000;
     private static final long BITRATE_POLL_DELAY_MS = 1_000;
+    private static final long BITRATE_DROP_TIMEOUT_MS = 15_000;
+    private static final long BITRATE_DROP_POLL_DELAY_MS = 2_000;
 
     private final MeetSessionStateManager meetSessionStateManager;
     private final Map<String, Boolean> simulcastPreferences = new HashMap<>();
@@ -106,6 +108,43 @@ public class VideoQualityStateManager {
         long currentBitrateKbps = meetInstance.getSimulcast().measureVideoBitrateOverInterval(BITRATE_MEASUREMENT_MS);
         return (int) currentBitrateKbps;
     }
+
+    public BitrateDropResult pollForBitrateDrop(String participantName, int baselineBitrate, int minDropPercent) {
+        LiveKitMeet meetInstance = meetSessionStateManager.getMeetInstance(participantName);
+
+        final int[] lastMeasuredBitrate = {0};
+        final int[] lastDropPercent = {0};
+
+        Boolean dropped = BrowserPollingHelper.pollUntil(
+                () -> {
+                    int currentBitrate =
+                            (int) meetInstance.getSimulcast().measureVideoBitrateOverInterval(BITRATE_MEASUREMENT_MS);
+                    lastMeasuredBitrate[0] = currentBitrate;
+                    lastDropPercent[0] =
+                            baselineBitrate > 0 ? ((baselineBitrate - currentBitrate) * 100) / baselineBitrate : 0;
+                    log.debug(
+                            "Polling {} bitrate: {} kbps (drop: {}%, target: {}%)",
+                            participantName, currentBitrate, lastDropPercent[0], minDropPercent);
+                    return lastDropPercent[0] >= minDropPercent;
+                },
+                result -> result,
+                BITRATE_DROP_TIMEOUT_MS,
+                BITRATE_DROP_POLL_DELAY_MS);
+
+        boolean success = dropped != null && dropped;
+        log.info(
+                "{} bitrate drop poll {}: baseline={} kbps, final={} kbps, drop={}%, target={}%",
+                participantName,
+                success ? "succeeded" : "timed out",
+                baselineBitrate,
+                lastMeasuredBitrate[0],
+                lastDropPercent[0],
+                minDropPercent);
+
+        return new BitrateDropResult(lastMeasuredBitrate[0], lastDropPercent[0], success);
+    }
+
+    public record BitrateDropResult(int currentBitrate, int actualDropPercent, boolean dropAchieved) {}
 
     public void clearAll() {
         log.info("Clearing video quality state");

@@ -138,24 +138,20 @@ public class VideoQualitySteps {
         int baselineBitrate = ManagerProvider.videoQuality().getStoredBitrate(participantName);
         assertTrue(baselineBitrate > 0, "Baseline bitrate should have been measured for " + participantName);
 
-        int currentBitrate = ManagerProvider.videoQuality().measureCurrentBitrate(participantName);
-        int actualDropPercent = baselineBitrate > 0 ? ((baselineBitrate - currentBitrate) * 100) / baselineBitrate : 0;
-
-        log.info(
-                "{} bitrate drop: baseline={} kbps, current={} kbps, drop={}%",
-                participantName, baselineBitrate, currentBitrate, actualDropPercent);
+        var result =
+                ManagerProvider.videoQuality().pollForBitrateDrop(participantName, baselineBitrate, minDropPercent);
 
         assertTrue(
-                actualDropPercent >= minDropPercent,
+                result.dropAchieved(),
                 participantName
                         + "'s video publish bitrate should have dropped by at least "
                         + minDropPercent
                         + "% but only dropped by "
-                        + actualDropPercent
+                        + result.actualDropPercent()
                         + "% (baseline: "
                         + baselineBitrate
                         + " kbps, current: "
-                        + currentBitrate
+                        + result.currentBitrate()
                         + " kbps)");
     }
 }
