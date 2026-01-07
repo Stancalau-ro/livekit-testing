@@ -28,6 +28,7 @@ import ro.stancalau.test.framework.docker.WebServerContainer;
 import ro.stancalau.test.framework.js.JsExecutor;
 import ro.stancalau.test.framework.state.ContainerStateManager;
 import ro.stancalau.test.framework.util.TestTimeoutException;
+import ro.stancalau.test.framework.util.WebDriverSessionDeadException;
 
 @Slf4j
 public class LiveKitMeet {
@@ -265,6 +266,10 @@ public class LiveKitMeet {
 
             throw new TestTimeoutException("WebRTC connection establishment", context.toString(), 15000, e);
         } catch (Exception e) {
+            if (WebDriverSessionDeadException.isSessionDeadError(e)) {
+                throw new WebDriverSessionDeadException("Session died during connection wait", e);
+            }
+
             log.error("LiveKitMeet connection failed: {}", e.getMessage());
 
             try {
@@ -526,6 +531,11 @@ public class LiveKitMeet {
             }
         } catch (NoSuchElementException e) {
             log.warn("Screen share button not found");
+        } catch (Exception e) {
+            if (WebDriverSessionDeadException.isSessionDeadError(e)) {
+                throw new WebDriverSessionDeadException("Session died during screen share start", e);
+            }
+            throw e;
         }
     }
 
@@ -541,6 +551,11 @@ public class LiveKitMeet {
             }
         } catch (NoSuchElementException e) {
             log.warn("Screen share button not found");
+        } catch (Exception e) {
+            if (WebDriverSessionDeadException.isSessionDeadError(e)) {
+                throw new WebDriverSessionDeadException("Session died during screen share stop", e);
+            }
+            throw e;
         }
     }
 
@@ -561,8 +576,15 @@ public class LiveKitMeet {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(d -> media.isAudioMuted() == expectedMuted);
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            wait.until(d -> media.isAudioMuted() == expectedMuted);
+        } catch (Exception e) {
+            if (WebDriverSessionDeadException.isSessionDeadError(e)) {
+                throw new WebDriverSessionDeadException("Session died waiting for audio mute state", e);
+            }
+            throw e;
+        }
     }
 
     public void waitForVideoMuted(boolean expectedMuted) {
@@ -571,8 +593,15 @@ public class LiveKitMeet {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
-        wait.until(d -> media.isVideoMuted() == expectedMuted);
+        try {
+            WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+            wait.until(d -> media.isVideoMuted() == expectedMuted);
+        } catch (Exception e) {
+            if (WebDriverSessionDeadException.isSessionDeadError(e)) {
+                throw new WebDriverSessionDeadException("Session died waiting for video mute state", e);
+            }
+            throw e;
+        }
     }
 
     public boolean hasReceivedDataMessage(String expectedContent, String fromIdentity) {

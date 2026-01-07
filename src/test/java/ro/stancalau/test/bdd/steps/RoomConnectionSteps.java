@@ -95,6 +95,9 @@ public class RoomConnectionSteps {
                     Thread.currentThread().interrupt();
                     fail("Connection attempt interrupted for " + participantName);
                 }
+                if (e instanceof ro.stancalau.test.framework.util.WebDriverSessionDeadException) {
+                    throw e;
+                }
                 String errorDetails = meetInstance.getPageErrorDetails();
                 boolean isRetryableError = isRetryableServerError(errorDetails);
 
@@ -153,7 +156,7 @@ public class RoomConnectionSteps {
         assertNotNull(meetInstance, "Meet instance should exist for " + subscriberName);
 
         boolean isReceiving = BrowserPollingHelper.pollForCondition(
-                () -> meetInstance.getConnection().isReceivingVideoFrom(publisherName), 30, 1000);
+                () -> meetInstance.getConnection().isReceivingVideoFrom(publisherName), 30_000, 1000);
         assertTrue(
                 isReceiving,
                 subscriberName

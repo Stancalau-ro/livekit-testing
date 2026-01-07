@@ -90,7 +90,7 @@ task bddTest(type: Test) {
 
     maxParallelForks = 1
 
-    def parallelism = System.getProperty('parallelism', '2')
+    def parallelism = System.getProperty('parallelism', '1')
 
     systemProperty 'cucumber.execution.parallel.enabled', 'true'
 

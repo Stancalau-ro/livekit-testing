@@ -6,6 +6,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
+import ro.stancalau.test.framework.util.WebDriverSessionDeadException;
 
 @Slf4j
 public class JsExecutor {
@@ -33,6 +34,7 @@ public class JsExecutor {
             log.debug("JS call {}() completed in {}ms", functionName, duration);
             return JsResult.success(convertResult(result, returnType));
         } catch (Exception e) {
+            checkForDeadSession(e, functionName);
             log.warn("JS call {}() failed: {}", functionName, e.getMessage());
             return JsResult.failure(e);
         }
@@ -46,6 +48,7 @@ public class JsExecutor {
             long duration = System.currentTimeMillis() - startTime;
             log.debug("JS void call {}() completed in {}ms", functionName, duration);
         } catch (Exception e) {
+            checkForDeadSession(e, functionName);
             log.warn("JS void call {}() failed: {}", functionName, e.getMessage());
             throw new JsExecutionException(functionName, e.getMessage(), e);
         }
@@ -61,6 +64,7 @@ public class JsExecutor {
             log.debug("JS async call {}() completed in {}ms", functionName, duration);
             return JsResult.success(convertResult(result, returnType));
         } catch (Exception e) {
+            checkForDeadSession(e, functionName);
             log.warn("JS async call {}() failed: {}", functionName, e.getMessage());
             return JsResult.failure(e);
         }
@@ -173,5 +177,13 @@ public class JsExecutor {
             return (T) Double.valueOf(0.0);
         }
         return null;
+    }
+
+    private void checkForDeadSession(Exception e, String functionName) {
+        if (WebDriverSessionDeadException.isSessionDeadError(e)) {
+            log.error("WebDriver session is dead during {}() - failing fast", functionName);
+            throw new WebDriverSessionDeadException(
+                    "WebDriver session died during " + functionName + "(): " + e.getMessage(), e);
+        }
     }
 }

@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chromium.HasCdp;
@@ -24,12 +26,13 @@ import ro.stancalau.test.framework.util.PathUtils;
 @Slf4j
 public class WebDriverStateManager {
 
-    private static final String SESSION_TIMEOUT_SECONDS = "180";
+    private static final String SESSION_TIMEOUT_SECONDS = "600";
     private static final Duration CONTAINER_STARTUP_TIMEOUT = Duration.ofSeconds(180);
     private static final long RECORDING_FILE_TIMEOUT_MS = 10_000;
     private static final long RECORDING_FILE_POLL_DELAY_MS = 200;
-    private static final long WEBDRIVER_RETRY_TIMEOUT_MS = 120_000;
+    private static final long WEBDRIVER_RETRY_TIMEOUT_MS = 180_000;
     private static final long WEBDRIVER_RETRY_DELAY_MS = 5_000;
+    private static final long DRIVER_QUIT_TIMEOUT_SECONDS = 10;
 
     private final Map<String, WebDriver> webDrivers = new HashMap<>();
     private final Map<String, BrowserWebDriverContainer<?>> browserContainers = new HashMap<>();
@@ -344,12 +347,7 @@ public class WebDriverStateManager {
             log.info("Closing WebDriver and container for purpose: {}, actor: {}", purpose, actor);
 
             if (driver != null) {
-                try {
-                    driver.quit();
-                    log.debug("Successfully closed WebDriver with key: {}", key);
-                } catch (Exception e) {
-                    log.warn("Error closing WebDriver with key: {}: {}", key, e.getMessage());
-                }
+                safeQuitDriver(driver, key);
             }
 
             if (container != null) {
@@ -390,14 +388,8 @@ public class WebDriverStateManager {
             String key = entry.getKey();
             if (key.startsWith(purpose + ":")) {
                 WebDriver driver = entry.getValue();
-                try {
-                    driver.quit();
-                    log.debug("Closed WebDriver with key: {}", key);
-                    return true;
-                } catch (Exception e) {
-                    log.warn("Error closing WebDriver with key: {}: {}", key, e.getMessage());
-                    return true;
-                }
+                safeQuitDriver(driver, key);
+                return true;
             }
             return false;
         });
@@ -434,14 +426,8 @@ public class WebDriverStateManager {
             String[] parts = key.split(":");
             if (parts.length >= 2 && parts[1].equals(actor)) {
                 WebDriver driver = entry.getValue();
-                try {
-                    driver.quit();
-                    log.debug("Closed WebDriver with key: {}", key);
-                    return true;
-                } catch (Exception e) {
-                    log.warn("Error closing WebDriver with key: {}: {}", key, e.getMessage());
-                    return true;
-                }
+                safeQuitDriver(driver, key);
+                return true;
             }
             return false;
         });
@@ -472,12 +458,7 @@ public class WebDriverStateManager {
         for (Map.Entry<String, WebDriver> entry : webDrivers.entrySet()) {
             String key = entry.getKey();
             WebDriver driver = entry.getValue();
-            try {
-                driver.quit();
-                log.debug("Closed WebDriver with key: {}", key);
-            } catch (Exception e) {
-                log.warn("Error closing WebDriver with key: {}: {}", key, e.getMessage());
-            }
+            safeQuitDriver(driver, key);
         }
         webDrivers.clear();
 
@@ -587,5 +568,20 @@ public class WebDriverStateManager {
         }
         log.warn("Invalid key format: {}, expected format: purpose:actor", key);
         return null;
+    }
+
+    private void safeQuitDriver(WebDriver driver, String key) {
+        try {
+            CompletableFuture<Void> quitFuture = CompletableFuture.runAsync(driver::quit);
+            quitFuture.get(DRIVER_QUIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            log.debug("Successfully quit WebDriver with key: {}", key);
+        } catch (java.util.concurrent.TimeoutException e) {
+            log.warn(
+                    "WebDriver quit timed out after {}s for key: {} - session likely dead",
+                    DRIVER_QUIT_TIMEOUT_SECONDS,
+                    key);
+        } catch (Exception e) {
+            log.warn("Error quitting WebDriver with key: {}: {}", key, e.getMessage());
+        }
     }
 }
