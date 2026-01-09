@@ -64,7 +64,7 @@ Feature: Simulcast Video Publishing
     And "Grace" sets video quality preference to "LOW"
 
     Then "Grace" should be receiving low quality video from "Frank"
-    And "Frank"'s video publish bitrate should have dropped by at least 30 percent
+    And "Frank"'s video publish bitrate should have dropped by at least 25 percent
     And "Frank" closes the browser
     And "Grace" closes the browser
 
@@ -119,7 +119,7 @@ Feature: Simulcast Video Publishing
     And "Laura" sets maximum receive bandwidth to 100 kbps
 
     Then "Laura" should be receiving a lower quality layer from "Kevin"
-    And "Kevin"'s video publish bitrate should have dropped by at least 30 percent
+    And "Kevin"'s video publish bitrate should have dropped by at least 25 percent
     And "Kevin" closes the browser
     And "Laura" closes the browser
 

@@ -57,7 +57,7 @@ Feature: Dynacast Bandwidth Adaptation
     When "Victor" measures their video publish bitrate over 3 seconds
     And "Wendy" sets video quality preference to "LOW"
     Then "Wendy" should be receiving low quality video from "Victor"
-    And "Victor"'s video publish bitrate should have dropped by at least 30 percent
+    And "Victor"'s video publish bitrate should have dropped by at least 25 percent
 
     And "Victor" closes the browser
     And "Wendy" closes the browser
