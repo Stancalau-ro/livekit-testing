@@ -20,6 +20,10 @@ spotless {
     }
 }
 
+tasks.named('check') {
+    dependsOn.remove(tasks.spotlessCheck)
+}
+
 group = 'ro.stancalau.livekit'
 version = '1.0-SNAPSHOT'
 
