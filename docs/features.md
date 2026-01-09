@@ -100,7 +100,7 @@ Given the LiveKit config is set to "with_egress_hook"
 And a mock HTTP server is running in a container with service name "mockserver"
 And a Redis server is running in a container with service name "redis"
 And a LiveKit server is running in a container with service name "livekit1"
-And a LiveKit egress service is running in a container with service name "egress1" connected to LiveKit service "livekit1"
+And a LiveKit egress service is running in a container with service name "egress" connected to LiveKit service "livekit1"
 ```
 
 #### Room Composite Recording
@@ -629,7 +629,7 @@ And a Redis server is running in a container with service name "redis"
 And a LiveKit server is running in a container with service name "livekit1"
 And a MinIO server is running in a container with service name "minio1"
 And a bucket "snapshots" is created in MinIO service "minio1"
-And a LiveKit S3 snapshot egress service is running in a container with service name "egress1" connected to LiveKit service "livekit1"
+And a LiveKit S3 snapshot egress service is running in a container with service name "egress" connected to LiveKit service "livekit1"
 ```
 
 #### Room Composite Snapshot to S3
@@ -683,7 +683,7 @@ And a bucket "recordings" is created in MinIO service "minio1"
 
 #### Configure Egress with S3
 ```gherkin
-And a LiveKit S3 snapshot egress service is running in a container with service name "egress1" connected to LiveKit service "livekit1"
+And a LiveKit S3 snapshot egress service is running in a container with service name "egress" connected to LiveKit service "livekit1"
 ```
 
 #### Verify S3 Storage

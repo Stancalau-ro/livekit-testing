@@ -109,8 +109,8 @@ rtc:
 keys:
   devkey: secret
 ingress:
-  rtmp_base_url: 'rtmp://ingress1:1935/live'
-  whip_base_url: 'http://ingress1:8080/whip'
+  rtmp_base_url: 'rtmp://ingress:1935/live'
+  whip_base_url: 'http://ingress:8080/whip'
 ```
 
 ---
@@ -493,7 +493,7 @@ LiveKitContainer livekit = LiveKitContainer.createContainer(
 RedisContainer redis = RedisContainer.createContainer("redis", network);
 
 IngressContainer ingress = IngressContainer.createContainer(
-    "ingress1", network, livekit.getWsUrl(), redis.getNetworkRedisUrl());
+    "ingress", network, livekit.getWsUrl(), redis.getNetworkRedisUrl());
 ```
 
 ---

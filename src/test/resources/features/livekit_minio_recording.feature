@@ -9,7 +9,7 @@ Feature: LiveKit MinIO Recording
     And a MinIO server is running in a container with service name "minio" with access key "livekit" and secret key "livekitsecret"
     And a bucket "recordings" is created in MinIO service "minio"
     And a LiveKit server is running in a container with service name "livekit"
-    And a LiveKit egress service is running in a container with service name "egress1" connected to LiveKit service "livekit" with S3 output to MinIO service "minio"
+    And a LiveKit egress service is running in a container with service name "egress" connected to LiveKit service "livekit" with S3 output to MinIO service "minio"
 
   Scenario: Record video from a publisher to MinIO S3 bucket using egress
     Given the system creates room "S3RecordingRoom" using service "livekit"

@@ -151,7 +151,7 @@ Docker Network: livekit-test-network
 +------------------------------------------------------------------+
 |                                                                  |
 |  +--------------+       +-------------+       +--------------+   |
-|  | livekit1     |<----->| redis       |<----->| ingress1     |   |
+|  | livekit      |<----->| redis       |<----->| ingress      |   |
 |  | :7880 (WS)   |       | :6379       |       | :1935 (RTMP) |   |
 |  | :7881 (API)  |       +-------------+       | :8080 (WHIP) |   |
 |  +--------------+                              +--------------+   |
@@ -227,8 +227,8 @@ ENDPOINT_INACTIVE --> ENDPOINT_BUFFERING --> ENDPOINT_PUBLISHING
 
 ```yaml
 ingress:
-  rtmp_base_url: 'rtmp://ingress1:1935/live'
-  whip_base_url: 'http://ingress1:8080/whip'
+  rtmp_base_url: 'rtmp://ingress:1935/live'
+  whip_base_url: 'http://ingress:8080/whip'
 ```
 
 ### Ingress Container Configuration

@@ -365,7 +365,7 @@ Feature: LiveKit Ingress Stream Input
     Given the LiveKit config is set to "basic-with-ingress"
     And a LiveKit server is running in a container with service name "livekit1"
     And a Redis server is running in a container with service name "redis1"
-    And an Ingress service is running with service name "ingress1"
+    And an Ingress service is running with service name "ingress"
 
   # Story 1.1.8.4: Create RTMP Ingress via API
   Scenario: Create RTMP ingress for a room

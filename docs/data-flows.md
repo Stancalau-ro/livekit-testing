@@ -77,7 +77,7 @@ BDD Step              ContainerStateManager         Docker               Contain
        |           |           |           |           |
        v           v           v           v           v
   +---------+ +---------+ +---------+ +---------+ +---------+
-  |livekit1 | | egress1 | |  redis  | | minio1  | |mocksvr1 |
+  |livekit  | | egress  | |  redis  | | minio1  | |mocksvr  |
   | :7880   | | :7980   | | :6379   | | :9000   | | :1080   |
   +---------+ +---------+ +---------+ +---------+ +---------+
        ^           |           ^           ^
