@@ -27,6 +27,7 @@ import ro.stancalau.test.framework.docker.LiveKitContainer;
 import ro.stancalau.test.framework.docker.MinIOContainer;
 import ro.stancalau.test.framework.docker.RedisContainer;
 import ro.stancalau.test.framework.state.ContainerStateManager;
+import ro.stancalau.test.framework.util.BrowserPollingHelper;
 import ro.stancalau.test.framework.util.DateUtils;
 import ro.stancalau.test.framework.util.FileUtils;
 import ro.stancalau.test.framework.util.MinioS3Client;
@@ -152,9 +153,37 @@ public class VideoRecordingEgressSteps {
             throws Exception {
         RoomServiceClient roomClient = ManagerProvider.getRoomClientManager().getRoomServiceClient(livekitServiceName);
 
+        boolean tracksFound = BrowserPollingHelper.pollForCondition(() -> {
+            try {
+                List<LivekitModels.ParticipantInfo> participants =
+                        roomClient.listParticipants(roomName).execute().body();
+                if (participants == null) return false;
+
+                LivekitModels.ParticipantInfo targetParticipant = participants.stream()
+                        .filter(p -> p.getIdentity().equals(participantIdentity))
+                        .findFirst()
+                        .orElse(null);
+
+                if (targetParticipant == null) return false;
+
+                boolean hasAudio = targetParticipant.getTracksList().stream()
+                        .anyMatch(t -> t.getType() == LivekitModels.TrackType.AUDIO);
+                boolean hasVideo = targetParticipant.getTracksList().stream()
+                        .anyMatch(t -> t.getType() == LivekitModels.TrackType.VIDEO);
+
+                return hasAudio && hasVideo;
+            } catch (Exception e) {
+                log.warn("Error checking tracks for participant {}: {}", participantIdentity, e.getMessage());
+                return false;
+            }
+        });
+
+        assertTrue(
+                tracksFound,
+                "Audio and video tracks not found for participant " + participantIdentity + " within timeout");
+
         List<LivekitModels.ParticipantInfo> participants =
                 roomClient.listParticipants(roomName).execute().body();
-
         assertNotNull(participants, "Participants list should not be null");
 
         LivekitModels.ParticipantInfo targetParticipant = participants.stream()
@@ -174,8 +203,6 @@ public class VideoRecordingEgressSteps {
         }
 
         ManagerProvider.getEgressStateManager().storeTrackIds(participantIdentity, trackIds);
-        assertTrue(trackIds.containsKey("audio"), "Audio track not found for participant " + participantIdentity);
-        assertTrue(trackIds.containsKey("video"), "Video track not found for participant " + participantIdentity);
     }
 
     @When("the system starts room composite recording for room {string} using LiveKit service {string}")
